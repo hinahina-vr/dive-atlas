@@ -30,10 +30,10 @@ export const islandDiveAreas = [
     source: 'https://suimy-tane.jp/point1.html', sourceName: 'ダイビングサービスすいみー',
   },
   {
-    id: 'yakushima-isso', name: '一湊・矢筈岬周辺', area: '鹿児島・屋久島 一湊', coordinates: [130.496, 30.458], difficulty: 1,
-    highlight: '岬の周りに岩礁とサンゴがあり、岩の形に沿って色の違う魚たちが集まります。',
-    conditions: '風向きに応じて岬の東西から選ぶ体験・浅場コースの目安です。',
-    source: 'https://yakukan.jp/experience/introductory-diving.html', sourceName: '屋久島観光協会',
+    id: "yakushima-isso", name: "一湊タンク下", area: "鹿児島・屋久島 一湊湾 東岸のタンク下", coordinates: [130.4897072, 30.4577877], difficulty: 2, icon: "macro",
+    highlight: "潮の緩い浅場では、岩陰や砂地にいる小さな生き物をじっくり探せます。",
+    conditions: "一湊タンク下の岸寄りのコースです。沖の戦闘機残骸とはコースが分かれます。",
+    source: "https://mori-umi.net/tour/point/", sourceName: "屋久島ダイビングサービス もりとうみ",
   },
   {
     id: 'kikaijima-west', name: '喜界島西岸のサンゴ礁', area: '鹿児島・喜界島 西岸', coordinates: [129.923, 28.321], difficulty: 2,
@@ -54,9 +54,9 @@ export const islandDiveAreas = [
     source: 'https://okierabu.net/okinoerabu-diving-point/', sourceName: 'シードリーム沖永良部',
   },
   {
-    id: 'yoron-palace', name: '海中宮殿', area: '鹿児島・与論島 北側の礁', coordinates: [128.431, 27.069], difficulty: 2,
-    highlight: '青い海底に神殿のような柱が立つ人工のポイント。柱の向こうを小魚が泳ぎます。',
-    conditions: 'ガイド付きのコースを想定。体験参加は慣らしの潜水や当日の海況に応じて案内されます。',
-    source: 'https://www.harmonics.jp/oasis.html', sourceName: '与論島ダイブハーモニクス',
+    id: "yoron-palace", name: "海中宮殿", area: "鹿児島・与論島 茶花沖の海中宮殿", coordinates: [128.40768814086914, 27.06066143411962], difficulty: 2, icon: "coral",
+    highlight: "茶花沖の海底に柱とドームが立ちます。設置された宮殿にはサンゴが育ち、魚のすみかになっています。",
+    conditions: "海底は水深18m、屋根は約12m。外海のため、体験コースの実施は海況や参加者の状態で変わります。",
+    source: "https://www.harmonics.jp/oasis.html", sourceName: "与論島ダイブハーモニクス",
   },
 ];

@@ -31,16 +31,16 @@ const samples=[
  {id:'sample-1',number:124,date:'2026-06-14',site:'富戸・ヨコバマ',area:'静岡・伊豆',lat:34.897,lon:139.135,depth:17.4,duration:47,temperature:21,visibility:12,creatures:'ミノカサゴ、アオリイカ',notes:'岸から少し進むだけで、違う世界が広がっていた。'}
 ].map(normalizeLog);
 const localJournal = $('meta[name="dive-atlas-mode"]').content === 'local';
-const publicJournalToggle = $('#public-journal-toggle');
+const journalToggle = $('#public-journal-toggle');
 const journalPanel = $('#journal');
 const workspace = $('.workspace');
-publicJournalToggle.hidden = localJournal;
-if (!localJournal) journalPanel.hidden = true;
+const journalBonus = $('#journal-bonus');
 $('#journal-source').textContent = localJournal
  ? 'この端末にあるログを表示します。記録の更新はローカルで行います。'
  : 'このページでは、公開ログとダイビングスポットを閲覧できます。';
 let logs=[],demo=false,selected='',map,motionPaused=false,toastTimer=0;
-let showPublicJournal = false;
+let showJournal = false;
+let journalBonusTimer;
 let publicJournalRequest;
 let selectedSpot = null;
 const spotPins = $('#spot-pins');
@@ -93,8 +93,7 @@ function renderSpotDetail(el, { spot, marker }) {
 
 function showSpotPins(visible) {
  spotPins.hidden = !visible;
- spotToggle.setAttribute('aria-pressed', String(visible));
- spotToggle.querySelector('.spot-toggle-state').textContent = visible ? 'オン' : 'オフ';
+ spotToggle.setAttribute('aria-checked', String(visible));
  if (!visible && selectedSpot) {
   clearSpotSelection();
   renderDetail();
@@ -109,7 +108,7 @@ spotToggle.onclick = () => {
 };
 
 const isPublicLog=()=>!localJournal&&!demo;
-const current=()=>sortLogs(demo?samples:localJournal||showPublicJournal?logs:[]);
+const current=()=>sortLogs(showJournal ? (demo ? samples : logs) : []);
 const shown=()=>{const q=$('#search').value.trim().toLocaleLowerCase();return current().filter(l=>[l.site,l.area,l.notes,l.creatures].join(' ').toLocaleLowerCase().includes(q));};
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),3500);}
 function display(n,unit=''){return n===null?'—':`${Number(n).toLocaleString('ja-JP')}${unit}`;}
@@ -122,23 +121,27 @@ function renderDetail(){const l=current().find(l=>l.id===selected),el=$('#detail
  $('#detail-close').onclick=()=>{selected='';render();};}
 function selectLog(id){selected=id;render();const l=current().find(l=>l.id===id);if(l)map?.select(l);if(innerWidth<700)$('.map-stage').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth'});}
 function toggleDemo(){clearSpotSelection();demo=!demo;selected='';$('#search').value='';render();map?.fit();}
-publicJournalToggle.onclick = () => {
- showPublicJournal = !showPublicJournal;
- journalPanel.hidden = !showPublicJournal;
- workspace.classList.toggle('workspace--journal-open', showPublicJournal);
- publicJournalToggle.setAttribute('aria-pressed', String(showPublicJournal));
- publicJournalToggle.querySelector('.journal-toggle-state').textContent = showPublicJournal ? 'オン' : 'オフ';
- if (!showPublicJournal) {
+function setJournalBonus(active) {
+ clearTimeout(journalBonusTimer);
+ workspace.classList.toggle('workspace--journal-bonus', active);
+ journalBonus.hidden = !active;
+ if (active) journalBonusTimer = setTimeout(() => setJournalBonus(false), 2600);
+}
+journalToggle.onclick = async () => {
+ showJournal = !showJournal;
+ journalPanel.hidden = !showJournal;
+ workspace.classList.toggle('workspace--journal-open', showJournal);
+ journalToggle.setAttribute('aria-checked', String(showJournal));
+ setJournalBonus(showJournal && Math.random() < 1 / 12);
+ if (!showJournal) {
   demo = false;
   selected = '';
   $('#search').value = '';
  }
  render();
- if (showPublicJournal) {
-  loadPublicJournal().then(() => {
-   if (showPublicJournal && !demo && !selected && !selectedSpot && logs.some(log => log.lat !== null)) map?.fit();
-  });
- }
+ if (!showJournal) return;
+ if (!localJournal) await loadPublicJournal();
+ if (showJournal && !demo && !selected && !selectedSpot && logs.some(log => log.lat !== null)) map?.fit();
 };
 $('#demo-toggle').onclick=toggleDemo;
 $('#search').oninput=render;

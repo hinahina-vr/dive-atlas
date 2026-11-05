@@ -27,10 +27,10 @@ export const diveSpots = [
     source: okinawaBeginners, sourceName: 'PADI',
   },
   {
-    id: 'sunabe', name: '砂辺', area: '沖縄・北谷', coordinates: [127.744, 26.329], difficulty: 1,
+    id: 'sunabe', name: '砂辺No.1', area: '沖縄・北谷 砂辺No.1の礁', coordinates: [127.740912, 26.329653], difficulty: 1,
     highlight: 'ソフトコーラルが広がる海底。クマノミや色鮮やかなスズメダイも探せます。',
     conditions: '穏やかな日の浅場は流れが少なく、岸から潜れます。',
-    source: okinawaBeginners, sourceName: 'PADI',
+    source: 'https://okinawa-fundiving.com/#dive-map', sourceName: 'Marine Ship',
   },
   {
     id: 'gorilla-chop', name: 'ゴリラチョップ', area: '沖縄・本部町崎本部', coordinates: [127.8725, 26.6389], difficulty: 1,
@@ -45,10 +45,10 @@ export const diveSpots = [
     source: 'https://blog.padi.com/jp/ishigaki-miyako-which-to-visit/', sourceName: 'PADI',
   },
   {
-    id: 'yabiji', name: '八重干瀬（やびじ）', area: '沖縄・宮古島 北方の八重干瀬', coordinates: [125.269, 24.999], difficulty: 2,
-    highlight: '宮古島の北に広がる大きなサンゴ礁群。浅瀬では明るい水色の海にサンゴが連なります。',
-    conditions: 'ボートで行く浅い礁の目安。実際のポイントは風や潮に合わせて選びます。',
-    source: 'https://www.japan.travel/en/sports/diving/guides/miyakojima/', sourceName: '日本政府観光局',
+    id: "yabiji", name: "キジャカ（八重干瀬）", area: "沖縄・宮古諸島 八重干瀬 東側 キジャカのサンゴ礁", coordinates: [125.278473, 24.99726], difficulty: 2, icon: "coral",
+    highlight: "海面近くから斜面に沿ってサンゴが育ち、チリメンヤッコやハクテンカタギの観察例があります。",
+    conditions: "八重干瀬東側のボート海域です。",
+    source: "https://divingpoint.net/divepoints/view/152", sourceName: "ダイビングポイント情報サイト キジャカ",
   },
   {
     id: 'yonaguni', name: '与那国島の海底地形', area: '沖縄・与那国島南岸', coordinates: [123.011, 24.436], difficulty: 5,
@@ -63,10 +63,10 @@ export const diveSpots = [
     source: 'https://blog.padi.com/jp/diving-in-east-izu-peninsula/', sourceName: 'PADI',
   },
   {
-    id: 'shakotan', name: '美国・宝島周辺', area: '北海道・積丹 美国 宝島沖', coordinates: [140.603, 43.303], difficulty: 3,
-    highlight: '積丹ブルーの海に岩礁が続きます。岩場のすき間や海藻の間にいる生きものも観察できます。',
-    conditions: '水温に合った装備で潜るボートコースが目安です。',
-    source: 'https://blog.padi.com/jp/diving-in-hokkaido-and-tohoku-region/', sourceName: 'PADI',
+    id: "shakotan", name: "美国・宝島", area: "北海道・積丹 美国港沖 宝島周辺", coordinates: [140.59865, 43.308129], difficulty: 2, icon: "reef",
+    highlight: "湾状の西側から、砂地へ落ちる東側の岩礁まで地形が変わり、アマモの群落も見られます。",
+    conditions: "美国港からボートで向かう海域です。",
+    source: "https://divingpoint.net/divepoints/view/337", sourceName: "ダイビングポイント情報サイト 美国宝島　西",
   },
   {
     id: 'shizugawa', name: '志津川湾', area: '宮城・南三陸 志津川湾', coordinates: [141.493, 38.668], difficulty: 3,
