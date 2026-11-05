@@ -7,6 +7,52 @@ try{
  for(const width of [1440,390]){
   const c=await browser.newContext({viewport:{width,height:width===1440?1000:844},isMobile:width<700,hasTouch:width<700,reducedMotion:'reduce',acceptDownloads:true});const p=await c.newPage();p.on('pageerror',e=>report.errors.push(e.message));await p.goto('http://127.0.0.1:4495');await p.waitForFunction(()=>document.querySelectorAll('.log-card').length===4&&document.querySelector('#ocean').dataset.engine==='webgl2'&&document.querySelector('#map').dataset.mapState==='ready');await p.waitForTimeout(150);
   const stored=await p.evaluate(async()=>{const store=await import('./src/store.js');return store.loadLogs();});assert.deepEqual(sortLogs(stored),sortLogs(expected));assert.equal(await p.locator('.pin').count(),3);assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  const spotToggle = p.getByRole('button', { name: '有名スポット', exact: true });
+  const nagannu = p.getByRole('button', { name: 'ナガンヌ島・桟橋前のスポット情報', exact: true });
+  assert.equal(await spotToggle.getAttribute('aria-pressed'), 'true');
+  await nagannu.click({ timeout: 8000 });
+  assert.match(await p.locator('#detail').textContent(), /初心者向け/);
+  assert.match(await p.locator('#detail .spot-stars').textContent(), /★☆☆☆☆/);
+  assert.match(await p.locator('#detail .spot-highlight').textContent(), /ウミガメ/);
+  const sourceLink = p.locator('#detail .spot-reference a');
+  assert.equal(await sourceLink.count(), 1);
+  await p.waitForFunction(() => document.querySelector('#map').dataset.mapState === 'ready');
+  if (width < 700) {
+    const [pin, card, source] = await Promise.all([nagannu.boundingBox(), p.locator('#detail').boundingBox(), sourceLink.boundingBox()]);
+    assert(pin && card && source && pin.y + pin.height < card.y, 'The selected pin remains above the mobile card');
+    assert(source.y + source.height <= card.y + card.height, 'The source link fits in the mobile card');
+  }
+  await p.screenshot({ path: path.join(out, 'famous-spots-' + width + '.png') });
+  await spotToggle.click();
+  assert.equal(await spotToggle.getAttribute('aria-pressed'), 'false');
+  assert(await p.locator('#spot-pins').isHidden());
+  assert(await p.locator('#detail').isHidden());
+  assert.equal(await p.locator('#pins .pin').count(), 3);
+  await p.reload();
+  await p.waitForFunction(() => document.querySelector('#map').dataset.mapState === 'ready');
+  assert.equal(await spotToggle.getAttribute('aria-pressed'), 'false');
+  await spotToggle.click();
+  await nagannu.waitFor({ state: 'visible' });
+  report.checks.push(width + ': famous spots open with highlights, difficulty and source; toggle persists and log pins remain');
+
+  if (width === 1440) {
+    const markerBounds = await nagannu.boundingBox();
+    await p.getByRole('button', { name: 'ログを書く', exact: true }).click();
+    await p.getByRole('button', { name: '地図で選ぶ', exact: true }).click();
+    await p.mouse.click(markerBounds.x + markerBounds.width / 2, markerBounds.y + markerBounds.height / 2);
+    await p.waitForSelector('#editor[open]');
+    assert.match(await p.locator('[name=lat]').inputValue(), /^26\.\d+$/);
+    await p.locator('[data-close="editor"]').first().click();
+    await p.getByRole('button', { name: 'サンプルを見る', exact: true }).click();
+    await p.locator('[data-log="sample-3"]').click();
+    await p.locator('#detail-close').click();
+    await p.getByRole('button', { name: 'ブルーコーナーのスポット情報', exact: true }).click({ timeout: 8000 });
+    assert.match(await p.locator('#detail .spot-rating').textContent(), /★★★★★.*上級者向け/s);
+    assert.match(await p.locator('#detail .spot-conditions').textContent(), /潮流/);
+    await p.getByRole('button', { name: '自分のログへ', exact: true }).click();
+    report.checks.push('Public markers do not block location picking; Palau Blue Corner opens as an advanced site');
+  }
+
   await p.locator('[data-log="'+expected.at(-1).id+'"]').click();await p.waitForFunction(()=>document.querySelector('#map').dataset.mapState==='ready'&&JSON.parse(document.querySelector('#map').dataset.islandLabels||'[]').includes('黒島'));await p.waitForTimeout(1300);const names=JSON.parse(await p.locator('#map').getAttribute('data-island-labels'));report.checks.push(width+': built-in vector island labels: '+names.join(' / '));assert(Number(await p.locator('#ocean').getAttribute('data-water-features'))>0);assert.match(await p.locator('#detail').textContent(),/位置は目安/);assert.match(await p.locator('#detail').textContent(),/平均水深/);await p.screenshot({path:path.join(out,'okislo-real-'+width+'.png'),fullPage:width<700});
   const ocean = p.locator('#ocean');
   const lamps = p.locator('.map-stage .island-flower img');
@@ -20,6 +66,11 @@ try{
   await p.emulateMedia({ reducedMotion: 'no-preference' });
   await p.waitForTimeout(700);
   assert(Number(await ocean.getAttribute('data-draws')) > Number(before));
+  const timing = await lamps.evaluateAll(images => images.map(image => {
+    const { duration, delay } = image.getAnimations()[0].effect.getTiming();
+    return [duration, delay];
+  }));
+  assert.deepEqual(timing, [[400, 0], [400, -200]], 'Lamp changes every 200 ms');
   const observedLitLamps = new Set();
   for (let sample = 0; sample < 12; sample++) {
     const lit = await lamps.evaluateAll(images => images.map(image => {
@@ -31,7 +82,7 @@ try{
     await p.waitForTimeout(60);
   }
   assert.equal(observedLitLamps.size, 2, 'Both the left and right lamp take a turn');
-  report.checks.push(width + ': pink hibiscus sprites load and alternate with no simultaneous flash');
+  report.checks.push(width + ': pink hibiscus lamps alternate every 200 ms with no simultaneous flash');
   await p.getByRole('button', { name: '水面の動きを止める', exact: true }).click();
   const paused = await ocean.getAttribute('data-draws');
   await p.waitForTimeout(150);

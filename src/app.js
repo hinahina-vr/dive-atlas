@@ -13,6 +13,72 @@ const samples=[
  {id:'sample-1',number:124,date:'2026-06-14',site:'富戸・ヨコバマ',area:'静岡・伊豆',lat:34.897,lon:139.135,depth:17.4,duration:47,temperature:21,visibility:12,creatures:'ミノカサゴ、アオリイカ',notes:'岸から少し進むだけで、違う世界が広がっていた。'}
 ].map(normalizeLog);
 let logs=[],demo=false,selected='',map,photos=[],editing=false,importRows=null,pending=[],motionPaused=false,pickActive=false,toastTimer=0,storageReady=false;
+let selectedSpot = null;
+const spotPins = $('#spot-pins');
+const spotToggle = $('#spot-toggle');
+const spotPreferenceKey = 'dive-atlas:show-famous-spots';
+const difficultyNames = ['', '初心者向け', '初心者向け（ガイド同行）', '中級者向け', '上級者向け', '上級者向け'];
+
+function clearSpotSelection() {
+ selectedSpot?.marker.setAttribute('aria-pressed', 'false');
+ selectedSpot = null;
+}
+
+function selectSpot(spot, marker) {
+ clearSpotSelection();
+ selected = '';
+ selectedSpot = { spot, marker };
+ marker.setAttribute('aria-pressed', 'true');
+ render();
+ if (innerWidth < 700) map?.focusSpot(spot);
+ $('#spot-close').focus({ preventScroll: true });
+}
+
+function renderSpotDetail(el, { spot, marker }) {
+ const stars = '★'.repeat(spot.difficulty);
+ const empty = '☆'.repeat(5 - spot.difficulty);
+ el.hidden = false;
+ el.innerHTML = `
+  <div class="detail-top"><span>ダイビング海域の代表ポイント</span>
+   <button class="icon-button" id="spot-close" aria-label="スポット詳細を閉じる">${icon('close')}</button>
+  </div>
+  <h2>${escape(spot.name)}</h2>
+  <div class="detail-area">${icon('pin')}${escape(spot.area)}<span class="location-approx">位置は目安</span></div>
+  <div class="spot-rating">
+   <span>難易度の目安</span>
+   <span class="spot-stars" role="img" aria-label="5段階中 ${spot.difficulty}">${stars}<span>${empty}</span></span>
+   <strong>${difficultyNames[spot.difficulty]}</strong>
+  </div>
+  <p class="spot-highlight"><strong>見どころ</strong>${escape(spot.highlight)}</p>
+  <p class="spot-conditions">${escape(spot.conditions)}</p>
+  <div class="spot-reference">
+   <small>当日の海況や必要な資格は現地ガイドに確認</small>
+   <a href="${escape(spot.source)}" target="_blank" rel="noopener noreferrer">${escape(spot.sourceName)}の案内 ↗</a>
+  </div>`;
+ $('#spot-close').onclick = () => {
+  clearSpotSelection();
+  renderDetail();
+  if (!marker.hidden) marker.focus({ preventScroll: true });
+ };
+}
+
+function showSpotPins(visible) {
+ spotPins.hidden = !visible;
+ spotToggle.setAttribute('aria-pressed', String(visible));
+ spotToggle.querySelector('.spot-toggle-state').textContent = visible ? 'オン' : 'オフ';
+ if (!visible && selectedSpot) {
+  clearSpotSelection();
+  renderDetail();
+ }
+}
+
+try { showSpotPins(localStorage.getItem(spotPreferenceKey) !== 'off'); } catch { showSpotPins(true); }
+spotToggle.onclick = () => {
+ const visible = spotPins.hidden;
+ showSpotPins(visible);
+ try { localStorage.setItem(spotPreferenceKey, visible ? 'on' : 'off'); } catch { /* The toggle also works without storage. */ }
+};
+
 const current=()=>sortLogs(demo?samples:logs);
 const shown=()=>{const q=$('#search').value.trim().toLocaleLowerCase();return current().filter(l=>[l.site,l.area,l.notes,l.creatures].join(' ').toLocaleLowerCase().includes(q));};
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),3500);}
@@ -22,17 +88,17 @@ function render(){const all=current(),list=shown(),s=summary(all);$('#totals').i
  $('#log-list').innerHTML=list.length?list.map(l=>`<button class="log-card ${l.id===selected?'selected':''}" data-log="${escape(l.id)}"><span class="log-no">${l.number!==null?escape(l.number):'<img src="./assets/hibiscus-pink.png" alt="" width="24" height="24">'}</span><span><time datetime="${l.date}">${l.date.replaceAll('-','.')}</time><h3>${escape(l.site)}</h3><span class="area">${escape(l.area||'エリア未設定')}${l.lat===null?' · 場所未設定':''}</span><span class="measures"><span>↧ ${display(l.depth,' m')}</span><span>◷ ${display(l.duration,' min')}</span><span>${display(l.temperature,' °C')}</span></span></span></button>`).join(''):`<div class="empty"><h3>${all.length?'見つかりませんでした':'はじめの1本を、地図に。'}</h3><p>${all.length?'別の言葉で探してみてください。':'TUSAのログを取り込んだり、<br>自分で記録を追加できます。'}</p>${all.length?'':'<button class="primary" id="empty-import">ログを取り込む</button><br><button class="text-button" id="empty-demo">サンプルで試す</button>'}</div>`;
  document.querySelectorAll('[data-log]').forEach(el=>el.onclick=()=>selectLog(el.dataset.log));$('#empty-import')?.addEventListener('click',()=>$('#importer').showModal());$('#empty-demo')?.addEventListener('click',toggleDemo);
  map?.setLogs(list,selected);renderDetail();}
-function renderDetail(){const l=current().find(l=>l.id===selected),el=$('#detail');if(!l){el.hidden=true;return;}el.hidden=false;el.innerHTML=`<div class="detail-top"><span>${demo?'SAMPLE · ':''}DIVE ${escape(l.number??'')} / ${l.date.replaceAll('-','.')}</span><button class="icon-button" id="detail-close" aria-label="ログ詳細を閉じる">${icon('close')}</button></div><h2>${escape(l.site)}</h2><div class="detail-area">${icon('pin')}${escape(l.area||'エリア未設定')}${l.lat===null?' · 地図の場所を追加できます':''}${l.locationKind==='approximate'?'<span class="location-approx">位置は目安</span>':''}</div><div class="detail-numbers"><div><strong>${display(l.depth)}</strong><small>m</small><span>最大水深</span></div><div><strong>${display(l.duration)}</strong><small>min</small><span>潜水時間</span></div><div><strong>${display(l.temperature)}</strong><small>°C</small><span>水温</span></div></div><div class="tags">${l.creatures.split(/[、,]/).filter(Boolean).map(t=>`<span class="tag">${escape(t.trim())}</span>`).join('')}</div>${l.notes?`<p class="detail-notes">${escape(l.notes)}</p>`:''}${l.visibility!==null||l.buddy||l.tusa?`<div class="detail-meta">${l.visibility!==null?'透明度 '+display(l.visibility,' m'):''}${l.buddy?'　バディ '+escape(l.buddy):''}${l.tusa?.original?.AVE_DEPTH>=0?'　平均水深 '+display(l.tusa.original.AVE_DEPTH,' m'):''}</div>${l.locationKind==='approximate'?`<p class="detail-meta">${escape(l.locationLabel)}を表示中。<br>ログを編集して、潜った位置へ直せます。</p>`:''}`:''}${l.photos.length?`<div class="detail-photos">${l.photos.map((p,i)=>`<img src="${p}" alt="${escape(l.site)}の写真 ${i+1}" loading="lazy">`).join('')}</div>`:''}${l.signature?`<details class="signature"><summary>サインを見る</summary><img src="${l.signature}" alt="TUSAログに保存されたサイン"></details>`:''}<div class="detail-footer"><small>${demo?'体験用の架空の記録':l.source?'取り込み：'+escape(l.source):'MY OCEAN MEMORY'}</small>${!demo?`<button class="quiet" id="edit-log">${icon('edit')}記録を編集</button>`:''}</div>`;
+function renderDetail(){const l=current().find(l=>l.id===selected),el=$('#detail');if(!l){if(selectedSpot)renderSpotDetail(el,selectedSpot);else el.hidden=true;return;}clearSpotSelection();el.hidden=false;el.innerHTML=`<div class="detail-top"><span>${demo?'SAMPLE · ':''}DIVE ${escape(l.number??'')} / ${l.date.replaceAll('-','.')}</span><button class="icon-button" id="detail-close" aria-label="ログ詳細を閉じる">${icon('close')}</button></div><h2>${escape(l.site)}</h2><div class="detail-area">${icon('pin')}${escape(l.area||'エリア未設定')}${l.lat===null?' · 地図の場所を追加できます':''}${l.locationKind==='approximate'?'<span class="location-approx">位置は目安</span>':''}</div><div class="detail-numbers"><div><strong>${display(l.depth)}</strong><small>m</small><span>最大水深</span></div><div><strong>${display(l.duration)}</strong><small>min</small><span>潜水時間</span></div><div><strong>${display(l.temperature)}</strong><small>°C</small><span>水温</span></div></div><div class="tags">${l.creatures.split(/[、,]/).filter(Boolean).map(t=>`<span class="tag">${escape(t.trim())}</span>`).join('')}</div>${l.notes?`<p class="detail-notes">${escape(l.notes)}</p>`:''}${l.visibility!==null||l.buddy||l.tusa?`<div class="detail-meta">${l.visibility!==null?'透明度 '+display(l.visibility,' m'):''}${l.buddy?'　バディ '+escape(l.buddy):''}${l.tusa?.original?.AVE_DEPTH>=0?'　平均水深 '+display(l.tusa.original.AVE_DEPTH,' m'):''}</div>${l.locationKind==='approximate'?`<p class="detail-meta">${escape(l.locationLabel)}を表示中。<br>ログを編集して、潜った位置へ直せます。</p>`:''}`:''}${l.photos.length?`<div class="detail-photos">${l.photos.map((p,i)=>`<img src="${p}" alt="${escape(l.site)}の写真 ${i+1}" loading="lazy">`).join('')}</div>`:''}${l.signature?`<details class="signature"><summary>サインを見る</summary><img src="${l.signature}" alt="TUSAログに保存されたサイン"></details>`:''}<div class="detail-footer"><small>${demo?'体験用の架空の記録':l.source?'取り込み：'+escape(l.source):'MY OCEAN MEMORY'}</small>${!demo?`<button class="quiet" id="edit-log">${icon('edit')}記録を編集</button>`:''}</div>`;
  $('#detail-close').onclick=()=>{selected='';render();};$('#edit-log')?.addEventListener('click',()=>openEditor(l));}
 function selectLog(id){selected=id;render();const l=current().find(l=>l.id===id);if(l)map?.select(l);if(innerWidth<700)$('.map-stage').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth'});}
-function toggleDemo(){demo=!demo;selected='';$('#search').value='';render();map?.fit();if(demo)toast('サンプルはあなたの保存データには入りません');}
+function toggleDemo(){clearSpotSelection();demo=!demo;selected='';$('#search').value='';render();map?.fit();if(demo)toast('サンプルはあなたの保存データには入りません');}
 function openEditor(log){if(!storageReady){toast('保存先を利用できません。ページを開き直してください。');return;}if(demo){demo=false;selected='';render();}editing=Boolean(log);const form=$('#log-form');form.reset();for(const name of ['id','date','number','site','area','lat','lon','depth','duration','temperature','visibility','buddy','creatures','notes'])form.elements[name].value=log?.[name]??(name==='date'?new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10):'');photos=[...(log?.photos??[])];renderPhotos();$('#editor-title').textContent=log?'海の記録を編集':'海の記録を残す';$('#delete-log').hidden=!log;$('#editor-error').textContent='';$('#editor').showModal();}
 function renderPhotos(){$('#photo-preview').innerHTML=photos.map((p,i)=>`<button type="button" data-photo="${i}" aria-label="写真${i+1}を外す"><img src="${p}" alt="選んだ写真${i+1}"></button>`).join('');document.querySelectorAll('[data-photo]').forEach(b=>b.onclick=()=>{photos.splice(Number(b.dataset.photo),1);renderPhotos();});}
 async function photoURL(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>20*1024*1024)throw new Error('JPEG・PNG・WebP（20MB以下）の写真を選んでください。');const bitmap=await createImageBitmap(file);const factor=Math.min(1,1400/Math.max(bitmap.width,bitmap.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(bitmap.width*factor));c.height=Math.max(1,Math.round(bitmap.height*factor));c.getContext('2d').drawImage(bitmap,0,0,c.width,c.height);bitmap.close();return c.toDataURL('image/jpeg',.84);}
 $('#photos').onchange=async e=>{try{if(photos.length+e.target.files.length>6)throw new Error('写真は6枚までです。');const values=await Promise.all([...e.target.files].map(photoURL));photos.push(...values);renderPhotos();$('#editor-error').textContent='';}catch(err){$('#editor-error').textContent=err.message;}finally{e.target.value='';}};
 $('#log-form').onsubmit=async e=>{e.preventDefault();const button=$('#save-log');button.disabled=true;try{const raw=Object.fromEntries(new FormData(e.target)),old=logs.find(l=>l.id===raw.id);const sameLocation=old&&Number(raw.lat)===old.lat&&Number(raw.lon)===old.lon;const log=normalizeLog({...raw,photos,source:old?.source??'',tusa:old?.tusa,signature:old?.signature,locationKind:sameLocation?old.locationKind:'specified',locationLabel:sameLocation?old.locationLabel:'',locationSource:sameLocation?old.locationSource:''});await saveLog(log);logs=logs.filter(l=>l.id!==log.id).concat(log);selected=log.id;demo=false;$('#search').value='';$('#editor').close();render();map?.select(log);toast('海の記録を保存しました');}catch(err){$('#editor-error').textContent=err.message||'保存できませんでした。';}finally{button.disabled=false;}};
 $('#delete-log').onclick=async()=>{const id=$('#log-form').elements.id.value;if(!confirm('このログを削除しますか？'))return;try{await deleteLog(id);logs=logs.filter(l=>l.id!==id);selected='';$('#editor').close();render();toast('ログを削除しました');}catch(err){$('#editor-error').textContent=err.message;}};
-function pickLocation(value){pickActive=value;map?.setPicking(value);$('#pick-hint').hidden=!value;}
+function pickLocation(value){pickActive=value;spotPins.inert=value;map?.setPicking(value);$('#pick-hint').hidden=!value;}
 $('#pick-location').onclick=()=>{$('#editor').close();pickLocation(true);$('.map-stage').scrollIntoView({behavior:'smooth'});};$('#pick-cancel').onclick=()=>{pickLocation(false);$('#editor').showModal();};
 $('#new-log').onclick=()=>openEditor();$('#demo-toggle').onclick=toggleDemo;$('#search').oninput=render;$('#zoom-in').onclick=()=>map?.zoomBy(1.4);$('#zoom-out').onclick=()=>map?.zoomBy(1/1.4);$('#fit').onclick=()=>map?.fit();$('#motion-toggle').onclick=()=>{motionPaused=!motionPaused;map?.pauseMotion(motionPaused);$('#motion-toggle').textContent=motionPaused?'水面を動かす':'水面の動きを止める';};
 $('#import-open').onclick=()=>$('#importer').showModal();$('#about-open').onclick=()=>$('#about').showModal();document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$('#'+b.dataset.close).close());
@@ -41,4 +107,4 @@ function showImportPreview(){const errors=[];if(importRows){const mapping=Object
 $('#import-file').onchange=async e=>{pending=[];importRows=null;$('#confirm-import').disabled=true;$('#import-preview').replaceChildren();$('#import-error').textContent='';const file=e.target.files[0];if(!file)return;try{if(file.size>80*1024*1024)throw new Error('80MB以下のファイルを選んでください。');const buffer=await file.arrayBuffer();let text=new TextDecoder('utf-8',{fatal:false}).decode(buffer);if(text.includes('\uFFFD'))text=new TextDecoder('shift-jis').decode(buffer);if(file.name.toLowerCase().endsWith('.zip')){const response=await fetch('/api/import-tusa',{method:'POST',headers:{'Content-Type':'application/zip'},body:buffer});const result=await response.json();if(!response.ok)throw new Error(result.error||'ZIPを確認できませんでした。');pending=readBackup(result);}else if(file.name.toLowerCase().endsWith('.json'))pending=readBackup(JSON.parse(text));else {importRows=parseCSV(text);const mapping=guessMapping(importRows[0]);$('#import-preview').innerHTML='<h3>列の対応を確認</h3><p class="field-note">単位はm・分・°Cです。見出しのない独自形式は、実ファイルを確認してから対応します。</p><div class="import-mapping">'+CSV_FIELDS.map(([key,label])=>`<label>${label}<select data-field="${key}"><option value="-1">使用しない</option>${importRows[0].map((h,i)=>`<option value="${i}" ${mapping[key]===i?'selected':''}>${escape(h||'列 '+(i+1))}</option>`).join('')}</select></label>`).join('')+'</div>';document.querySelectorAll('[data-field]').forEach(s=>s.onchange=()=>{try{showImportPreview();}catch(err){$('#import-error').textContent=err.message;$('#confirm-import').disabled=true;}});}showImportPreview();}catch(err){$('#import-error').textContent=err.message;}};
 $('#confirm-import').onclick=async()=>{const button=$('#confirm-import');button.disabled=true;try{const all=mergeLogs(logs,pending),added=all.length-logs.length;await saveBatch(all.filter(l=>!logs.some(old=>old.id===l.id)));logs=all;demo=false;selected='';$('#search').value='';$('#importer').close();render();map?.fit();toast(`${added}本のログを取り込みました`);}catch(err){$('#import-error').textContent=err.message;button.disabled=false;}};
 try{logs=await loadLogs();storageReady=true;const response=await fetch('/api/local-import');if(response.ok){const local=await response.json();if(local.enabled&&local.digest){const key='dive-atlas:imported:'+local.digest;if(!localStorage.getItem(key)){const incoming=readBackup(local.backup),merged=mergeLogs(logs,incoming);await saveBatch(merged.filter(l=>!logs.some(old=>old.id===l.id)));logs=merged;localStorage.setItem(key,'done');toast(incoming.length+'本のTUSAログを取り込みました');}}}}catch(e){$('#storage-status').textContent='保存先を利用できません';$('#storage-status').style.color='#f1b3a7';toast('ブラウザの保存機能を確認してください');}render();
-try{map=await createMap({canvas:$('#map'),ocean:$('#ocean'),pins:$('#pins'),onSelect:selectLog,onPick:({lat,lon})=>{if(!pickActive)return;$('#log-form').elements.lat.value=lat.toFixed(5);$('#log-form').elements.lon.value=lon.toFixed(5);pickLocation(false);$('#editor').showModal();},onMove:({lat,lon})=>{$('#map-coordinate').textContent=`${Math.abs(lat).toFixed(1)}°${lat<0?'S':'N'} / ${Math.abs(lon).toFixed(1)}°${lon<0?'W':'E'}`;}});map.setLogs(shown(),selected);if(logs.length)map.fit();}catch(e){toast('地図を読み込めませんでした。ログは一覧から使えます。');console.error(e);}
+try{map=await createMap({canvas:$('#map'),ocean:$('#ocean'),pins:$('#pins'),spotPins,onSelect:selectLog,onSpotSelect:selectSpot,onPick:({lat,lon})=>{if(!pickActive)return;$('#log-form').elements.lat.value=lat.toFixed(5);$('#log-form').elements.lon.value=lon.toFixed(5);pickLocation(false);$('#editor').showModal();},onMove:({lat,lon})=>{$('#map-coordinate').textContent=`${Math.abs(lat).toFixed(1)}°${lat<0?'S':'N'} / ${Math.abs(lon).toFixed(1)}°${lon<0?'W':'E'}`;}});map.setLogs(shown(),selected);if(logs.length)map.fit();}catch(e){toast('地図を読み込めませんでした。ログは一覧から使えます。');console.error(e);}
