@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Keep npm cache outside the checkout
+        run: printf 'npm_config_cache=%s\n' "$RUNNER_TEMP/dive-atlas-npm" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -23,6 +25,10 @@ jobs:
           DIVE_ATLAS_PUBLIC_JOURNAL: ${{ secrets.DIVE_ATLAS_PUBLIC_JOURNAL }}
         run: |
           node -e 'const journal = process.env.DIVE_ATLAS_PUBLIC_JOURNAL; if (journal) require("node:fs").writeFileSync("public-journal.json", journal);'
+      - name: Verify the release tree
+        run: |
+          git status --short
+          test -z "$(git status --porcelain)"
       - run: npm run build:pages -- artifacts/pages
       - uses: actions/upload-pages-artifact@v4
         with:
