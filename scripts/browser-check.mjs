@@ -32,8 +32,13 @@ const contents = fs.readdirSync(pages, { recursive:true }).map(String);
 assert(!contents.some(file => /private|artifacts|\.zip$|\.db$|store\.js/.test(file)));
 const revision = JSON.parse(fs.readFileSync(path.join(pages, 'revision.json'), 'utf8'));
 assert.equal(revision.spots, diveSpots.length);
-const publicRows = JSON.parse(fs.readFileSync(path.join(pages, 'journal.json'), 'utf8'));
-for (const row of publicRows) assert.deepEqual(Object.keys(row).sort(), ['date','depth','duration','site']);
+const publicJournalFile = path.join(pages, 'journal.json');
+const builtRows = JSON.parse(fs.readFileSync(publicJournalFile, 'utf8'));
+for (const row of builtRows) assert.deepEqual(Object.keys(row).sort(), ['date','depth','duration','site']);
+// Use synthetic measurements to exercise real site names in the four-field Pages format.
+const pinSites = ['黒島北','黒島南','カメ吉','那覇シーサイドパーク'];
+const publicRows = pinSites.map(site => ({date:'2026-01-01', site, depth:15, duration:40}));
+fs.writeFileSync(publicJournalFile, JSON.stringify(publicRows));
 const mime = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.mjs':'text/javascript', '.json':'application/json', '.png':'image/png', '.geojson':'application/geo+json' };
 const published = http.createServer((req,res)=>{
  if(!req.url.startsWith(prefix)) return res.writeHead(404).end();
@@ -62,6 +67,11 @@ try {
   await page.goto(localBase);
   await mapReady();
   assert.equal(await page.locator('.log-card').count(),privateLogs.length);
+  if (pinSites.every(site=>privateLogs.some(log=>log.site===site))) {
+   for (const site of pinSites) {
+    assert(await page.getByRole('button',{name:site+'のログを開く',exact:true}).isVisible());
+   }
+  }
   assert.equal(await page.locator(updateControls).count(),0);
   const log = sortLogs(privateLogs).find(row=>row.lat!==null);
   const card = page.locator('[data-log]').filter({hasText:log.site}).first();
@@ -157,6 +167,10 @@ try {
   assert.match(lamp[1].filter,/brightness\(0\.26\)/);
   await page.emulateMedia({reducedMotion:'reduce'});
 
+  assert.equal(await page.getByText('NO DIVE, NO LIFE.',{exact:true}).count(),0);
+  const toggle = page.locator('#spot-toggle');
+  if (await toggle.getAttribute('aria-pressed') === 'true') await toggle.click();
+  assert(await page.locator('#spot-pins').isHidden());
   const journalResponse = page.waitForResponse(response=>response.url().endsWith('/journal.json')&&response.ok());
   await journalToggle.click();
   await journalResponse;
@@ -164,16 +178,29 @@ try {
   assert.equal(await journalToggle.getAttribute('aria-pressed'),'true');
   assert(await journal.isVisible());
   assert.equal(await page.locator('.log-card').count(),publicRows.length);
+  await mapReady();
+  assert.equal(await page.locator('#pins .pin:visible').count(),pinSites.length);
+  assert.equal(await page.locator('#pins .pin').evaluateAll(pins=>pins.every(pin=>
+   getComputedStyle(pin,'::before').backgroundImage.includes('hibiscus-pink.png')
+  )),true);
+  assert(await page.evaluate(()=>scrollY===0));
   await page.screenshot({path:path.join(folder,'journal-'+width+'.png')});
-  if (publicRows.length) {
-   const card = page.locator('.log-card').first();
-   const row = publicRows[0];
-   assert.equal(await card.locator('time').getAttribute('datetime'),row.date);
-   await card.click();
-   assert.equal(await page.locator('#detail h2').textContent(),row.site);
+  for (const site of pinSites) {
+   await page.getByRole('button',{name:site+'のログを開く',exact:true}).click();
+   assert.equal(await page.locator('#detail h2').textContent(),site);
    assert.deepEqual(await page.locator('.detail-numbers span').allTextContents(),['最大水深','潜水時間']);
    assert.equal(await page.locator('.signature,.detail-photos,.detail-notes,.detail-area,.detail-meta').count(),0);
+   assert.match(await page.locator('.detail-footer').textContent(),/地図の位置は目安/);
+   await journalToggle.click();
+   assert.equal(await page.locator('#pins .pin').count(),0);
+   await journalToggle.click();
+   await mapReady();
   }
+  const row = publicRows[0];
+  const publicCard = page.locator('.log-card').filter({hasText:row.site});
+  assert.equal(await publicCard.locator('time').getAttribute('datetime'),row.date);
+  await publicCard.click();
+  assert.equal(await page.locator('#detail h2').textContent(),row.site);
   await journalToggle.click();
   assert(await journal.isHidden());
   assert(await page.locator('#detail').isHidden());
@@ -187,9 +214,6 @@ try {
   assert.equal(await page.locator(updateControls).count(),0);
   assert(!publicRequests.some(url=>url.includes('/api/')||url.endsWith('/src/store.js')));
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  const toggle=page.locator('#spot-toggle');
-  await toggle.click();
-  assert(await page.locator('#spot-pins').isHidden());
   await toggle.click();
   assert(await page.locator('#spot-pins').isVisible());
   await mapReady();
@@ -198,7 +222,7 @@ try {
   await mapReady();
   assert(await journal.isHidden());
   assert.equal(await journalToggle.getAttribute('aria-pressed'),'false');
-  report.checks.push(width+'px: public map, world/Japan controls, alternating lamps, opt-in journal, four public fields, sample and POI toggle');
+  report.checks.push(width+'px: public map, world/Japan controls, alternating lamps, opt-in journal, four public fields, separate hibiscus pins, sample and POI toggle');
   await context.close();
  }
  assert.deepEqual(errors,[]);

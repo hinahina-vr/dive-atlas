@@ -52,17 +52,28 @@ export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelec
  function update() {
   const viewport = dimensions();
   const logPoints = [];
+  const center = map.getCenter();
   for (const el of pins.children) {
    const log = logs.find(item => item.id === el.dataset.id);
    if (!log) continue;
-   const point = map.project([log.lon, log.lat]);
-   el.style.left = `${point.x}px`;
+   const longitude = map.getRenderWorldCopies() ? center.lng + wrap(log.lon - center.lng) : log.lon;
+   const point = map.project([longitude, log.lat]);
    el.style.top = `${point.y}px`;
    el.hidden = point.x < 0 || point.x > viewport.width || point.y < 0 || point.y > viewport.height;
    el.classList.toggle('active', log.id === selected);
-   if (!el.hidden) logPoints.push(point);
+   if (el.hidden) continue;
+   // Leave separate tap targets for nearby sites even when zoomed out.
+   const offset = [0, 38, -38, 76, -76].find(dx => {
+    const x = point.x + dx;
+    return x >= 18 && x <= viewport.width - 18
+     && logPoints.every(other => Math.abs(x - other.x) >= 38 || Math.abs(point.y - other.y) >= 38);
+   }) ?? 0;
+   const x = point.x + offset;
+   el.style.left = x + 'px';
+   el.style.setProperty('--pin-offset', offset + 'px');
+   el.style.setProperty('--pin-leader-width', Math.abs(offset) + 'px');
+   logPoints.push({x, y:point.y});
   }
-  const center = map.getCenter();
   placeSpotPins(viewport, logPoints, center.lng);
   onMove?.({ lat: center.lat, lon: wrap(center.lng) });
  }
@@ -84,7 +95,54 @@ export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelec
  const scheduleMask=()=>{clearTimeout(maskTimer);maskTimer=setTimeout(updateWaterMask,70);};
  map.on('load',()=>{update();scheduleMask();});map.on('move',update);map.on('movestart',()=>{canvas.dataset.mapState='moving';ocean.style.opacity='0';});map.on('moveend',scheduleMask);map.on('idle',scheduleMask);map.on('error',e=>{canvas.dataset.mapError=e.error?.message||'Map data unavailable';});
  map.on('click',e=>oceanView.ripple(e.point.x,e.point.y));
- function setLogs(next,id){logs=next;selected=id;pins.replaceChildren();const groups=new Map();for(const l of logs){if(l.lat===null)continue;const key=l.lat.toFixed(3)+','+l.lon.toFixed(3),previous=groups.get(key);if(!previous||l.id===selected)groups.set(key,l);}for(const l of groups.values()){const same=logs.filter(n=>n.lat!==null&&n.lat.toFixed(3)===l.lat.toFixed(3)&&n.lon.toFixed(3)===l.lon.toFixed(3));const b=document.createElement('button');b.className='pin';b.dataset.id=l.id;b.setAttribute('aria-label',l.site+'のログを開く');b.setAttribute('aria-pressed',String(l.id===selected));const label=document.createElement('span');label.textContent=l.site+(same.length>1?' · '+same.length+'本':'')+(l.locationKind==='approximate'?'（目安）':'');b.append(label);if(same.length>1){const count=document.createElement('span');count.className='pin-count';count.textContent=same.length;b.append(count);}b.onclick=e=>{e.stopPropagation();const p=map.project([l.lon,l.lat]);oceanView.ripple(p.x,p.y);const next=same.length>1?same[(same.findIndex(n=>n.id===selected)+1)%same.length]:l;onSelect(next.id);};pins.append(b);}update();}
+ function setLogs(next, id) {
+  logs = next;
+  selected = id;
+  pins.replaceChildren();
+  const groups = new Map();
+  for (const log of logs) {
+   if (log.lat === null) continue;
+   const key = log.lat.toFixed(3) + ',' + log.lon.toFixed(3);
+   const group = groups.get(key);
+   if (group) group.push(log);
+   else groups.set(key, [log]);
+  }
+  for (const group of groups.values()) {
+   const selectedIndex = group.findIndex(log => log.id === selected);
+   const log = group[Math.max(0, selectedIndex)];
+   const approximate = log.locationKind === 'approximate';
+   const pin = document.createElement('button');
+   pin.type = 'button';
+   pin.className = 'pin';
+   pin.dataset.id = log.id;
+   pin.setAttribute('aria-label', log.site + 'のログを開く');
+   pin.setAttribute('aria-pressed', String(selectedIndex !== -1));
+   if (approximate) pin.title = log.site + '（位置は目安）';
+
+   const leader = document.createElement('i');
+   leader.className = 'pin-leader';
+   leader.setAttribute('aria-hidden', 'true');
+   const label = document.createElement('span');
+   label.className = 'pin-label';
+   label.textContent = log.site + (group.length > 1 ? ' · ' + group.length + '本' : '') + (approximate ? '（目安）' : '');
+   pin.append(leader, label);
+
+   if (group.length > 1) {
+    const count = document.createElement('span');
+    count.className = 'pin-count';
+    count.textContent = group.length;
+    pin.append(count);
+   }
+   pin.onclick = event => {
+    event.stopPropagation();
+    const point = map.project([log.lon, log.lat]);
+    oceanView.ripple(point.x, point.y);
+    onSelect(group[(selectedIndex + 1) % group.length].id);
+   };
+   pins.append(pin);
+  }
+  update();
+ }
  function showWorld() {
   canvas.dataset.worldView = 'true';
   // The regular Mercator constraint fills the viewport and crops the world on phones.
@@ -104,7 +162,7 @@ export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelec
   enableWrappedMap();
   map.fitBounds(japanBounds, { padding: 36, duration: motion.matches ? 0 : 850 });
  }
- function fit(){const p=logs.filter(l=>l.lat!==null),r=dimensions();if(!p.length){showJapan();return;}enableWrappedMap();if(p.length===1){map.easeTo({center:[p[0].lon,p[0].lat],zoom:12,duration:motion.matches?0:900});return;}const base=p[0].lon,longs=p.map(l=>base+wrap(l.lon-base)),lats=p.map(l=>l.lat);map.fitBounds([[Math.min(...longs),Math.min(...lats)],[Math.max(...longs),Math.max(...lats)]],{padding:{top:150,bottom:95,left:r.width<700?40:90,right:65},maxZoom:13,duration:motion.matches?0:950});}
+ function fit(){map.resize();const p=logs.filter(l=>l.lat!==null),r=dimensions();if(!p.length){showJapan();return;}enableWrappedMap();if(p.length===1){map.easeTo({center:[p[0].lon,p[0].lat],zoom:12,duration:motion.matches?0:900});return;}const base=p[0].lon,longs=p.map(l=>base+wrap(l.lon-base)),lats=p.map(l=>l.lat);map.fitBounds([[Math.min(...longs),Math.min(...lats)],[Math.max(...longs),Math.max(...lats)]],{padding:{top:150,bottom:95,left:r.width<700?40:90,right:65},maxZoom:13,duration:motion.matches?0:950});}
  new ResizeObserver(()=>{map.resize();oceanView.resize();update();scheduleMask();}).observe(canvas.parentElement);oceanView.resize();
  function focusSpot(spot) {
   // Keep the selected pin above the detail card on narrow screens.
