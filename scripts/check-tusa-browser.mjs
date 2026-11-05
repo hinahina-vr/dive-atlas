@@ -8,7 +8,34 @@ try{
   const c=await browser.newContext({viewport:{width,height:width===1440?1000:844},isMobile:width<700,hasTouch:width<700,reducedMotion:'reduce',acceptDownloads:true});const p=await c.newPage();p.on('pageerror',e=>report.errors.push(e.message));await p.goto('http://127.0.0.1:4495');await p.waitForFunction(()=>document.querySelectorAll('.log-card').length===4&&document.querySelector('#ocean').dataset.engine==='webgl2'&&document.querySelector('#map').dataset.mapState==='ready');await p.waitForTimeout(150);
   const stored=await p.evaluate(async()=>{const store=await import('./src/store.js');return store.loadLogs();});assert.deepEqual(sortLogs(stored),sortLogs(expected));assert.equal(await p.locator('.pin').count(),3);assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await p.locator('[data-log="'+expected.at(-1).id+'"]').click();await p.waitForFunction(()=>document.querySelector('#map').dataset.mapState==='ready'&&JSON.parse(document.querySelector('#map').dataset.islandLabels||'[]').includes('黒島'));await p.waitForTimeout(1300);const names=JSON.parse(await p.locator('#map').getAttribute('data-island-labels'));report.checks.push(width+': built-in vector island labels: '+names.join(' / '));assert(Number(await p.locator('#ocean').getAttribute('data-water-features'))>0);assert.match(await p.locator('#detail').textContent(),/位置は目安/);assert.match(await p.locator('#detail').textContent(),/平均水深/);await p.screenshot({path:path.join(out,'okislo-real-'+width+'.png'),fullPage:width<700});
-  const before=await p.locator('#ocean').getAttribute('data-draws');await p.waitForTimeout(120);assert.equal(await p.locator('#ocean').getAttribute('data-draws'),before);await p.emulateMedia({reducedMotion:'no-preference'});await p.waitForTimeout(700);assert(Number(await p.locator('#ocean').getAttribute('data-draws'))>Number(before));const lamps=p.locator('.map-stage .island-flower img');assert.equal(await lamps.count(),2);const filters=[new Set(),new Set()];for(let i=0;i<12;i++){(await lamps.evaluateAll(els=>els.map(el=>getComputedStyle(el).filter))).forEach((filter,index)=>filters[index].add(filter));await p.waitForTimeout(60);}assert(filters.every(values=>values.size>1),'Both hibiscus lamps must flash in jackpot state');report.checks.push(width+': both hibiscus lamps flash through distinct bright/dim phases');await p.getByRole('button',{name:'水面の動きを止める',exact:true}).click();const paused=await p.locator('#ocean').getAttribute('data-draws');await p.waitForTimeout(150);assert.equal(await p.locator('#ocean').getAttribute('data-draws'),paused);
+  const ocean = p.locator('#ocean');
+  const lamps = p.locator('.map-stage .island-flower img');
+  assert.equal(await lamps.count(), 2);
+  assert(await lamps.evaluateAll(images => images.every(image =>
+    image.complete && image.naturalWidth === 256 && getComputedStyle(image).animationName === 'none'
+  )), 'Both new pink sprites load and remain still with reduced motion');
+  const before = await ocean.getAttribute('data-draws');
+  await p.waitForTimeout(120);
+  assert.equal(await ocean.getAttribute('data-draws'), before);
+  await p.emulateMedia({ reducedMotion: 'no-preference' });
+  await p.waitForTimeout(700);
+  assert(Number(await ocean.getAttribute('data-draws')) > Number(before));
+  const observedLitLamps = new Set();
+  for (let sample = 0; sample < 12; sample++) {
+    const lit = await lamps.evaluateAll(images => images.map(image => {
+      const filter = getComputedStyle(image).filter;
+      return Number(filter.match(/brightness\(([\d.]+)\)/)?.[1]) > 1;
+    }));
+    assert.equal(lit.filter(Boolean).length, 1, 'Exactly one lamp is lit at any given phase');
+    observedLitLamps.add(lit.indexOf(true));
+    await p.waitForTimeout(60);
+  }
+  assert.equal(observedLitLamps.size, 2, 'Both the left and right lamp take a turn');
+  report.checks.push(width + ': pink hibiscus sprites load and alternate with no simultaneous flash');
+  await p.getByRole('button', { name: '水面の動きを止める', exact: true }).click();
+  const paused = await ocean.getAttribute('data-draws');
+  await p.waitForTimeout(150);
+  assert.equal(await ocean.getAttribute('data-draws'), paused);
   const dl=p.waitForEvent('download');await p.getByRole('button',{name:'バックアップ',exact:true}).click();const d=await dl;const backupPath=path.join(out,'private-import/real-backup-'+width+'.json');await d.saveAs(backupPath);const exported=JSON.parse(fs.readFileSync(backupPath,'utf8')).logs;assert.deepEqual(sortLogs(exported),sortLogs(expected));
   await p.getByRole('button',{name:'記録を編集',exact:true}).click();const original=await p.locator('[name=notes]').inputValue();await p.locator('[name=notes]').fill(original+'テスト');await p.getByRole('button',{name:'記録を保存',exact:true}).click();await p.waitForFunction(()=>!document.querySelector('#editor').open);await p.reload();await p.waitForSelector('.log-card');const edited=await p.evaluate(async()=>{const {loadLogs}=await import('./src/store.js');return loadLogs();});assert(edited.some(l=>l.notes.endsWith('テスト')));assert.equal(edited.filter(l=>l.signature).length,4);
   report.checks.push(width+': real 4 dives/4 signatures, 3 approximate map places, exact backup, edit/reload, WebGL motion/reduced-motion/pause, no horizontal overflow');await c.close();

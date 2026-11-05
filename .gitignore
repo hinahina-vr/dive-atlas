@@ -13,6 +13,7 @@ backups/
 *.jpg
 *.jpeg
 *.png
+!assets/hibiscus-pink.png
 *.webp
 __pycache__/
 *.pyc
