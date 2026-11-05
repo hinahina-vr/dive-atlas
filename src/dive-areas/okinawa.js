@@ -238,7 +238,7 @@ export const okinawaDiveAreas = [
     source: 'https://itoman-diving.net/side/sea', sourceName: '糸満ダイビングサービス',
   },
   {
-    id: 'nago-busena', name: 'ブセナ岬の海', area: '沖縄・名護 部瀬名岬', coordinates: [127.9331, 26.5414], difficulty: 1,
+    id: 'nago-busena', name: 'ブセナ岬の海', area: '沖縄・名護 部瀬名岬', coordinates: [127.9319, 26.5414], difficulty: 1,
     highlight: '岬の岸に近い海で、サンゴの周りを泳ぐ小魚を観察できます。',
     conditions: '体験ダイビングで案内される浅い範囲の目安。現地ガイドと当日の海況に合う場所を選びます。',
     source: 'https://www.okinawastory.jp/spot/1063', sourceName: '沖縄観光情報WEBサイト おきなわ物語',
