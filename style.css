@@ -6,7 +6,7 @@
 
 #map{z-index:-2}#ocean{z-index:-1;pointer-events:none;mix-blend-mode:soft-light;transition:opacity .25s}.maplibregl-canvas-container,.maplibregl-canvas{width:100%;height:100%}.map-credit a{color:#176c84;text-decoration:none}.map-credit a:hover{text-decoration:underline}.map-credit{max-width:calc(100% - 45px);line-height:1.5}.island-flower{--flower-inset:24px;right:var(--flower-inset);top:18px;transform:rotate(-5deg)}.island-flower--left{left:var(--flower-inset);right:auto;transform:rotate(5deg)}.island-flower span{font:900 10px "Arial Black",var(--sans);letter-spacing:1px;color:#fff2a8;text-shadow:0 1px #b32232,0 0 6px #f44c28;margin-top:-2px}.pin.active:before,.log-card.selected:after{animation:hibiscus-jackpot 1.2s steps(1,end) infinite}
 .island-flower img {
-  --lamp-cycle: 0.2s;
+  --lamp-cycle: 0.1s;
   width: 91px;
   animation: hibiscus-alternate var(--lamp-cycle) steps(1, end) infinite;
   animation-delay: calc(var(--lamp-cycle) * -.5);
