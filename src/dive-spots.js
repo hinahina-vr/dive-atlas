@@ -1,5 +1,6 @@
 import { izuDiveAreas } from './dive-areas/izu.js';
 import { islandDiveAreas } from './dive-areas/islands.js';
+import { islandCoastDiveAreas } from './dive-areas/island-coasts.js';
 import { kantoDiveAreas } from './dive-areas/kanto.js';
 import { okinawaDiveAreas } from './dive-areas/okinawa.js';
 import { okinawaIslandDiveAreas } from './dive-areas/okinawa-islands.js';
@@ -81,13 +82,13 @@ export const diveSpots = [
     source: 'https://blog.padi.com/jp/diving-in-west-izu-peninsula/', sourceName: 'PADI',
   },
   {
-    id: 'oshima', name: '秋の浜', area: '東京・伊豆大島', coordinates: [139.409, 34.786], difficulty: 2,
+    id: 'oshima', name: '秋の浜', area: '東京・伊豆大島 秋の浜', coordinates: [139.409, 34.786], difficulty: 2,
     highlight: '岩や砂地が切り替わる岸沿いで、小さな魚や南の海から来る魚を探せます。',
     conditions: 'ガイドと巡る浅場を想定。沖は深くなります。',
     source: 'https://uminowa.net/fundiving/page-2742/page-2425/', sourceName: '伊豆大島ダイビングうみのわ',
   },
   {
-    id: 'hachijo', name: 'ナズマド', area: '東京・八丈島', coordinates: [139.748, 33.131], difficulty: 4,
+    id: 'hachijo', name: 'ナズマド', area: '東京・八丈島 ナズマド', coordinates: [139.748, 33.131], difficulty: 4,
     highlight: '溶岩でできた地形の沖を、カンパチなどの回遊魚が通ります。ユウゼンも見どころです。',
     conditions: '岸から入るポイントでも潮の流れが強くなるため、流れへの対応経験が必要です。',
     source: 'https://blog.padi.com/jp/diving-in-tokyo-izu-islands/', sourceName: 'PADI',
@@ -139,6 +140,7 @@ export const diveSpots = [
   ...okinawaDiveAreas,
   ...okinawaIslandDiveAreas,
   ...islandDiveAreas,
+  ...islandCoastDiveAreas,
   // Selected areas outside Japan.
   {
     id: 'blue-corner', name: 'ブルーコーナー', area: 'パラオ', coordinates: [134.21448, 7.13871], difficulty: 5,

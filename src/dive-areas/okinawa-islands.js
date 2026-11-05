@@ -152,4 +152,28 @@ export const okinawaIslandDiveAreas = [
     conditions: '足元に地形が見えないことがある外洋ドリフト。潜降・中性浮力・ボート回収に慣れた人向けです。',
     source: 'https://yonaguniyds.com/diving/point/', sourceName: '与那国ダイビングサービス',
   },
+  {
+    id: 'iriomote-kanokawa', name: '鹿ノ川・中の瀬', area: '沖縄・西表島 鹿ノ川湾沖', coordinates: [123.734894, 24.286458], difficulty: 4,
+    highlight: '大きなアザミサンゴが海底に広がります。水温が下がる時期から初夏にかけてはマンタも見どころです。',
+    conditions: '島の南に出るボートルート。沖へ出る範囲は潮流と経験に合わせて現地ガイドが決めます。',
+    source: 'https://hotmangrove.jp/site05', sourceName: hotMangrove,
+  },
+  {
+    id: 'taketomi-hot-spring', name: '竹富海底温泉', area: '沖縄・八重山 竹富島 東沖', coordinates: [124.097294, 24.339163], difficulty: 3,
+    highlight: '砂のくぼみから温泉が湧き、立ち上る泡や、水の境目がゆらぐ様子を観察できます。',
+    conditions: 'ボートで行く中深度のコース。底に触れずに観察できる位置をガイドと選びます。',
+    source: 'https://ishigaki-jam.com/map/ritou1/', sourceName: 'マリンハウスJAM',
+  },
+  {
+    id: 'tarama-blue', name: 'タラマブルー', area: '沖縄・宮古諸島 多良間島 北沖', coordinates: [124.699311, 24.682951], difficulty: 2,
+    highlight: '浅い砂地に波が残した縞模様が続き、その合間にサンゴが点在します。',
+    conditions: '穏やかな日にガイドと砂地を巡るボートルートの目安です。',
+    source: tarama, sourceName: '多良間村',
+  },
+  {
+    id: 'tarama-mitsu', name: 'ミーツぬグー', area: '沖縄・宮古諸島 多良間島 北西沖', coordinates: [124.677307, 24.672333], difficulty: 3,
+    highlight: '島の北西に広がるサンゴ礁。サンゴが密に集まる場所では魚がまとまって泳ぎます。',
+    conditions: '沖のサンゴ礁を巡るボートルート。うねりと潮に合わせて現地ガイドが船を出します。',
+    source: tarama, sourceName: '多良間村',
+  },
 ];

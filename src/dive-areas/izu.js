@@ -101,4 +101,34 @@ export const izuDiveAreas = [
     conditions: '入り組んだ岩場のボートコース。頭上が覆われるルートに合う経験と訓練を確認します。',
     source: west, sourceName: padi,
   },
+  {
+    id: 'izusan-tokube', name: '伊豆山・トクベ', area: '静岡・熱海 伊豆山沖', coordinates: [139.098898, 35.118583], difficulty: 3,
+    highlight: '伊豆山の沖で砂地と岩礁が切り替わり、岩にソフトコーラルがつきます。',
+    conditions: '港から船で行くコース。ガイドと潮流や透明度に合わせて根を回ります。',
+    source: 'https://umitomo725.com/izusan?sp=true', sourceName: '海友',
+  },
+  {
+    id: 'nishiizu-futou', name: '浮島ビーチ', area: '静岡・西伊豆 浮島', coordinates: [138.757796, 34.794422], difficulty: 2,
+    highlight: '砂地の両側に岩が並ぶ入り江。岩肌の小さなウミウシを探すのが楽しい海です。',
+    conditions: 'ガイドと岸から入る浅場の目安。沖の地形や夜のコースは条件が異なります。',
+    source: 'https://try-diving.sunla-izu.com/futou-diving/', sourceName: '伊豆ダイビングカレッジ SUNLAIZU',
+  },
+  {
+    id: 'suzaki-kujuppama', name: '九十浜（くじゅっぱま）', area: '静岡・下田 須崎 九十浜', coordinates: [138.981600, 34.670488], difficulty: 1,
+    highlight: '白い砂の入り江。岩のそばをのぞくと、海藻の間に隠れる小魚や小さな生きものを探せます。',
+    conditions: '穏やかな日のガイド付き浅場を想定。砂浜から入る体験ダイビングにも使われます。',
+    source: 'https://try-diving.sunla-izu.com/suzaki-diving/', sourceName: '伊豆ダイビングカレッジ SUNLAIZU',
+  },
+  {
+    id: 'hirasawa-beach', name: '平沢ビーチ', area: '静岡・沼津 西浦平沢', coordinates: [138.863982, 35.020830], difficulty: 1,
+    highlight: '入り江の岩にトゲトサカがつき、夏は黒潮に乗って南から来る魚も見られます。',
+    conditions: '岸から入り、ガイドと浅い範囲を巡るビーチルートの目安です。',
+    source: 'https://www.hirasawa-mc.com/beach', sourceName: '平沢マリンセンター',
+  },
+  {
+    id: 'yawatano-beach', name: '八幡野・アジ根', area: '静岡・伊東 八幡野', coordinates: [139.101335, 34.869813], difficulty: 2,
+    highlight: '海底の溶岩の塊をカイメンやソフトコーラルが覆います。岩の割れ目にはエビやカサゴが隠れています。',
+    conditions: '港から岸沿いに入り、ガイドと浅い岩場を巡るルートの評価です。',
+    source: 'https://izukougen-diving.com/non-diver-40/', sourceName: '伊豆高原ダイビング',
+  },
 ];
