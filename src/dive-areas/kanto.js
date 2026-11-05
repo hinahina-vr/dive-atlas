@@ -47,10 +47,10 @@ export const kantoDiveAreas = [
     source: 'https://chibadiving.com/archives/13625', sourceName: '千葉ダイビングサービス協力会',
   },
   {
-    id: 'hayama-shibasaki', name: '葉山・権太郎岩', area: '神奈川・葉山 芝崎', coordinates: [139.568, 35.269], difficulty: 2,
-    highlight: '浅い岩場に水路が走り、ウミウシやギンポなどを岩のくぼみで探せます。',
-    conditions: '岸から入ってガイドと岩の外側を回る浅場のコースです。うねりに合わせて場所を選びます。',
-    source: miuraGuide, sourceName: padi,
+    id: "hayama-shibasaki", name: "葉山・権太郎岩", area: "神奈川・三浦半島 葉山 権太郎岩の重なる岩場", coordinates: [139.566193, 35.263877], difficulty: 2, icon: "macro",
+    highlight: "岩のすき間や陰にウミウシやギンポが隠れ、浅くても地形と生き物の両方を楽しめます。",
+    conditions: "葉山のビーチコース。170度の根とは別の岩場で、うねりが入りやすい日は出入りを確認します。",
+    source: "https://nana-dive.net/pdf/201502_hayama.pdf", sourceName: "葉山ダイビングサービスNANA",
   },
   {
     id: 'zushi-kotsubo', name: '逗子・オオタカ根', area: '神奈川・逗子 小坪沖', coordinates: [139.520, 35.276], difficulty: 4,
@@ -59,10 +59,10 @@ export const kantoDiveAreas = [
     source: miuraGuide, sourceName: padi,
   },
   {
-    id: 'jogashima-iwabone', name: '城ヶ島・岩骨', area: '神奈川・三浦 城ヶ島', coordinates: [139.604, 35.127], difficulty: 4,
-    highlight: '岩の層が重なる断面を水中から見上げられます。地形のくぼみにサメが休むこともあります。',
-    conditions: 'ボートで行く深い岩礁。段差のある海で深さと浮力を管理できる人向けです。',
-    source: miuraGuide, sourceName: padi,
+    id: "jogashima-iwabone", name: "城ヶ島・岩骨", area: "神奈川・三浦半島 城ヶ島西の沖根", coordinates: [139.608722, 35.132545], difficulty: 4, icon: "macro",
+    highlight: "段差のある岩礁やクレバスを回りながら、サガミリュウグウウミウシなどを探せます。",
+    conditions: "城ヶ島西側のボート地点。水深差が大きく、波と流れに合わせて回る深さを選びます。",
+    source: "https://umiushihunters.com/spot/", sourceName: "ウミウシハンターズ",
   },
   {
     id: 'moroiso', name: '諸磯の浅場', area: '神奈川・三浦 諸磯湾', coordinates: [139.608, 35.151], difficulty: 1,
@@ -77,10 +77,10 @@ export const kantoDiveAreas = [
     source: 'https://miura-diving.com/diving-point/miyagawa-bay/', sourceName: '三浦 海の学校',
   },
   {
-    id: 'manazuru-iwa', name: '真鶴・化け根', area: '神奈川・真鶴 岩沖', coordinates: [139.149, 35.160], difficulty: 3,
-    highlight: '海底に立つ岩の根にソフトコーラルがつき、キンギョハナダイが周りを行き来します。',
-    conditions: '岩礁を巡るボートコース。流れる日があり、根に触れず浮力を保てることが目安です。',
-    source: miuraGuide, sourceName: padi,
+    id: "manazuru-iwa", name: "化け根", area: "神奈川・真鶴 岩沖 化け根の岩壁", coordinates: [139.143627, 35.163898], difficulty: 4, icon: "reef",
+    highlight: "大きな根の上から岩壁が落ち込みます。壁沿いに季節来遊魚が入り、沖には回遊魚が通ることもあります。",
+    conditions: "岩から出船するボート海域です。根の外側は深くなり、潮が入る日があります。",
+    source: "https://www.iwadive.com/%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E7%B4%B9%E4%BB%8B", sourceName: "岩漁協 岩ダイビングセンター",
   },
   {
     id: 'hayakawa-beach', name: '早川ビーチ', area: '神奈川・小田原 早川', coordinates: [139.151, 35.240], difficulty: 1,
@@ -357,5 +357,41 @@ export const kantoDiveAreas = [
     highlight: "岩礁の周りをメジナやイシダイが回り、夏はイサキの群れも見られます。",
     conditions: "トビ根から砂地を挟んだ別の岩礁です。",
     source: "https://divingpoint.net/divepoints/view/1764", sourceName: "ダイビングポイント情報サイト ドチ根",
+  },
+  {
+    id: "banda-matsune", name: "松根", area: "千葉・館山 坂田 松根・メバル岩の岩礁", coordinates: [139.773098, 34.977933], difficulty: 2, icon: "coral",
+    highlight: "浅い松根にはテーブルサンゴが広がります。近くのメバル岩では、小さなハゼやカイメンも観察できます。",
+    conditions: "松根とメバル岩、新々漁礁を巡るボート海域です。",
+    source: "https://seacrop.jp/about-banda/", sourceName: "シークロップダイビングスクール 坂田の海",
+  },
+  {
+    id: "manazuru-iwa-odawara", name: "小田原", area: "神奈川・真鶴 岩沖 小田原の根", coordinates: [139.143412, 35.164196], difficulty: 3, icon: "coral",
+    highlight: "段差のある岩礁で、浅い根の上にはイソギンチャクが広がり、季節によって南方系の魚も見られます。",
+    conditions: "化け根の隣にあるボート海域です。潮が入る日があります。",
+    source: "https://www.iwadive.com/%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E7%B4%B9%E4%BB%8B", sourceName: "岩漁協 岩ダイビングセンター",
+  },
+  {
+    id: "manazuru-iwa-beach", name: "岩ビーチ", area: "神奈川・真鶴 岩 岩ビーチの砂地", coordinates: [139.143777, 35.160424], difficulty: 1, icon: "reef",
+    highlight: "岸の岩場から沖の砂地へ移る浅場です。岩の周りで、季節ごとに異なる小魚や小型生物を探せます。",
+    conditions: "水深13mほどまでのビーチ海域。海水浴場側の岩海岸とは別のポイントです。",
+    source: "https://www.iwadive.com/%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E7%B4%B9%E4%BB%8B", sourceName: "岩漁協 岩ダイビングセンター",
+  },
+  {
+    id: "katsuura-ubara-island", name: "鵜原島", area: "千葉・勝浦 鵜原島沖の岩壁", coordinates: [140.279360, 35.127876], difficulty: 3, icon: "reef",
+    highlight: "島の周りに棚と割れ目があり、浅い根から岩壁へと地形が変わります。沖ではイワシや回遊魚の観察例もあります。",
+    conditions: "明神岬の沖に浮かぶ鵜原島周辺のボート海域です。",
+    source: "https://www.katsuura-ds.com/point/", sourceName: "勝浦ダイビングサービス ポイント案内",
+  },
+  {
+    id: "miyagawa-beach", name: "宮川湾・ビーチ", area: "神奈川・三浦 宮川湾 岸側の浅場", coordinates: [139.634535, 35.139769], difficulty: 2, icon: "shark",
+    highlight: "砂地に小さな根が並び、砂に潜るカスザメや岩陰のネコザメが記録されています。",
+    conditions: "講習にも使われる岸側の海域。出入りのルールと海況を現地サービスに確認します。",
+    source: "https://miuradivecenter.sakura.ne.jp/umimap.html", sourceName: "ミウラダイブセンター",
+  },
+  {
+    id: "miura-tobine", name: "トビ根", area: "神奈川・三浦半島 宮川湾のトビ根", coordinates: [139.636005, 35.136069], difficulty: 3, icon: "macro",
+    highlight: "岩壁のソフトコーラルにガラスハゼやトラフケボリが隠れています。",
+    conditions: "宮川湾のボート地点。カサゴ根とは別の根で、潮と透明度を見て岩壁を回ります。",
+    source: "https://miura-diving.com/fun-diving/", sourceName: "三浦 海の学校",
   },
 ];

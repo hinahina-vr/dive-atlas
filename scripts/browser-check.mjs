@@ -90,6 +90,19 @@ try {
   }
   const journal = page.locator('#journal');
   const journalToggle = page.getByRole('switch',{name:'管理人のダイブログ',exact:true});
+  const spotToggle = page.getByRole('switch',{name:'ダイブスポット',exact:true});
+  async function checkSwitch(toggle, on) {
+   assert.equal(await toggle.getAttribute('aria-checked'), String(on));
+   assert((await toggle.boundingBox()).height >= 44);
+   const appearance = await toggle.locator('.toggle-track').evaluate(track => ({
+    color: getComputedStyle(track).backgroundColor,
+    symbol: getComputedStyle(track, '::before').width,
+    thumb: getComputedStyle(track, '::after').transform,
+   }));
+   assert.deepEqual(appearance, on
+    ? {color:'rgb(8, 126, 114)', symbol:'2px', thumb:'matrix(1, 0, 0, 1, 24, 0)'}
+    : {color:'rgb(89, 114, 124)', symbol:'8px', thumb:'none'});
+  }
   const journalBonus = page.locator('#journal-bonus');
   const lamps = page.locator('.island-flower img');
   async function checkLampsOff() {
@@ -108,9 +121,7 @@ try {
   await page.goto(localBase);
   await mapReady();
   assert(await journalToggle.isVisible());
-  assert.equal(await journalToggle.getAttribute('aria-checked'),'false');
-  const thumb = await journalToggle.locator('.toggle-track').evaluate(track=>getComputedStyle(track,'::after').transform);
-  assert.equal(thumb,'none');
+  await checkSwitch(journalToggle, false);
   assert(await journal.isHidden());
   assert.equal(await page.locator('#pins .pin').count(),0);
   await checkLampsOff();
@@ -246,26 +257,18 @@ try {
   await page.screenshot({path:path.join(folder,'japan-'+width+'.png')});
 
   assert.equal(await page.getByText('NO DIVE, NO LIFE.',{exact:true}).count(),0);
-  const toggle = page.getByRole('switch',{name:'ダイブスポット',exact:true});
-  const trackStyle = () => toggle.locator('.toggle-track').evaluate(track => ({
-   color: getComputedStyle(track).backgroundColor,
-   thumb: getComputedStyle(track, '::after').transform,
-  }));
-  assert.equal(await toggle.getAttribute('aria-checked'),'true');
-  assert.deepEqual(await trackStyle(),{color:'rgb(11, 157, 145)',thumb:'matrix(1, 0, 0, 1, 18, 0)'});
-  if (mobile) await toggle.tap();
-  else await toggle.press('Space');
-  assert.equal(await toggle.getAttribute('aria-checked'),'false');
-  assert.deepEqual(await trackStyle(),{color:'rgb(190, 206, 212)',thumb:'none'});
+  await checkSwitch(spotToggle, true);
+  if (mobile) await spotToggle.tap();
+  else await spotToggle.press('Space');
+  await checkSwitch(spotToggle, false);
   assert(await page.locator('#spot-pins').isHidden());
   const journalResponse = page.waitForResponse(response=>response.url().endsWith('/journal.json')&&response.ok());
-  await journalToggle.click();
+  if (mobile) await journalToggle.tap();
+  else await journalToggle.press('Space');
   await journalResponse;
   await page.waitForFunction(()=>document.querySelector('#storage-status').textContent==='ログ閲覧専用');
-  assert.equal(await journalToggle.getAttribute('aria-checked'),'true');
+  await checkSwitch(journalToggle, true);
   assert(await journal.isVisible());
-  const activeThumb = await journalToggle.locator('.toggle-track').evaluate(track=>getComputedStyle(track,'::after').transform);
-  assert.equal(activeThumb,'matrix(1, 0, 0, 1, 18, 0)');
   await page.emulateMedia({reducedMotion:'no-preference'});
   const lamp = await page.locator('.island-flower img').evaluateAll(images=>images.map(image=>{
    const animation = image.getAnimations()[0];
@@ -335,7 +338,8 @@ try {
   assert.equal(await page.locator(updateControls).count(),0);
   assert(!publicRequests.some(url=>url.includes('/api/')||url.endsWith('/src/store.js')));
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await toggle.click();
+  await spotToggle.click();
+  await checkSwitch(spotToggle, true);
   assert(await page.locator('#spot-pins').isVisible());
   await mapReady();
   await page.screenshot({path:path.join(folder,'pages-'+width+'.png')});
@@ -343,7 +347,7 @@ try {
   await mapReady();
   assert(await journal.isHidden());
   assert.equal(await journalToggle.getAttribute('aria-checked'),'false');
-  report.checks.push(width+'px: public map, world/Japan controls, off/alternating lamps and premium, opt-in journal, four public fields, separate hibiscus pins, paper-cut spot icons and interaction badges, sample and POI toggle');
+  report.checks.push(width+'px: public map, world/Japan controls, off/alternating lamps and premium, opt-in journal, four public fields, separate hibiscus pins, paper-cut spot icons and interaction badges, sample, switch visuals and keyboard/touch operation');
   await context.close();
  }
  assert.deepEqual(errors,[]);

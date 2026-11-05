@@ -354,4 +354,52 @@ export const ogasawaraDiveAreas = [
     conditions: "ケータ列島・嫁島の東側。潮がかかるボート海域です。",
     source: "https://divingpoint.net/divepoints/view/1042", sourceName: "ダイビングポイント情報サイト 後島",
   },
+  {
+    id: "ogasawara-futago-reef", name: "二子岩", area: "東京・小笠原 父島 南西岸 二子岩の浅根", coordinates: [142.186389, 27.051597], difficulty: 3, icon: "cave",
+    highlight: "浅いサンゴ礁に小さなアーチがあり、岩やサンゴの陰にはキンチャクガニやウミウシがいます。",
+    conditions: "浅い側の岩礁を巡るボート海域。波とうねりで近づける範囲が変わります。",
+    source: "https://divingpoint.net/divepoints/view/1023", sourceName: "ダイビングポイント情報サイト",
+  },
+  {
+    id: "ogasawara-manzoana", name: "マンゾウ穴", area: "東京・小笠原 南島 マンゾウ穴", coordinates: [142.172399, 27.032370], difficulty: 4, icon: "cave",
+    highlight: "白砂の洞窟を外に向かって見ると、岩の出口がハート形に見える角度があります。",
+    conditions: "南島周辺のボート海域。洞内のルートは波・流れと頭上の岩を確認し、ガイドと範囲を決めます。",
+    source: "https://divingpoint.net/divepoints/view/1025", sourceName: "ダイビングポイント情報サイト",
+  },
+  {
+    id: "ogasawara-keta-ichinoiwa", name: "一の岩", area: "東京・小笠原 聟島列島 北端沖 一の岩", coordinates: [142.112274, 27.744619], difficulty: 5, icon: "fish",
+    highlight: "小笠原北端の海域にある岩礁の周りを魚の群れが取り巻きます。",
+    conditions: "聟島列島北側への遠征ボート海域。外洋が穏やかな日とボート回収に慣れた人向けです。",
+    source: "https://divingpoint.net/divepoints/view/1032", sourceName: "ダイビングポイント情報サイト",
+  },
+  {
+    id: "ogasawara-keta-sannoiwa", name: "三の岩", area: "東京・小笠原 聟島列島 北側 三の岩", coordinates: [142.116909, 27.737327], difficulty: 5, icon: "macro",
+    highlight: "岩礁を割る亀裂にイセエビが隠れ、深い側ではコクテンカタギが群れます。",
+    conditions: "北側の外洋ボート海域。亀裂と深場を巡るため、海況と深度に対応できる経験が必要です。",
+    source: "https://divingpoint.net/divepoints/view/1033", sourceName: "ダイビングポイント情報サイト",
+  },
+  {
+    id: "ogasawara-keta-sawara", name: "サワラ根（聟島列島）", area: "東京・小笠原 聟島列島 サワラ根", coordinates: [142.122917, 27.675319], difficulty: 5, icon: "fish",
+    highlight: "二つの大きな根を潮が抜け、大型の魚やイルカが通ることがあります。",
+    conditions: "沖合のボート海域。根と根の間は潮が流れ、出発・回収に慣れた人向けです。",
+    source: "https://divingpoint.net/divepoints/view/1036", sourceName: "ダイビングポイント情報サイト",
+  },
+  {
+    id: "ogasawara-keta-boata", name: "ボータ根", area: "東京・小笠原 聟島列島 ボータ根", coordinates: [142.130266, 27.677497], difficulty: 5, icon: "coral",
+    highlight: "亀裂の入った大きな根にソフトコーラルが付き、その上をウメイロの群れが通ります。",
+    conditions: "聟島列島への遠征ボート海域。潮の流れと潜る深さをガイドと確認してください。",
+    source: "https://divingpoint.net/divepoints/view/1037", sourceName: "ダイビングポイント情報サイト",
+  },
+  {
+    id: "hahajima-mizutama", name: "ミズタマ", area: "東京・小笠原 母島の沖港と向島の間", coordinates: [142.132187, 26.625171], difficulty: 4, icon: "macro",
+    highlight: "通常は深い場所で見られるミズタマヤッコを、比較的浅い深度で観察した記録があります。",
+    conditions: "島の南側のボート海域。観察する深度と沖側の流れをガイドと確認します。",
+    source: "https://divingpoint.net/divepoints/view/1768", sourceName: "ダイビングポイント情報サイト",
+  },
+  {
+    id: "ogasawara-hanahige", name: "ハナヒゲポイント", area: "東京・小笠原 父島列島・島間のサンゴ斜面", coordinates: [142.178106, 27.127324], difficulty: 3, icon: "macro",
+    highlight: "島の間のサンゴ斜面にハナヒゲウツボ。岩肌のくぼみにはキンチャクガニやウミウシも見つかります。",
+    conditions: "ボートで斜面を巡るポイント。壁側とサンゴの棚で深度を調整します。",
+    source: "https://divingpoint.net/divepoints/view/1003", sourceName: "ダイビングポイント情報サイト",
+  },
 ];

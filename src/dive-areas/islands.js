@@ -42,10 +42,10 @@ export const islandDiveAreas = [
     source: 'https://kikaijima.wixsite.com/kikaijima/diving', sourceName: '喜界島観光案内所',
   },
   {
-    id: 'tokunoshima-senma', name: '千間海岸', area: '鹿児島・徳之島 千間', coordinates: [128.89233, 27.79983], difficulty: 3,
-    highlight: '岩の割れ目やアーチが続きます。岩礁の周りで泳ぐウミガメも見どころです。',
-    conditions: '広い海域の地形コースの目安です。岸に打ち寄せる波と選ぶルートをガイドに確認します。',
-    source: 'https://www.kagoshima-kankou.com/guide/10287', sourceName: '鹿児島県観光連盟',
+    id: "tokunoshima-senma", name: "千間海岸", area: "鹿児島・徳之島 西岸 千間の岸寄り", coordinates: [128.890228, 27.782898], difficulty: 3, icon: "turtle",
+    highlight: "岸からウミガメが泳ぐ岩場を巡れます。海底洞窟があり、冬から春にかけてコブシメの産卵も見られます。",
+    conditions: "海岸から入るコース。洞窟に入る場合は別に経験や装備が必要です。",
+    source: "https://www.ms-kamui.com/div_menu/div_spot/", sourceName: "マリンサービス海夢居",
   },
   {
     id: 'okierabu-blue-coral', name: '沖泊沖・ブルーコーラル', area: '鹿児島・沖永良部島 北西岸', coordinates: [128.556, 27.398], difficulty: 3,

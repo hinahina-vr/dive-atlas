@@ -8,7 +8,8 @@ test('the map catalog has one pin per named diving area', () => {
     assert(values.every(Boolean), 'Each area needs a name and a stable identifier');
     assert.equal(new Set(values).size, diveSpots.length, 'Repeated ' + field);
   }
-  assert.equal(new Set(diveSpots.map(spot => spot.coordinates.join(','))).size, diveSpots.length);
+  const positions = diveSpots.map(spot => spot.coordinates.map(value => value.toFixed(5)).join(','));
+  assert.equal(new Set(positions).size, diveSpots.length, 'Repeated position at metre precision');
 });
 
 test('every public pin opens an attributed card with a valid rating', () => {
