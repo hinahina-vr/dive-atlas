@@ -126,4 +126,22 @@ export const islandCoastDiveAreas = [
     conditions: '船で入る外寄りのコース。潮流と深さが変わるため、ボートと流れの経験が必要です。',
     source: 'https://www.kozu-nangoku.com/divingpoint', sourceName: '神津島ダイビング 南国',
   },
+  {
+    id: 'kozu-tadanae', name: 'タダナエ群島・ブーブー洞窟', area: '東京・神津島 祇苗群島沖', coordinates: [139.19063, 34.21253], difficulty: 4,
+    highlight: '岩の隙間に開いた洞窟の入り口で、明るい海と岩陰の色の違いを眺められます。',
+    conditions: '沖の島まで船で渡ります。明るい側から開口部を見る評価で、洞窟内の進入は含みません。',
+    source: 'https://aquamate.jp/point_map/', sourceName: '神津島アクアメイトダイビングクラブ',
+  },
+  {
+    id: 'kozu-arima', name: '割間（アリマ）', area: '東京・神津島 割間沖', coordinates: [139.11558, 34.20414], difficulty: 3,
+    highlight: '沖の岩が切れ込み、岩の陰から青い外海へ景色が開きます。',
+    conditions: '船で行く岩場のコース。潮と波に合わせて地形を巡る範囲を決めます。',
+    source: 'https://www.kozu-nangoku.com/divingpoint', sourceName: '神津島ダイビング 南国',
+  },
+  {
+    id: 'shikine-okama', name: '御釜湾の海中温泉', area: '東京・式根島 御釜湾', coordinates: [139.20313, 34.31937], difficulty: 3,
+    highlight: '海底から小さな泡が連なって立ち上ります。泡が水中の光を受ける様子を観察できます。',
+    conditions: '船で湾へ向かうガイド付きコース。湧き出す場所を避け、ガイドが指定する範囲から観察します。',
+    source: 'https://hidabun.com/diving/', sourceName: '式根島の宿 ひだぶん',
+  },
 ];

@@ -5,6 +5,7 @@ import { kantoDiveAreas } from './dive-areas/kanto.js';
 import { kiiDiveAreas } from './dive-areas/kii.js';
 import { westernJapanDiveAreas } from './dive-areas/western-japan.js';
 import { kyushuIslandDiveAreas } from './dive-areas/kyushu-islands.js';
+import { ogasawaraDiveAreas } from './dive-areas/ogasawara.js';
 import { okinawaDiveAreas } from './dive-areas/okinawa.js';
 import { okinawaIslandDiveAreas } from './dive-areas/okinawa-islands.js';
 
@@ -97,7 +98,7 @@ export const diveSpots = [
     source: 'https://blog.padi.com/jp/diving-in-tokyo-izu-islands/', sourceName: 'PADI',
   },
   {
-    id: 'ogasawara', name: '二見湾・沈船', area: '東京・小笠原父島', coordinates: [142.193, 27.087], difficulty: 3,
+    id: 'ogasawara', name: '二見湾・沈船', area: '東京・小笠原 父島 二見湾', coordinates: [142.193, 27.087], difficulty: 3,
     highlight: '湾に残る沈船が魚のすみかになっています。船の周りをヨスジフエダイなどが群れて泳ぎます。',
     conditions: '沈船の外側をガイドと巡るコースの目安です。',
     source: 'https://www.visitogasawara.com/archive/archive-4509/', sourceName: '小笠原村観光局',
@@ -144,6 +145,7 @@ export const diveSpots = [
   ...okinawaIslandDiveAreas,
   ...islandDiveAreas,
   ...islandCoastDiveAreas,
+  ...ogasawaraDiveAreas,
   ...kyushuIslandDiveAreas,
   ...kiiDiveAreas,
   ...westernJapanDiveAreas,
