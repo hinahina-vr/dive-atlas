@@ -1,18 +1,144 @@
-import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import {chromium} from 'playwright-core';
-delete process.env.DIVE_ATLAS_IMPORT_FILE;process.env.PORT='4494';const {server}=await import('./serve.mjs');if(!server.listening)await new Promise(r=>server.once('listening',r));
-const root=path.resolve(import.meta.dirname,'..');fs.mkdirSync(path.join(root,'artifacts'),{recursive:true});
-const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});const errors=[];const report={desktop:[],mobile:[],errors};
-try{
- const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true,reducedMotion:'reduce'});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto('http://127.0.0.1:4494');await page.waitForFunction(()=>document.querySelector('#ocean').dataset.engine==='webgl2'&&document.querySelector('#map').dataset.mapState==='ready');assert.equal(await page.locator('.total strong').first().textContent(),'0');await page.getByRole('button',{name:'サンプルを見る',exact:true}).click();assert.equal(await page.locator('.log-card').count(),5);await page.locator('[data-log="sample-5"]').click();await page.waitForTimeout(3650);assert(await page.locator('#detail').isVisible());await page.screenshot({path:path.join(root,'artifacts/desktop-sample.png')});report.desktop.push('WebGL world map, samples, POI selection, detail');
- await page.getByRole('button',{name:'ログを書く',exact:true}).click();await page.locator('[name=site]').fill('テスト・富戸');await page.locator('[name=area]').fill('静岡・伊豆');await page.locator('[name=depth]').fill('18.5');await page.locator('[name=duration]').fill('45');await page.locator('[name=temperature]').fill('0');await page.locator('[name=notes]').fill('<img src=x onerror=alert(1)> そのまま保存');await page.getByRole('button',{name:'地図で選ぶ',exact:true}).click();await page.locator('#map').click({position:{x:540,y:300}});await page.waitForSelector('#editor[open]');assert(Number.isFinite(Number(await page.locator('[name=lat]').inputValue())));const png=Buffer.from(await page.evaluate(()=>{const c=document.createElement('canvas');c.width=8;c.height=8;c.getContext('2d').fillRect(0,0,8,8);return c.toDataURL('image/png').split(',')[1];}),'base64');await page.locator('#photos').setInputFiles({name:'photo.png',mimeType:'image/png',buffer:png});await page.waitForSelector('#photo-preview img');await page.getByRole('button',{name:'記録を保存',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('#editor').open);assert.equal(await page.locator('.log-card').count(),1);assert.equal(await page.locator('#detail .detail-notes').textContent(),'<img src=x onerror=alert(1)> そのまま保存');assert.equal(await page.locator('#detail .detail-photos img').count(),1);report.desktop.push('Create record, map location, resize photo, zero temperature, literal unsafe text');
- await page.reload();await page.waitForSelector('.log-card');assert.equal(await page.locator('.log-card').count(),1);await page.locator('.log-card').click();await page.getByRole('button',{name:'記録を編集',exact:true}).click();await page.locator('[name=site]').fill('編集後の富戸');await page.getByRole('button',{name:'記録を保存',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('#editor').open);assert.match(await page.locator('.log-card').textContent(),/編集後の富戸/);report.desktop.push('Reload persisted record and photo, edit');
- const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'バックアップ',exact:true}).click();const download=await downloadPromise;const backupFile=path.join(root,'artifacts/roundtrip.json');await download.saveAs(backupFile);const data=JSON.parse(fs.readFileSync(backupFile));assert.equal(data.logs.length,1);assert(data.logs[0].photos.length===1);assert.equal(data.logs[0].temperature,0);
- await page.getByRole('button',{name:'取り込む',exact:true}).click();await page.locator('#import-file').setInputFiles({name:'fixture.csv',mimeType:'text/csv',buffer:Buffer.from('日付,ポイント名,緯度,経度,最大水深,潜水時間\n2026/10/15,CSVの伊豆,34.8,139.1,22.5,51\n2026/10/16,位置がないログ,,,12,30')});await page.waitForFunction(()=>!document.querySelector('#confirm-import').disabled);assert.match(await page.locator('#import-records').textContent(),/2本を確認/);await page.getByRole('button',{name:'確認して取り込む',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('#importer').open);assert.equal(await page.locator('.log-card').count(),3);report.desktop.push('CSV mapping, missing location, import preview, commit');
- await page.getByRole('button',{name:'取り込む',exact:true}).click();await page.locator('#import-file').setInputFiles(backupFile);await page.waitForFunction(()=>!document.querySelector('#confirm-import').disabled);assert.match(await page.locator('#import-records').textContent(),/重複 1本/);await page.getByRole('button',{name:'確認して取り込む',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('#importer').open);assert.equal(await page.locator('.log-card').count(),3);report.desktop.push('Backup roundtrip, duplicate skipped');
- await page.getByRole('searchbox').fill('位置がない');assert.equal(await page.locator('.log-card').count(),1);await page.getByRole('searchbox').fill('');assert.equal(await page.locator('.log-card').count(),3);report.desktop.push('Search');await context.close();
- const mobile=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});const m=await mobile.newPage();m.on('pageerror',e=>errors.push(e.message));await m.goto('http://127.0.0.1:4494');await m.waitForFunction(()=>document.querySelector('#ocean').dataset.engine==='webgl2'&&document.querySelector('#map').dataset.mapState==='ready');await m.getByRole('button',{name:'サンプルを見る',exact:true}).click();await m.locator('[data-log="sample-3"]').click();await m.waitForTimeout(3650);assert(await m.locator('#detail').isVisible());assert(await m.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await m.screenshot({path:path.join(root,'artifacts/mobile-sample.png'),fullPage:true});await m.getByRole('button',{name:'ログを書く',exact:true}).click();assert(await m.locator('#editor').isVisible());assert(await m.evaluate(()=>document.querySelector('#editor').getBoundingClientRect().right<=innerWidth));await m.locator('[data-close="editor"]').first().click();report.mobile.push('390px layout, sample selection, detail, editor, no horizontal overflow');
- await m.getByRole('button',{name:'取り込む',exact:true}).click();await m.locator('#import-file').setInputFiles(backupFile);await m.waitForFunction(()=>!document.querySelector('#confirm-import').disabled);await m.getByRole('button',{name:'確認して取り込む',exact:true}).click();await m.waitForFunction(()=>!document.querySelector('#importer').open);assert.equal(await m.locator('.log-card').count(),1);await m.locator('.log-card').click();assert.equal(await m.locator('#detail .detail-photos img').count(),1);report.mobile.push('Restore desktop backup with photo into empty mobile browser');
- await m.getByRole('button',{name:'記録を編集',exact:true}).click();m.once('dialog',d=>d.accept());await m.getByRole('button',{name:'このログを削除',exact:true}).click();await m.waitForFunction(()=>!document.querySelector('#editor').open);assert.equal(await m.locator('.log-card').count(),0);await m.reload();assert.equal(await m.locator('.log-card').count(),0);report.mobile.push('Delete and confirm deletion remains after reload');
- await m.getByRole('button',{name:'ログを書く',exact:true}).click();await m.locator('[name=site]').fill('未保存の記録');await m.evaluate(()=>{const gl=document.querySelector('#ocean').getContext('webgl2');window.loss=gl.getExtension('WEBGL_lose_context');loss.loseContext();});await m.waitForFunction(()=>document.querySelector('#ocean').dataset.engine==='fallback');await m.evaluate(()=>loss.restoreContext());await m.waitForFunction(()=>document.querySelector('#ocean').dataset.engine==='webgl2'&&document.querySelector('#map').dataset.mapState==='ready');assert.equal(await m.locator('[name=site]').inputValue(),'未保存の記録');report.mobile.push('WebGL context restore preserves unsaved input');
- await mobile.close();assert.deepEqual(errors,[]);report.status='passed';
-}catch(e){report.status='failed';report.failure=e.stack;throw e;}finally{fs.writeFileSync(path.join(root,'artifacts/verification.json'),JSON.stringify(report,null,2));await browser.close();await new Promise(r=>server.close(r));}
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import { chromium } from 'playwright-core';
+import { backup, normalizeLog, readBackup, sortLogs } from '../src/model.js';
+import { diveSpots } from '../src/dive-spots.js';
+
+const prefix = '/dive-atlas/';
+fs.mkdirSync('artifacts/private-import', { recursive: true });
+const folder = fs.mkdtempSync(path.resolve('artifacts', 'viewer-'));
+const fixtureDir = fs.mkdtempSync(path.resolve('artifacts/private-import', 'viewer-'));
+const fixture = path.join(fixtureDir, 'journal.json');
+const original = process.env.DIVE_ATLAS_IMPORT_FILE;
+const privateLogs = original
+ ? readBackup(JSON.parse(fs.readFileSync(original, 'utf8')))
+ : [
+    normalizeLog({ id:'qa-local', date:'2026-10-15', site:'QA local only', lat:26.263, lon:127.547,
+     temperature:0, notes:'<img src=x onerror=alert(1)>', depth:18.5, duration:45 }),
+    normalizeLog({ id:'qa-missing', date:'2026-10-16', site:'QA missing position', depth:12 })
+   ];
+fs.writeFileSync(fixture, JSON.stringify(backup(privateLogs)));
+process.env.DIVE_ATLAS_IMPORT_FILE = fixture;
+process.env.PORT = '4494';
+const { server } = await import('./serve.mjs');
+if (!server.listening) await new Promise(resolve => server.once('listening', resolve));
+
+const pages = path.join(folder, 'site');
+execFileSync(process.execPath, ['scripts/build-pages.mjs', pages]);
+const contents = fs.readdirSync(pages, { recursive:true }).map(String);
+assert(!contents.some(file => /private|artifacts|\.zip$|\.db$|store\.js/.test(file)));
+const revision = JSON.parse(fs.readFileSync(path.join(pages, 'revision.json'), 'utf8'));
+assert.equal(revision.spots, diveSpots.length);
+const mime = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.mjs':'text/javascript', '.json':'application/json', '.png':'image/png', '.geojson':'application/geo+json' };
+const published = http.createServer((req,res)=>{
+ if(!req.url.startsWith(prefix)) return res.writeHead(404).end();
+ const filename = path.resolve(pages, req.url.slice(prefix.length).split('?')[0] || 'index.html');
+ if(!filename.startsWith(pages+path.sep)||!fs.existsSync(filename)||!fs.statSync(filename).isFile()) return res.writeHead(404).end();
+ res.writeHead(200, {'Content-Type':mime[path.extname(filename)]||'application/octet-stream'});
+ res.end(fs.readFileSync(filename));
+});
+await new Promise(resolve=>published.listen(4495,'127.0.0.1',resolve));
+
+const browser = await chromium.launch({ executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe', headless:true });
+const errors = [];
+const report = { revision, checks:[], errors };
+const updateControls = '#import-open,#backup,#new-log,#edit-log,#delete-log,#editor,#importer,input[type=file]';
+try {
+ const localBase = 'http://127.0.0.1:4494/';
+ assert.equal((await fetch(localBase+'api/import-tusa',{method:'POST'})).status,405);
+ assert.equal((await fetch(localBase+'api/local-import',{headers:{Origin:'https://example.test'}})).status,403);
+ assert.equal((await fetch(localBase+'artifacts/private-import/tusa-import.json')).status,404);
+ for(const width of [1440,390]) {
+  const mobile = width === 390;
+  const context = await browser.newContext({viewport:{width,height:mobile?844:1000},isMobile:mobile,hasTouch:mobile,reducedMotion:'reduce'});
+  const page = await context.newPage();
+  page.on('pageerror', e=>errors.push(e.message));
+  const mapReady=()=>page.waitForFunction(()=>document.querySelector('#map').dataset.mapState==='ready'&&document.querySelector('#ocean').dataset.engine==='webgl2',null,{timeout:45000});
+  await page.goto(localBase);
+  await mapReady();
+  assert.equal(await page.locator('.log-card').count(),privateLogs.length);
+  assert.equal(await page.locator(updateControls).count(),0);
+  const log = sortLogs(privateLogs).find(row=>row.lat!==null);
+  const card = page.locator('[data-log]').filter({hasText:log.site}).first();
+  await card.click();
+  assert.equal(await page.locator('#detail h2').textContent(),log.site);
+  if(log.notes) assert.equal(await page.locator('.detail-notes').textContent(),log.notes);
+  if(log.locationKind==='approximate') assert(await page.locator('#detail .location-approx').isVisible());
+  if(log.signature) assert.equal(await page.locator('#detail .signature img').count(),1);
+  assert.equal(await page.locator(updateControls).count(),0);
+  await page.getByRole('searchbox').fill('---no result---');
+  assert.equal(await page.locator('.log-card').count(),0);
+  await page.reload();
+  await mapReady();
+  assert.equal(await page.locator('.log-card').count(),privateLogs.length);
+  assert(!await page.evaluate(async()=> (await indexedDB.databases()).some(db=>db.name==='dive-atlas')));
+  report.checks.push(width+'px: local JSON, search, reload, no edit controls, no new journal DB');
+
+  if (!mobile) {
+   const localRecord = {...privateLogs[0], id:'qa-prior-journal', site:'QA prior journal edit'};
+   await page.evaluate(async record=>{
+    await new Promise((resolve,reject)=>{
+     const request = indexedDB.open('dive-atlas',1);
+     request.onupgradeneeded=()=>request.result.createObjectStore('logs',{keyPath:'id'});
+     request.onerror=()=>reject(request.error);
+     request.onsuccess=()=>{
+      const db=request.result;
+      const tx=db.transaction('logs','readwrite');
+      tx.objectStore('logs').put(record);
+      tx.oncomplete=()=>{db.close();resolve();};
+      tx.onabort=()=>reject(tx.error);
+     };
+    });
+   },localRecord);
+   const {digest} = await (await fetch(localBase+'api/local-import')).json();
+   await page.evaluate(digest=>localStorage.setItem('dive-atlas:imported:'+digest,'done'),digest);
+   await page.reload();
+   await mapReady();
+   assert.equal(await page.locator('.log-card').count(),1);
+   assert.match(await page.locator('.log-card').textContent(),/QA prior journal edit/);
+   fs.writeFileSync(fixture,JSON.stringify(backup(privateLogs))+'\n');
+   await page.reload();
+   await mapReady();
+   assert.equal(await page.locator('.log-card').count(),privateLogs.length);
+   report.checks.push('Previous browser edits visible for the old snapshot; a newly converted snapshot takes precedence');
+  }
+
+  const publicRequests = [];
+  page.on('request', request=>publicRequests.push(request.url()));
+  await page.goto('http://127.0.0.1:4495'+prefix);
+  await mapReady();
+  assert.equal(await page.locator(updateControls).count(),0);
+  assert.equal(await page.locator('.spot-pin').count(),diveSpots.length);
+  assert.equal(await page.locator('.log-card').count(),0);
+  await page.getByRole('button',{name:'サンプルを見る',exact:true}).click();
+  assert.equal(await page.locator('.log-card').count(),5);
+  await page.locator('[data-log="sample-5"]').click();
+  assert(await page.locator('#detail').isVisible());
+  assert.equal(await page.locator(updateControls).count(),0);
+  assert(!publicRequests.some(url=>url.includes('/api/')||url.endsWith('/src/store.js')));
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  const toggle=page.locator('#spot-toggle');
+  await toggle.click();
+  assert(await page.locator('#spot-pins').isHidden());
+  await toggle.click();
+  assert(await page.locator('#spot-pins').isVisible());
+  await mapReady();
+  await page.screenshot({path:path.join(folder,'pages-'+width+'.png')});
+  report.checks.push(width+'px: project subpath, public map, synthetic sample, POI toggle, no local log API or DB access');
+  await context.close();
+ }
+ assert.deepEqual(errors,[]);
+ report.status='passed';
+ console.log(report.checks.join('\n'));
+} catch(error) {
+ report.status='failed';
+ report.failure=error.stack;
+ throw error;
+} finally {
+ fs.writeFileSync(path.join(folder,'verification.json'),JSON.stringify(report,null,2));
+ await browser.close();
+ await Promise.all([new Promise(resolve=>server.close(resolve)),new Promise(resolve=>published.close(resolve))]);
+}
