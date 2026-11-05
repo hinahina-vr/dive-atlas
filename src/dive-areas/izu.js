@@ -78,13 +78,13 @@ export const izuDiveAreas = [
     source: west, sourceName: padi,
   },
   {
-    id: 'toi-torizaki', name: '通り崎・湾内', area: '静岡・伊豆市 土肥', coordinates: [138.78333, 34.90585], difficulty: 1,
+    id: 'toi-torizaki', name: '通り崎・湾内', area: '静岡・伊豆市 土肥 通り崎', coordinates: [138.78333, 34.90585], difficulty: 1,
     highlight: '風を避けやすい湾内で、砂地のハゼや岩場のギンポを探せます。',
     conditions: '比較的穏やかな日の遠浅のビーチコース。講習や体験にも利用されます。',
     source: west, sourceName: padi,
   },
   {
-    id: 'koganezaki-beach', name: '黄金崎公園ビーチ', area: '静岡・西伊豆 黄金崎・安良里', coordinates: [138.76428, 34.84417], difficulty: 1,
+    id: 'koganezaki-beach', name: '黄金崎公園ビーチ', area: '静岡・西伊豆 黄金崎公園前', coordinates: [138.76428, 34.84417], difficulty: 1,
     highlight: '白砂の上をよく見ると、巣穴から顔を出すハゼや、砂にまぎれた小さな生きものがいます。',
     conditions: '比較的流れの少ない入り江を岸から巡る浅場の目安です。',
     source: west, sourceName: padi,
@@ -136,5 +136,23 @@ export const izuDiveAreas = [
     highlight: '砂地から岩場へ景色が変わり、浅い岸の近くで岩に寄る魚を観察できます。',
     conditions: '岸からガイドと浅い範囲を巡ります。体験や久しぶりの潜水にも使われます。',
     source: 'https://akazawa-dc.info/service/divingpoint/', sourceName: '赤沢ダイビングセンター',
+  },
+  {
+    id: 'tohi-yagisawa-hanare', name: '八木沢・離れ島', area: '静岡・伊豆市 八木沢', coordinates: [138.77801, 34.90592], difficulty: 2,
+    highlight: '離れた岩の周りを巡り、岩陰や砂の境にいる小さな魚を観察できます。',
+    conditions: 'ガイドと岸に近い根を巡るボートルート。穏やかな日に浅い側から楽しめます。',
+    source: 'https://hawasworks.com/point/', sourceName: '土肥ダイビング・ハワーズワークス',
+  },
+  {
+    id: 'koshimoda-tobishima', name: '小下田・とび島沖', area: '静岡・伊豆市 小下田沖', coordinates: [138.74951, 34.86565], difficulty: 4,
+    highlight: '沖の根が切り立ち、岩の上を魚の群れが通ります。根を離れると駿河湾の青さが目に入ります。',
+    conditions: '外海に面したボートルート。流れと深さの変化に対応できる経験が求められます。',
+    source: 'https://hawasworks.com/point/', sourceName: '土肥ダイビング・ハワーズワークス',
+  },
+  {
+    id: 'arari-okinone', name: '沖の根', area: '静岡・西伊豆 安良里沖', coordinates: [138.75758, 34.84093], difficulty: 3,
+    highlight: '三つの岩の根を魚の群れが行き来します。初夏にはトビエイが根を通ることがあります。',
+    conditions: '船で沖の根へ向かいます。うねりや流れに合わせて、根を回る範囲をガイドが決めます。',
+    source: 'https://www.arari-dc.com/boat-diving/', sourceName: '安良里潜水サービス',
   },
 ];

@@ -102,4 +102,28 @@ export const islandCoastDiveAreas = [
     conditions: 'ガイドと港内の指定された範囲で潜る目安です。講習や体験ダイビングにも使われます。',
     source: 'https://mindivrs.wixsite.com/mindivers/blank', sourceName: 'マインダイバーズ',
   },
+  {
+    id: 'kozu-nagumi', name: '名組', area: '東京・神津島 名組湾', coordinates: [139.12588, 34.24289], difficulty: 1,
+    highlight: '湾内に丸い石と白い砂が広がります。石の多いところから砂地に出ると景色が変わります。',
+    conditions: '岸から入るガイド付きの浅場。講習や久しぶりのダイビングにも使われます。',
+    source: 'https://www.kozu-nangoku.com/divingpoint', sourceName: '神津島ダイビング 南国',
+  },
+  {
+    id: 'kozu-nagahama-sakune', name: '長浜作根', area: '東京・神津島 長浜沖', coordinates: [139.12811, 34.23508], difficulty: 3,
+    highlight: '沖に奇岩が点在し、岩と岩の間に水路やアーチが開きます。潮が通る側には魚が集まります。',
+    conditions: '船で外側から地形を巡るルート。潮が速い日はドリフトに慣れた人向けです。',
+    source: 'https://www.kozu-nangoku.com/divingpoint', sourceName: '神津島ダイビング 南国',
+  },
+  {
+    id: 'kozu-tsumari', name: 'つまり', area: '東京・神津島 つまり海岸', coordinates: [139.12502, 34.20343], difficulty: 1,
+    highlight: '岸のすぐ沖に明るい白砂が広がります。砂に残る波の跡や、小魚が行き来する様子を見られます。',
+    conditions: '穏やかな日に岸から入るガイド付きの浅場。体験ダイビングや講習にも使われます。',
+    source: 'https://www.kozu-nangoku.com/divingpoint', sourceName: '神津島ダイビング 南国',
+  },
+  {
+    id: 'kozu-kirakiku', name: 'キラキク', area: '東京・神津島 キラキク湾', coordinates: [139.12107, 34.1861], difficulty: 4,
+    highlight: '島の南側の湾で岩が大きく切れ込みます。湾内の浅い岩場と沖の地形を見比べられます。',
+    conditions: '船で入る外寄りのコース。潮流と深さが変わるため、ボートと流れの経験が必要です。',
+    source: 'https://www.kozu-nangoku.com/divingpoint', sourceName: '神津島ダイビング 南国',
+  },
 ];

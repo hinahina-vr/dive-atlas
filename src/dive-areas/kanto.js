@@ -5,7 +5,7 @@ const padi = 'PADI';
 // Coordinates are map anchors for the area, checked against local maps or GSI place names.
 export const kantoDiveAreas = [
   {
-    id: 'katsuura-ubara', name: '志村ビーチ', area: '千葉・勝浦 鵜原', coordinates: [140.274, 35.133], difficulty: 1,
+    id: 'katsuura-ubara', name: '志村ビーチ', area: '千葉・勝浦 鵜原 志村ビーチ', coordinates: [140.28264, 35.13330], difficulty: 1,
     highlight: '勝浦の浅い岩場では、海藻の周りの小魚やウミウシを探せます。回遊魚が岸近くまで入ることもあります。',
     conditions: '岸から入り、講習にも使われる浅場の目安です。外房の波と風で行き先が変わります。',
     source: 'https://www.katsuura-ds.com/point/', sourceName: '勝浦ダイビングサービス',
@@ -111,5 +111,17 @@ export const kantoDiveAreas = [
     highlight: '浜の先に砂地と岩場があり、岩の近くで小魚や季節の海藻を観察できます。',
     conditions: 'ガイドと岸から入るルートの目安です。風と波に合わせて当日の場所を選びます。',
     source: 'https://fishnfin.jp/', sourceName: 'Beach Bum Dive & SUP',
+  },
+  {
+    id: 'nebukawa-platform', name: '根府川・海底のホーム', area: '神奈川・小田原 根府川', coordinates: [139.1424, 35.20376], difficulty: 3,
+    highlight: '海底に旧駅のホームの一部が残ります。岩場を泳いだ先に、当時の構造を水中で見られます。',
+    conditions: '岸からガイドと遺構の外側を巡るコースです。波と透明度を見て海に入ります。',
+    source: 'https://nebukawadiving.com/', sourceName: '根府川ダイビングサービス',
+  },
+  {
+    id: 'katsuura-isomura', name: 'イソムラ', area: '千葉・勝浦 鵜原沖 イソムラ礁', coordinates: [140.27713, 35.12338], difficulty: 4,
+    highlight: '白い砂の中に大きな岩礁が立ち、深い裂け目の上をイサキやタカベの群れが横切ります。',
+    conditions: '沖の根まで船で行きます。深さが変わりやすく、黒潮の流れを受ける日は泳力が求められます。',
+    source: 'https://www.katsuura-kankou.net/diving/', sourceName: '勝浦市観光協会',
   },
 ];

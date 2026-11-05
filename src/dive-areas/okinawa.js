@@ -16,7 +16,7 @@ export const okinawaDiveAreas = [
     source: guideRoot + 'sesoko/', sourceName,
   },
   {
-    id: 'iejima', name: '伊江島・クマノミ山周辺', area: '沖縄・伊江島', coordinates: [127.71991, 26.72110], difficulty: 2,
+    id: 'iejima', name: '伊江島・クマノミ山周辺', area: '沖縄・伊江島 西側の礁', coordinates: [127.71991, 26.72110], difficulty: 2,
     highlight: 'サンゴの根の周りにクマノミやハナダイが集まります。島の海は入り組んだ岩の地形でも知られます。',
     conditions: 'ボートで渡り、ガイドとサンゴの根を眺めるコースの目安です。',
     source: guideRoot + 'ie/', sourceName,
@@ -194,5 +194,41 @@ export const okinawaDiveAreas = [
     highlight: '潮が切り立った根に当たり、その周りに集まる魚の群れを中層から見渡せます。',
     conditions: '流れが非常に速い外洋ドリフト。アンカーを使わない潜降と流れの中での浮上に慣れた人向けです。',
     source: guideRoot + 'unse/', sourceName,
+  },
+  {
+    id: 'tokashiki-ariga', name: 'アリガー', area: '沖縄・慶良間 渡嘉敷島 アリガー礁', coordinates: [127.34585, 26.20962], difficulty: 3,
+    highlight: '白い砂地を沖へたどると魚の集まる岩の根があります。砂地と根の周りで景色が変わります。',
+    conditions: 'ガイドと沖の根を巡るボートコース。沖へ進むと深くなるため、深度と潮の確認が必要です。',
+    source: 'https://diving-wg.com/point/detail/ariga/', sourceName: 'ダイビングWG沖縄',
+  },
+  {
+    id: 'tokashiki-kamigusuku', name: 'カミグスク', area: '沖縄・慶良間 渡嘉敷島 カミグスク礁', coordinates: [127.37278, 26.21143], difficulty: 3,
+    highlight: '大きな根にイソバナがつき、その周りをキンギョハナダイの群れが泳ぎます。',
+    conditions: '船で根を一周するコース。潮の向きと深度に合わせて現地ガイドがルートを決めます。',
+    source: 'https://diving-wg.com/point/detail/kamigusuku/', sourceName: 'ダイビングWG沖縄',
+  },
+  {
+    id: 'tokashiku-beach', name: 'トカシクビーチ', area: '沖縄・慶良間 渡嘉敷島 渡嘉志久湾', coordinates: [127.3464, 26.183], difficulty: 1,
+    highlight: '明るい砂地が湾の内側に広がります。穏やかな日は砂に落ちる光の模様を水中から見られます。',
+    conditions: 'ガイドと波の静かな日に浅い砂地を巡る目安です。',
+    source: 'https://relax-island.com/free/tokashikijima-divingmap', sourceName: '渡嘉敷島ダイビングサービス リラックスアイランド',
+  },
+  {
+    id: 'maejima-paraiso', name: 'パライソ', area: '沖縄・慶良間 前島 東沖', coordinates: [127.44553, 26.22445], difficulty: 3,
+    highlight: '前島の東側にサンゴの棚が広がります。棚の上を魚が行き来し、ウミガメが通ることもあります。',
+    conditions: '船で外側の礁へ向かうコース。海況に合わせて観察する範囲を決めます。',
+    source: 'https://liberte.jp/naha/scubadiving/okinawadiving/keramadiving/keramadivingpoint/maejimadivingpoint/paraiso', sourceName: 'リベルテダイビングサービス',
+  },
+  {
+    id: 'ie-ohoba', name: 'オホバ No.2', area: '沖縄・伊江島 北東沖', coordinates: [127.83473, 26.72092], difficulty: 5,
+    highlight: '外礁から二段に落ちる岩壁に、大きな洞窟の入口が開きます。外側から見上げても地形の大きさが伝わります。',
+    conditions: '深さと流れがある外礁です。評価は洞窟の外側で、進入は専門の訓練と装備の範囲です。',
+    source: 'https://www.owd.jp/top/ie/', sourceName: 'ワールドダイビング',
+  },
+  {
+    id: 'ie-waji', name: 'ワジー（湧出）', area: '沖縄・伊江島 湧出沖', coordinates: [127.78975, 26.7343], difficulty: 4,
+    highlight: '島の北岸の沖に岩壁が続きます。浅い棚から外洋へ視界が開く地形を観察できます。',
+    conditions: '船で北岸の岩場へ向かうルート。風とうねりが弱く、深度を管理できる日にガイドが選びます。',
+    source: 'https://www.owd.jp/top/ie/', sourceName: 'ワールドダイビング',
   },
 ];

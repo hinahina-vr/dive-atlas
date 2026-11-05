@@ -224,4 +224,34 @@ export const okinawaIslandDiveAreas = [
     conditions: '穏やかな日のガイド付き浅場。岸から入る体験ダイビングの目安です。',
     source: 'https://www.miyako-aquaticadventure.com/sigirabeach.html', sourceName: 'アクアティックアドベンチャー',
   },
+  {
+    id: 'kume-ara', name: 'アーラ1', area: '沖縄・久米島 アーラ海岸沖', coordinates: [126.77874, 26.30313], difficulty: 3,
+    highlight: '岩が入り組むアーラの海。岩と岩の間を明るい側から眺めると、奥行きのある地形を見渡せます。',
+    conditions: '船で行く地形コースです。岩の外側を巡る想定で、うねりに合わせてルートを選びます。',
+    source: 'https://ds-plusalpha.com/blog/23909/', sourceName: 'ダイビングショップ プラスアルファ',
+  },
+  {
+    id: 'iriomote-funauki', name: '舟浮湾', area: '沖縄・西表島 舟浮湾', coordinates: [123.744, 24.3242], difficulty: 2,
+    highlight: '湾内のサンゴの根を回りながら、岩陰の小魚や岩肌にいる小さな生きものを探せます。',
+    conditions: 'ガイドと内湾の浅い範囲を回るボートコース。湾の中でも視界は当日の海況で変わります。',
+    source: 'https://hotmangrove.jp/site02', sourceName: 'ホットマングローブ',
+  },
+  {
+    id: 'iriomote-amitori', name: '網取・浅場', area: '沖縄・西表島 網取湾', coordinates: [123.6985, 24.3345], difficulty: 2,
+    highlight: '白い砂地とサンゴ礁が隣り合い、どちらを向くかで海の色と見つかる魚が変わります。',
+    conditions: '船で湾内へ入り、ガイドと浅い範囲を巡る目安です。',
+    source: 'https://hotmangrove.jp/site03', sourceName: 'ホットマングローブ',
+  },
+  {
+    id: 'hatoma-south', name: '鳩間島南の礁', area: '沖縄・八重山 鳩間島 南沖', coordinates: [123.7705, 24.462], difficulty: 3,
+    highlight: '小さな島の沖にサンゴが育つ岩場が広がり、礁の周りで魚を観察できます。',
+    conditions: '鳩間島まで渡るボートルート。風と波に応じてガイドが島の周りの行き先を選びます。',
+    source: 'https://ishigaki-jam.com/map/ritou3/', sourceName: 'マリンハウスJAM',
+  },
+  {
+    id: 'hamajima-east', name: '浜島東', area: '沖縄・石西礁湖 浜島 東沖', coordinates: [124.03982, 24.35533], difficulty: 2,
+    highlight: '礁湖の砂の間にサンゴの根が点在します。根の近くでは小魚が集まる様子を見られます。',
+    conditions: '船で礁湖の浅い範囲に入り、ガイドと砂地や根を巡るコースの目安です。',
+    source: 'https://ishigaki-manta.com/map/', sourceName: 'ダイブハウスマンタ石垣島',
+  },
 ];
