@@ -1,13 +1,15 @@
+import { izuDiveAreas } from './dive-areas/izu.js';
 import { islandDiveAreas } from './dive-areas/islands.js';
 import { kantoDiveAreas } from './dive-areas/kanto.js';
 import { okinawaDiveAreas } from './dive-areas/okinawa.js';
+import { okinawaIslandDiveAreas } from './dive-areas/okinawa-islands.js';
 
 // Pins indicate the area around each spot. Difficulty is an editorial 1–5 estimate for the route described.
 const okinawaBeginners = 'https://blog.padi.com/jp/dive-spots-in-okinawa-for-beginner/';
 
 export const diveSpots = [
   {
-    id: 'chibishi', name: 'ナガンヌ島・桟橋前', area: '沖縄・チービシ諸島', coordinates: [127.548, 26.263], difficulty: 1,
+    id: 'chibishi', name: 'ナガンヌ島・桟橋前', area: '沖縄・チービシ諸島 ナガンヌ島', coordinates: [127.548, 26.263], difficulty: 1,
     highlight: '白い砂地とサンゴの間を泳ぐウミガメ。なだらかな岩場もじっくり眺められます。',
     conditions: '島の南側にある、比較的穏やかな浅場の目安です。',
     source: 'https://liberte.jp/naha/scubadiving/okinawadiving/chibishidiving/chibishidivingpoint/nagannusanbashimae', sourceName: 'リベルテ',
@@ -31,13 +33,13 @@ export const diveSpots = [
     source: okinawaBeginners, sourceName: 'PADI',
   },
   {
-    id: 'manta-scramble', name: '川平石崎マンタスクランブル', area: '沖縄・石垣島', coordinates: [124.121, 24.488], difficulty: 2,
+    id: 'manta-scramble', name: '川平石崎マンタスクランブル', area: '沖縄・石垣島 川平石崎', coordinates: [124.121, 24.488], difficulty: 2,
     highlight: 'サンゴの根にマンタが現れ、小魚に体を掃除してもらう姿を観察できます。',
     conditions: '比較的浅いボートポイント。ガイドと一緒に根の周りで待ちます。',
     source: 'https://blog.padi.com/jp/ishigaki-miyako-which-to-visit/', sourceName: 'PADI',
   },
   {
-    id: 'yabiji', name: '八重干瀬（やびじ）', area: '沖縄・宮古島沖', coordinates: [125.269, 24.999], difficulty: 2,
+    id: 'yabiji', name: '八重干瀬（やびじ）', area: '沖縄・宮古島 北方の八重干瀬', coordinates: [125.269, 24.999], difficulty: 2,
     highlight: '宮古島の北に広がる大きなサンゴ礁群。浅瀬では明るい水色の海にサンゴが連なります。',
     conditions: 'ボートで行く浅い礁の目安。実際のポイントは風や潮に合わせて選びます。',
     source: 'https://www.japan.travel/en/sports/diving/guides/miyakojima/', sourceName: '日本政府観光局',
@@ -49,7 +51,7 @@ export const diveSpots = [
     source: 'https://www.japan.travel/en/spot/564/', sourceName: '日本政府観光局',
   },
   {
-    id: 'futo', name: '富戸・ヨコバマ', area: '静岡・東伊豆', coordinates: [139.135, 34.897], difficulty: 1,
+    id: 'futo', name: '富戸・ヨコバマ', area: '静岡・伊東 富戸', coordinates: [139.135, 34.897], difficulty: 1,
     highlight: '岩場のクマノミや砂地の小さな魚。初夏から夏はアオリイカの産卵も見どころです。',
     conditions: '岸から入り、なだらかに深くなる浅場のコースが目安です。',
     source: 'https://blog.padi.com/jp/diving-in-east-izu-peninsula/', sourceName: 'PADI',
@@ -73,7 +75,7 @@ export const diveSpots = [
     source: 'https://chibadiving.com/archives/107', sourceName: '千葉ダイビングサービス協力会',
   },
   {
-    id: 'osezaki', name: '大瀬崎・湾内', area: '静岡・西伊豆', coordinates: [138.790, 35.028], difficulty: 1,
+    id: 'osezaki', name: '大瀬崎・湾内', area: '静岡・沼津 大瀬崎', coordinates: [138.790, 35.028], difficulty: 1,
     highlight: '砂地の上に魚が集まり、季節ごとに姿を見せる小さな生きものを探せます。',
     conditions: '岬に守られた湾内で、講習にも使われる岸からのコースです。',
     source: 'https://blog.padi.com/jp/diving-in-west-izu-peninsula/', sourceName: 'PADI',
@@ -133,7 +135,9 @@ export const diveSpots = [
     source: 'https://amami-diving.com/divingpoint/beachpoint.html', sourceName: 'ネイティブシー奄美',
   },
   ...kantoDiveAreas,
+  ...izuDiveAreas,
   ...okinawaDiveAreas,
+  ...okinawaIslandDiveAreas,
   ...islandDiveAreas,
   // Selected areas outside Japan.
   {
