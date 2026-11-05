@@ -1,3 +1,7 @@
+import { islandDiveAreas } from './dive-areas/islands.js';
+import { kantoDiveAreas } from './dive-areas/kanto.js';
+import { okinawaDiveAreas } from './dive-areas/okinawa.js';
+
 // Pins indicate the area around each spot. Difficulty is an editorial 1–5 estimate for the route described.
 const okinawaBeginners = 'https://blog.padi.com/jp/dive-spots-in-okinawa-for-beginner/';
 
@@ -63,7 +67,7 @@ export const diveSpots = [
     source: 'https://www.gruntsculpin.com/tour-gallery-06.html', sourceName: 'グラントスカルピン',
   },
   {
-    id: 'hasama', name: '波左間海中公園', area: '千葉・館山湾西側', coordinates: [139.779, 34.974], difficulty: 2,
+    id: 'hasama', name: '波左間海中公園', area: '千葉・館山 波左間', coordinates: [139.779, 34.974], difficulty: 2,
     highlight: '海底に立つ鳥居と岩礁を巡るポイント。大きなコブダイが見どころです。',
     conditions: 'ガイドが案内するボートコースを想定しています。',
     source: 'https://chibadiving.com/archives/107', sourceName: '千葉ダイビングサービス協力会',
@@ -128,6 +132,9 @@ export const diveSpots = [
     conditions: '穏やかな日に体験ダイビングでも利用される浅場です。',
     source: 'https://amami-diving.com/divingpoint/beachpoint.html', sourceName: 'ネイティブシー奄美',
   },
+  ...kantoDiveAreas,
+  ...okinawaDiveAreas,
+  ...islandDiveAreas,
   // Selected areas outside Japan.
   {
     id: 'blue-corner', name: 'ブルーコーナー', area: 'パラオ', coordinates: [134.21448, 7.13871], difficulty: 5,
