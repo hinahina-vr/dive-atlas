@@ -124,4 +124,16 @@ export const kantoDiveAreas = [
     conditions: '沖の根まで船で行きます。深さが変わりやすく、黒潮の流れを受ける日は泳力が求められます。',
     source: 'https://www.katsuura-kankou.net/diving/', sourceName: '勝浦市観光協会',
   },
+  {
+    id: 'manazuru-kotogahama', name: '琴ヶ浜', area: '神奈川・真鶴 琴ヶ浜', coordinates: [139.1491, 35.1464], difficulty: 2,
+    highlight: '丸い石の多い海岸から入り、岩のそばを泳ぐ魚や石のすき間の生きものを探せます。',
+    conditions: '穏やかな日にガイドと岸から入る浅場の目安。波と岩場の足元に合わせて場所を選びます。',
+    source: 'https://www.pref.kanagawa.jp/osirase/0602/feelshonan/marine/2818/index.html', sourceName: '神奈川県 Feel SHONAN',
+  },
+  {
+    id: 'tateyama-kenbutsu', name: '見物の浅場', area: '千葉・館山 見物海岸', coordinates: [139.7937, 34.97445], difficulty: 1,
+    highlight: '砂浜から遠浅の海に入り、砂底に落ちる日差しや岸を行き来する小魚を観察できます。',
+    conditions: '穏やかな日にガイドと砂浜から入るルート。講習や体験にも使われます。',
+    source: 'https://tds-sara.com/points', sourceName: '館山ダイビングサービスSARA',
+  },
 ];

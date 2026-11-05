@@ -5,6 +5,7 @@ import { kantoDiveAreas } from './dive-areas/kanto.js';
 import { kiiDiveAreas } from './dive-areas/kii.js';
 import { westernJapanDiveAreas } from './dive-areas/western-japan.js';
 import { kyushuIslandDiveAreas } from './dive-areas/kyushu-islands.js';
+import { northernJapanDiveAreas } from './dive-areas/northern-japan.js';
 import { ogasawaraDiveAreas } from './dive-areas/ogasawara.js';
 import { okinawaDiveAreas } from './dive-areas/okinawa.js';
 import { okinawaIslandDiveAreas } from './dive-areas/okinawa-islands.js';
@@ -62,13 +63,13 @@ export const diveSpots = [
     source: 'https://blog.padi.com/jp/diving-in-east-izu-peninsula/', sourceName: 'PADI',
   },
   {
-    id: 'shakotan', name: '美国・宝島周辺', area: '北海道・積丹半島', coordinates: [140.603, 43.303], difficulty: 3,
+    id: 'shakotan', name: '美国・宝島周辺', area: '北海道・積丹 美国 宝島沖', coordinates: [140.603, 43.303], difficulty: 3,
     highlight: '積丹ブルーの海に岩礁が続きます。岩場のすき間や海藻の間にいる生きものも観察できます。',
     conditions: '水温に合った装備で潜るボートコースが目安です。',
     source: 'https://blog.padi.com/jp/diving-in-hokkaido-and-tohoku-region/', sourceName: 'PADI',
   },
   {
-    id: 'shizugawa', name: '志津川湾', area: '宮城・南三陸', coordinates: [141.493, 38.668], difficulty: 3,
+    id: 'shizugawa', name: '志津川湾', area: '宮城・南三陸 志津川湾', coordinates: [141.493, 38.668], difficulty: 3,
     highlight: '小さなダンゴウオをじっくり探す海。岩や海藻の間をのぞくと、冷たい海の生きものが見えてきます。',
     conditions: '冷水と視界の変化に合わせた装備・経験があると楽しみやすい海域です。',
     source: 'https://www.gruntsculpin.com/tour-gallery-06.html', sourceName: 'グラントスカルピン',
@@ -80,7 +81,7 @@ export const diveSpots = [
     source: 'https://chibadiving.com/archives/107', sourceName: '千葉ダイビングサービス協力会',
   },
   {
-    id: 'osezaki', name: '大瀬崎・湾内', area: '静岡・沼津 大瀬崎', coordinates: [138.790, 35.028], difficulty: 1,
+    id: 'osezaki', name: '大瀬崎・湾内', area: '静岡・沼津 大瀬崎 湾内', coordinates: [138.790, 35.028], difficulty: 1,
     highlight: '砂地の上に魚が集まり、季節ごとに姿を見せる小さな生きものを探せます。',
     conditions: '岬に守られた湾内で、講習にも使われる岸からのコースです。',
     source: 'https://blog.padi.com/jp/diving-in-west-izu-peninsula/', sourceName: 'PADI',
@@ -149,6 +150,7 @@ export const diveSpots = [
   ...kyushuIslandDiveAreas,
   ...kiiDiveAreas,
   ...westernJapanDiveAreas,
+  ...northernJapanDiveAreas,
   // Selected areas outside Japan.
   {
     id: 'blue-corner', name: 'ブルーコーナー', area: 'パラオ', coordinates: [134.21448, 7.13871], difficulty: 5,

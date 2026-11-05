@@ -231,4 +231,22 @@ export const okinawaDiveAreas = [
     conditions: '船で北岸の岩場へ向かうルート。風とうねりが弱く、深度を管理できる日にガイドが選びます。',
     source: 'https://www.owd.jp/top/ie/', sourceName: 'ワールドダイビング',
   },
+  {
+    id: 'itoman-rukan', name: 'ルカン礁・東側', area: '沖縄・糸満沖 ルカン礁', coordinates: [127.5361, 26.1052], difficulty: 5,
+    highlight: '沖に浮かぶ環礁の縁から岩壁が深く落ち込みます。流れに乗って壁をたどると、外洋の青さと岩の高さを感じられます。',
+    conditions: '外洋のドリフトダイブです。流れの中での潜降・安全停止・ボート回収に慣れた人向けです。',
+    source: 'https://itoman-diving.net/side/sea', sourceName: '糸満ダイビングサービス',
+  },
+  {
+    id: 'nago-busena', name: 'ブセナ岬の海', area: '沖縄・名護 部瀬名岬', coordinates: [127.9331, 26.5414], difficulty: 1,
+    highlight: '岬の岸に近い海で、サンゴの周りを泳ぐ小魚を観察できます。',
+    conditions: '体験ダイビングで案内される浅い範囲の目安。現地ガイドと当日の海況に合う場所を選びます。',
+    source: 'https://www.okinawastory.jp/spot/1063', sourceName: '沖縄観光情報WEBサイト おきなわ物語',
+  },
+  {
+    id: 'nago-kise', name: '喜瀬ビーチ', area: '沖縄・名護 喜瀬海岸', coordinates: [127.9425, 26.5365], difficulty: 1,
+    highlight: '砂浜のすぐ沖に浅い海が広がります。岸から入ると、砂地と岩の間を小魚が行き来するのが見えます。',
+    conditions: 'ガイドと穏やかな日に体験ダイビングで潜る浅場の目安です。',
+    source: 'https://www.berry7.com/diving/', sourceName: 'マリンクラブベリー喜瀬店',
+  },
 ];

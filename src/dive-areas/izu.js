@@ -155,4 +155,16 @@ export const izuDiveAreas = [
     conditions: '船で沖の根へ向かいます。うねりや流れに合わせて、根を回る範囲をガイドが決めます。',
     source: 'https://www.arari-dc.com/boat-diving/', sourceName: '安良里潜水サービス',
   },
+  {
+    id: 'osezaki-outer', name: '大瀬崎・外海の一本松', area: '静岡・沼津 大瀬崎 外海', coordinates: [138.7832, 35.02617], difficulty: 3,
+    highlight: '岬の外側では丸い石の斜面が続き、沖の岩にはソフトコーラルがつきます。',
+    conditions: '岸から入る外海のコース。波と潮を見て、滑りやすい石場を通れる日を選びます。',
+    source: 'https://www.sunrise-ose.com/point.php', sourceName: 'サンライズ大瀬マリンサービス',
+  },
+  {
+    id: 'osezaki-tip', name: '大瀬崎・先端', area: '静岡・沼津 大瀬崎 先端', coordinates: [138.79039, 35.0306], difficulty: 3,
+    highlight: '岬の先端の斜面をキンギョハナダイやベラが群れ泳ぎ、沖にはムチカラマツが見られます。',
+    conditions: '岸から入る特定海域です。潮と深さに加え、潜水できる日を現地のサービスに確認します。',
+    source: 'https://www.sunrise-ose.com/point.php', sourceName: 'サンライズ大瀬マリンサービス',
+  },
 ];
