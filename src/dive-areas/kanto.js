@@ -106,4 +106,10 @@ export const kantoDiveAreas = [
     conditions: '真鶴半島の陰で風を避けやすい浅場。穏やかな日のビーチコースが目安です。',
     source: miuraGuide, sourceName: padi,
   },
+  {
+    id: 'miura-mitohama', name: '三戸浜・黒崎側', area: '神奈川・三浦 三戸浜沖', coordinates: [139.61417, 35.18265], difficulty: 2,
+    highlight: '浜の先に砂地と岩場があり、岩の近くで小魚や季節の海藻を観察できます。',
+    conditions: 'ガイドと岸から入るルートの目安です。風と波に合わせて当日の場所を選びます。',
+    source: 'https://fishnfin.jp/', sourceName: 'Beach Bum Dive & SUP',
+  },
 ];

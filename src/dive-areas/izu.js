@@ -131,4 +131,10 @@ export const izuDiveAreas = [
     conditions: '港から岸沿いに入り、ガイドと浅い岩場を巡るルートの評価です。',
     source: 'https://izukougen-diving.com/non-diver-40/', sourceName: '伊豆高原ダイビング',
   },
+  {
+    id: 'akazawa-beach', name: '赤沢ビーチ', area: '静岡・伊東 赤沢', coordinates: [139.09018, 34.85834], difficulty: 1,
+    highlight: '砂地から岩場へ景色が変わり、浅い岸の近くで岩に寄る魚を観察できます。',
+    conditions: '岸からガイドと浅い範囲を巡ります。体験や久しぶりの潜水にも使われます。',
+    source: 'https://akazawa-dc.info/service/divingpoint/', sourceName: '赤沢ダイビングセンター',
+  },
 ];

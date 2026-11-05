@@ -1,0 +1,105 @@
+// Positions are approximate and were cross-checked with https://divingpoint.net/maps/.
+export const westernJapanDiveAreas = [
+  {
+    id: 'takeno-hiratoko', name: '平床（鷹の巣）', area: '兵庫・豊岡 竹野沖', coordinates: [134.76313, 35.66735], difficulty: 3,
+    highlight: '砂地から岩場へ景色が変わり、春には岩のそばに小さなダンゴウオが見つかることがあります。',
+    conditions: '船から入って岩場を巡るコース。季節風と波で当日の海域を選びます。',
+    source: 'https://www.takeno-diving.com/divingpoint/', sourceName: 'T-style',
+  },
+  {
+    id: 'tajiri-beach', name: '田後の岸近く', area: '鳥取・岩美 田後', coordinates: [134.30239, 35.58977], difficulty: 2,
+    highlight: 'リアス海岸の岸の下に岩と砂が続きます。岩陰で、小さな魚やウミウシを探せます。',
+    conditions: 'ガイドと岸の近くを巡る目安。日本海側のうねりによって行き先が変わります。',
+    source: 'https://bluelinetajiri.com/divingarea.html', sourceName: 'ブルーライン田後',
+  },
+  {
+    id: 'oki-sotohama', name: '外浜', area: '島根・隠岐 西ノ島 外浜', coordinates: [133.13132, 36.10925], difficulty: 1,
+    highlight: '西ノ島の入り江。岸から近い浅場で海底の岩や岩陰の小魚を観察できます。',
+    conditions: '穏やかな日にガイドと入る浅場の目安です。体験ダイビングにも使われます。',
+    source: 'https://nkk-oki.com/japan/information/diving/', sourceName: '西ノ島町観光協会',
+  },
+  {
+    id: 'uguru-garden', name: 'うぐるガーデン', area: '高知・宿毛 鵜来島沖', coordinates: [132.49821, 32.80026], difficulty: 3,
+    highlight: '黒潮の影響を受ける島の岩礁。サンゴの周りを南の海の魚が行き来します。',
+    conditions: '島へ船で渡るコース。地形と海況に合わせて深さやルートを選びます。',
+    source: 'https://www.city.sukumo.kochi.jp/docs-18/p0337.html', sourceName: '宿毛市',
+  },
+  {
+    id: 'okinshima-torinokubi', name: 'トリノクビ', area: '高知・宿毛 沖の島 南岸沖', coordinates: [132.55074, 32.75436], difficulty: 4,
+    highlight: '沖の島の先端近くで岩礁が青い外洋に落ち込みます。潮の通る場所では回遊魚を狙えます。',
+    conditions: '潮流が変わる外礁のボートルート。流れと深度の管理に慣れた人向けです。',
+    source: 'https://kochi-tabi.jp/search_spot.html?id=7615', sourceName: '高知県観光情報 こうち旅ネット',
+  },
+  {
+    id: 'tatsukushi-redroof', name: '赤屋根前ビーチ', area: '高知・土佐清水 竜串湾', coordinates: [132.85196, 32.78663], difficulty: 2,
+    highlight: '入り江の岩にサンゴが広がり、砂地へ出ると見える魚が変わります。',
+    conditions: '岸からガイドと湾内の浅い範囲を巡る目安です。',
+    source: 'https://tdc2001.com/fun-dive-refresh-dive', sourceName: '竜串ダイビングセンター',
+  },
+  {
+    id: 'shika-shirase', name: '白瀬', area: '福岡・福岡市 志賀島 白瀬', coordinates: [130.30987, 33.68342], difficulty: 2,
+    highlight: '岩と砂が入り交じる岸沿いで、岩陰の魚や季節のウミウシを探せます。',
+    conditions: 'ガイドと岸から入る浅場の評価です。玄界灘側の波に合わせて行き先が変わります。',
+    source: 'https://toriton.org/fundive_scuba/', sourceName: 'ダイビングショップ トリトン',
+  },
+  {
+    id: 'koinoura-beach', name: '恋の浦', area: '福岡・福津 恋の浦海岸', coordinates: [130.44999, 33.80474], difficulty: 2,
+    highlight: '遠浅の海岸から砂地に入り、砂と岩の境を泳ぐ魚を観察できます。',
+    conditions: '風が弱い日に岸から入るガイド付きの目安です。波がある日は現地で判断します。',
+    source: 'https://toriton.org/fundive_scuba/', sourceName: 'ダイビングショップ トリトン',
+  },
+  {
+    id: 'amakusa-myoken', name: '妙見浦', area: '熊本・天草下島 妙見浦', coordinates: [129.99538, 32.39736], difficulty: 3,
+    highlight: '天草の西岸の岩礁。波に削られた岩の起伏と、その周りに集まる魚を観察できます。',
+    conditions: '西からのうねりを受ける海岸。現地ガイドと潜る範囲を決めます。',
+    source: 'https://amakusa.org/', sourceName: '天草うみの学校',
+  },
+  {
+    id: 'ushibuka-marine-park', name: '牛深海中公園', area: '熊本・天草 牛深沖', coordinates: [130.028, 32.1581], difficulty: 2,
+    highlight: '浅い岩礁をサンゴが覆い、その上をソラスズメダイなど小さな魚が泳ぎます。',
+    conditions: '現地の船で行くガイド付きの浅場。遠い根や流れのあるルートは別の評価です。',
+    source: 'https://marineservice-haiya.com/', sourceName: 'マリンサービスHAIYA',
+  },
+  {
+    id: 'tottori-dunes-offshore', name: '鳥取砂丘沖', area: '鳥取・鳥取市 鳥取砂丘沖', coordinates: [134.2285, 35.5557], difficulty: 3,
+    highlight: '砂丘のすぐ沖に広がる海。潜ったあとに船から海岸と砂丘を見渡せます。',
+    conditions: '風を遮る地形が少ない沖合。風と波が穏やかな日に遠征船が向かいます。',
+    source: 'https://bluelinetajiri.com/divingarea.html', sourceName: 'ブルーライン田後',
+  },
+  {
+    id: 'tottori-hakuto', name: '白兎大島', area: '鳥取・鳥取市 白兎海岸沖', coordinates: [134.1105, 35.5318], difficulty: 3,
+    highlight: '白兎海岸から離れた島の周りに岩場が続きます。島の陸側と沖側で地形が変わります。',
+    conditions: '海況と現地の案内状況を確認してから渡るボート海域です。',
+    source: 'https://bluelinetajiri.com/divingarea.html', sourceName: 'ブルーライン田後',
+  },
+  {
+    id: 'shinkamigoto-doidoi', name: '新上五島・道土井沖', area: '長崎・五島列島 新上五島 道土井周辺', coordinates: [129.03328, 32.94223], difficulty: 3,
+    highlight: '入り組んだ五島の岸からボートで出て、岩礁やサンゴに集まる魚を観察します。',
+    conditions: '道土井を拠点に当日の海況でポイントを決めるガイド付きボートダイブです。',
+    source: 'https://shinkamigoto.nagasaki-tabinet.com/activity/10389', sourceName: '新上五島町観光なび',
+  },
+  {
+    id: 'sakurajima-lava', name: '桜島の溶岩海岸', area: '鹿児島・鹿児島市 桜島 西岸', coordinates: [130.5935, 31.5942], difficulty: 2,
+    highlight: '溶岩が海へ流れ込んでできた岩場。黒い岩と岩のすき間を泳ぐ魚を観察できます。',
+    conditions: '桜島沿岸でガイドと岸から入る浅場の評価です。火山と海の状況に合わせて場所を決めます。',
+    source: 'https://aquatrip-diving.synapse.kagoshima.jp/kagoshimabeach.html', sourceName: 'アクアトリップダイビング',
+  },
+  {
+    id: 'bounotsu-hirasaki', name: '平崎', area: '鹿児島・南さつま 坊津 平崎', coordinates: [130.18353, 31.33839], difficulty: 2,
+    highlight: '堤防の外にサンゴのつく岩場と砂地が広がります。砂地の巣穴ではハゼが見られることがあります。',
+    conditions: 'ガイドと堤防近くの浅場を巡ります。外側は波と流れを見て案内します。',
+    source: 'https://aquatrip-diving.synapse.kagoshima.jp/kagoshimabeach.html', sourceName: 'アクアトリップダイビング',
+  },
+  {
+    id: 'oyashirazu-nageiwa', name: '投げ岩ビーチ', area: '新潟・糸魚川 親不知', coordinates: [137.73344, 37.00756], difficulty: 2,
+    highlight: '崖が海に迫る海岸。水中では丸い石が敷き詰められた底と岩場を見比べられます。',
+    conditions: '風と波が穏やかな日の岸からのルート。現地ガイドと利用できる出入り口を確認します。',
+    source: 'https://www.itoigawa-kanko.net/beach/oyashirazu_beach/', sourceName: '糸魚川市観光協会',
+  },
+  {
+    id: 'maizuru-kanmuri', name: '冠島・立神礁', area: '京都・舞鶴 冠島沖', coordinates: [135.42478, 35.69381], difficulty: 4,
+    highlight: '日本海の沖に立つ岩礁。潮の当たる側で魚の群れが集まる光景を狙えます。',
+    conditions: '外洋の岩礁へ船で渡ります。潮流と深さに対応できるガイド付きコースの目安です。',
+    source: 'https://www.kannmurijima.com/dive/', sourceName: '冠島ダイビングサービス',
+  },
+];

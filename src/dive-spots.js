@@ -2,6 +2,9 @@ import { izuDiveAreas } from './dive-areas/izu.js';
 import { islandDiveAreas } from './dive-areas/islands.js';
 import { islandCoastDiveAreas } from './dive-areas/island-coasts.js';
 import { kantoDiveAreas } from './dive-areas/kanto.js';
+import { kiiDiveAreas } from './dive-areas/kii.js';
+import { westernJapanDiveAreas } from './dive-areas/western-japan.js';
+import { kyushuIslandDiveAreas } from './dive-areas/kyushu-islands.js';
 import { okinawaDiveAreas } from './dive-areas/okinawa.js';
 import { okinawaIslandDiveAreas } from './dive-areas/okinawa-islands.js';
 
@@ -82,13 +85,13 @@ export const diveSpots = [
     source: 'https://blog.padi.com/jp/diving-in-west-izu-peninsula/', sourceName: 'PADI',
   },
   {
-    id: 'oshima', name: '秋の浜', area: '東京・伊豆大島 秋の浜', coordinates: [139.409, 34.786], difficulty: 2,
+    id: 'oshima', name: '秋の浜', area: '東京・伊豆大島 秋の浜', coordinates: [139.40346, 34.79083], difficulty: 2,
     highlight: '岩や砂地が切り替わる岸沿いで、小さな魚や南の海から来る魚を探せます。',
     conditions: 'ガイドと巡る浅場を想定。沖は深くなります。',
     source: 'https://uminowa.net/fundiving/page-2742/page-2425/', sourceName: '伊豆大島ダイビングうみのわ',
   },
   {
-    id: 'hachijo', name: 'ナズマド', area: '東京・八丈島 ナズマド', coordinates: [139.748, 33.131], difficulty: 4,
+    id: 'hachijo', name: 'ナズマド', area: '東京・八丈島 ナズマド', coordinates: [139.73434, 33.14459], difficulty: 4,
     highlight: '溶岩でできた地形の沖を、カンパチなどの回遊魚が通ります。ユウゼンも見どころです。',
     conditions: '岸から入るポイントでも潮の流れが強くなるため、流れへの対応経験が必要です。',
     source: 'https://blog.padi.com/jp/diving-in-tokyo-izu-islands/', sourceName: 'PADI',
@@ -130,7 +133,7 @@ export const diveSpots = [
     source: 'https://www.naui.co.jp/shop/detail.php?uid=444', sourceName: 'NAUI',
   },
   {
-    id: 'amami', name: '倉崎ビーチ', area: '鹿児島・奄美大島', coordinates: [129.647, 28.428], difficulty: 1,
+    id: 'amami', name: '倉崎ビーチ', area: '鹿児島・奄美大島 龍郷 倉崎', coordinates: [129.62770, 28.44639], difficulty: 1,
     highlight: '湾内のサンゴと色鮮やかな魚を、岸から入ってゆっくり観察できます。',
     conditions: '穏やかな日に体験ダイビングでも利用される浅場です。',
     source: 'https://amami-diving.com/divingpoint/beachpoint.html', sourceName: 'ネイティブシー奄美',
@@ -141,6 +144,9 @@ export const diveSpots = [
   ...okinawaIslandDiveAreas,
   ...islandDiveAreas,
   ...islandCoastDiveAreas,
+  ...kyushuIslandDiveAreas,
+  ...kiiDiveAreas,
+  ...westernJapanDiveAreas,
   // Selected areas outside Japan.
   {
     id: 'blue-corner', name: 'ブルーコーナー', area: 'パラオ', coordinates: [134.21448, 7.13871], difficulty: 5,

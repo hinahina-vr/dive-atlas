@@ -70,7 +70,7 @@ try{
     const { duration, delay } = image.getAnimations()[0].effect.getTiming();
     return [duration, delay];
   }));
-  assert.deepEqual(timing, [[400, 0], [400, -200]], 'Lamp changes every 200 ms');
+  assert.deepEqual(timing, [[200, 0], [200, -100]], 'Lamp changes every 100 ms');
   const observedLitLamps = new Set();
   for (let sample = 0; sample < 12; sample++) {
     const lit = await lamps.evaluateAll(images => images.map(image => {
@@ -82,7 +82,7 @@ try{
     await p.waitForTimeout(60);
   }
   assert.equal(observedLitLamps.size, 2, 'Both the left and right lamp take a turn');
-  report.checks.push(width + ': pink hibiscus lamps alternate every 200 ms with no simultaneous flash');
+  report.checks.push(width + ': pink hibiscus lamps alternate every 100 ms with no simultaneous flash');
   await p.getByRole('button', { name: '水面の動きを止める', exact: true }).click();
   const paused = await ocean.getAttribute('data-draws');
   await p.waitForTimeout(150);

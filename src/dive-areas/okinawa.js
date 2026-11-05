@@ -100,7 +100,7 @@ export const okinawaDiveAreas = [
     source: guideRoot + 'kuro-kita/', sourceName,
   },
   {
-    id: 'tonaki-blue-corner', name: '渡名喜ブルーコーナー', area: '沖縄・渡名喜島', coordinates: [127.11595, 26.36590], difficulty: 4,
+    id: 'tonaki-blue-corner', name: '渡名喜ブルーコーナー', area: '沖縄・渡名喜島 南岸', coordinates: [127.11595, 26.36590], difficulty: 4,
     highlight: '沖へ向かって落ちる岩壁の上に、ハナダイやスズメダイの群れが重なります。',
     conditions: '岩壁沿いのドリフト。流れの中で浮力を保ち、グループと浮上できる経験が目安です。',
     source: guideRoot + 'tonaki-bluecorner/', sourceName,

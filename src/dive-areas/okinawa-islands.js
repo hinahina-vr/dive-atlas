@@ -39,7 +39,7 @@ export const okinawaIslandDiveAreas = [
     source: 'https://miyako-aquaticadventure.com/double-arch.html', sourceName: 'アクアティックアドベンチャー',
   },
   {
-    id: 'miyako-nanamata', name: '七又アーチ', area: '沖縄・宮古島 南岸', coordinates: [125.41600, 24.72553], difficulty: 3,
+    id: 'miyako-nanamata', name: '七又アーチ', area: '沖縄・宮古島 七又海岸', coordinates: [125.41600, 24.72553], difficulty: 3,
     highlight: '白い砂に岩のアーチがかかります。湧き出す淡水と海水の境目で景色が揺らいで見えることもあります。',
     conditions: '岩の外側から観察するボートルートの目安です。南岸のうねりで行き先が変わることがあります。',
     source: 'https://miyako-aquaticadventure.com/7arch.html', sourceName: 'アクアティックアドベンチャー',
@@ -175,5 +175,53 @@ export const okinawaIslandDiveAreas = [
     highlight: '島の北西に広がるサンゴ礁。サンゴが密に集まる場所では魚がまとまって泳ぎます。',
     conditions: '沖のサンゴ礁を巡るボートルート。うねりと潮に合わせて現地ガイドが船を出します。',
     source: tarama, sourceName: '多良間村',
+  },
+  {
+    id: 'tonaki-angela', name: 'アンジェーラ口', area: '沖縄・渡名喜島 東岸', coordinates: [127.15527, 26.3637], difficulty: 3,
+    highlight: '島の東側の浅い礁。ウミガメがサンゴの上を通る姿を探せます。',
+    conditions: '遠征船で行く礁です。航路と海況に合わせて現地ガイドが行き先を選びます。',
+    source: 'https://okinawa-kahana.com/fun-diving/tonaki.html', sourceName: 'ダイビングサービス KAHANA',
+  },
+  {
+    id: 'tonaki-nakaruma', name: 'ナカルマ', area: '沖縄・渡名喜島 北沖', coordinates: [127.13747, 26.38452], difficulty: 5,
+    highlight: '島の北沖をイソマグロやバラクーダが通ります。魚が潮に向かって群れる海域です。',
+    conditions: '流れに乗って移動するドリフトコース。現地の利用日と出航条件も事前に確認します。',
+    source: 'https://okinawa-kahana.com/fun-diving/tonaki.html', sourceName: 'ダイビングサービス KAHANA',
+  },
+  {
+    id: 'ishigaki-hirakubo', name: '平久保崎', area: '沖縄・石垣島 平久保半島 北端', coordinates: [124.3063, 24.6138], difficulty: 3,
+    highlight: '半島の先ではサンゴの棚が外海へ開きます。根に集まる魚を船から見に行けます。',
+    conditions: '外海に面したボートルート。風や潮が弱い日にガイドが案内する範囲の目安です。',
+    source: 'https://umimelo.com/divingspot/', sourceName: '石垣島北部 海のメロディー',
+  },
+  {
+    id: 'nago-awa', name: '安和ビーチ', area: '沖縄・名護 安和海岸', coordinates: [127.91159, 26.6007], difficulty: 2,
+    highlight: '岸の沖にサンゴの根が点在し、根の間に小魚が集まります。',
+    conditions: '岸から入るガイド付きの浅場の目安です。風と波で出入りの条件が変わります。',
+    source: 'https://diving-wg.com/point/detail/awa/', sourceName: 'ダイビングWG沖縄',
+  },
+  {
+    id: 'kouri-emmons', name: 'USSエモンズ', area: '沖縄・今帰仁 古宇利島沖', coordinates: [128.00703, 26.71444], difficulty: 5,
+    highlight: '深い海底に大きな船体が残ります。外側を泳ぐと艦首や艦尾に当時の構造が見えます。',
+    conditions: '深さと流れのある外洋の沈船。船外でも対応する経験・資格と現地ガイドが必要です。',
+    source: 'https://teal-orange.jp/ja/fun-diving/uss-emmons/', sourceName: 'Teal Orange Diving',
+  },
+  {
+    id: 'irabu-wreck', name: '伊良部島沖の沈船', area: '沖縄・宮古諸島 伊良部島 東沖', coordinates: [125.24816, 24.81827], difficulty: 4,
+    highlight: '沈んだ船の周りに魚が集まります。船の外側から、青い海に浮かぶ船体全体を見渡せます。',
+    conditions: '砂地に沈む船を船外から見るコース。水深と視界に応じてガイドが案内します。',
+    source: 'https://miyako-aquaticadventure.com/wreck-ship.html', sourceName: 'アクアティックアドベンチャー',
+  },
+  {
+    id: 'yonaguni-umabana', name: '馬鼻崎・Wアーチ', area: '沖縄・与那国島 馬鼻崎沖', coordinates: [122.96585, 24.47574], difficulty: 3,
+    highlight: '岬沖の岩棚には二つのアーチがあり、アカネハナゴイなどが棚の周りを泳ぎます。',
+    conditions: '船から入り、岩の窓を外側から見るルート。北側の波と流れは海況に応じて確認します。',
+    source: 'https://yonaguniyds.com/diving/point/', sourceName: '与那国ダイビングサービス',
+  },
+  {
+    id: 'miyako-shigira', name: 'シギラビーチ', area: '沖縄・宮古島 上野新里 シギラ', coordinates: [125.34111, 24.72013], difficulty: 1,
+    highlight: '浅いサンゴ礁まで日が差し込み、サンゴの枝を出入りするスズメダイを近くで見られます。',
+    conditions: '穏やかな日のガイド付き浅場。岸から入る体験ダイビングの目安です。',
+    source: 'https://www.miyako-aquaticadventure.com/sigirabeach.html', sourceName: 'アクアティックアドベンチャー',
   },
 ];
