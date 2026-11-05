@@ -1,0 +1,98 @@
+{
+  "recordedAt": "2026-11-05T05:02:36.009522+00:00",
+  "target": {
+    "baseCommit": "b0bfdf4f168829729779b6591829c86dbe3d3c7f",
+    "state": "base commit plus uncommitted changes; exact tested source hashes below"
+  },
+  "changes": [
+    "Restored the preferred white, aqua and pink UI",
+    "Retained underwater WebGL light shafts, drifting particles, bubbles and tap ripples",
+    "Added continuous bright/dim hibiscus jackpot animation; reduced-motion stays steady",
+    "Added vector geographic names and 109 public Okinawa island labels, independent of private log text",
+    "Removed unused coarse coastline assets"
+  ],
+  "checks": {
+    "unitAndConverter": {
+      "command": "npm run check",
+      "nodeTests": 7,
+      "pythonTests": 3,
+      "status": "passed"
+    },
+    "realNativeBackupBrowser": {
+      "date": "2026-11-05",
+      "checks": [
+        "Actual native ZIP and SQLite parsed, missing GPS preserved, database IDs not mistaken for dive numbers",
+        "Cross-origin import denied; private artifact not statically served",
+        "1440: built-in vector island labels: 外自津留島 / 地自津留島 / 儀志布島 / Jitsuru-shima / 黒島",
+        "1440: flashing hibiscus has distinct bright/dim phases; light UI restored",
+        "1440: real 4 dives/4 signatures, 3 approximate map places, exact backup, edit/reload, WebGL motion/reduced-motion/pause, no horizontal overflow",
+        "390: built-in vector island labels: 黒島",
+        "390: flashing hibiscus has distinct bright/dim phases; light UI restored",
+        "390: real 4 dives/4 signatures, 3 approximate map places, exact backup, edit/reload, WebGL motion/reduced-motion/pause, no horizontal overflow",
+        "Built-in public geographic gazetteer includes 109 Okinawa islands, including small islands absent from standard tiles"
+      ],
+      "errors": [],
+      "realBackup": true,
+      "status": "passed",
+      "counts": {
+        "dives": 4,
+        "signatures": 4,
+        "photos": 0,
+        "minutes": 127
+      }
+    },
+    "existingBrowserFlows": {
+      "desktop": [
+        "WebGL world map, samples, POI selection, detail",
+        "Create record, map location, resize photo, zero temperature, literal unsafe text",
+        "Reload persisted record and photo, edit",
+        "CSV mapping, missing location, import preview, commit",
+        "Backup roundtrip, duplicate skipped",
+        "Search"
+      ],
+      "mobile": [
+        "390px layout, sample selection, detail, editor, no horizontal overflow",
+        "Restore desktop backup with photo into empty mobile browser",
+        "Delete and confirm deletion remains after reload",
+        "WebGL context restore preserves unsaved input"
+      ],
+      "errors": [],
+      "status": "passed"
+    },
+    "actualUserBrowser": "Reloaded localhost:4493; verified restored light UI, selected log, geographic island label and retained underwater rendering"
+  },
+  "viewports": {
+    "desktop": [
+      1440,
+      1000
+    ],
+    "mobileEmulation": [
+      390,
+      844
+    ]
+  },
+  "sourceSha256": {
+    "index.html": "8bdeff022d717013eebd5de800c789381d29ec380e035e0d33ef79c48cbecdb8",
+    "style.css": "214a86d05072fcf1083809eecbe82f348b213c23d3cb282deb8c408b44c66f1f",
+    "package.json": "d066842dc12c6243f5bdb61e98a8f585ad1108ca4aa47c89c85fb9690a6905a2",
+    "package-lock.json": "97f5712e1cf345ad9fbcb36a5ead6c16c2a137156e53168437785c8adc6bc81b",
+    "assets/hibiscus.svg": "c0543a4e25bab767145dd7ed5e9410fb41e3d8e7c921d6a1d43060ccebf4fd07",
+    "assets/map-style.json": "d61fdc7e4e0d7ddbc5dccee5248561c3bb7238d764132bed18d4f050c9838050",
+    "assets/okinawa-island-names.geojson": "94574cfd35590ac83e6e51450d43443c674f611b839884ffef72d6848e16e0df",
+    "src/app.js": "fa8ef2ee3b05b6faff4604b080d3e01e3c9103381749058793dc3489c49f4ba2",
+    "src/map.js": "b6f2a52bb6273537c9b3ab5f4005b66a5fa443ddc9d98d4f633015fdb0ff84a2",
+    "src/ocean.js": "1ba626791d1e7f6ee0c30001de2271cb1d4f7470fddd6e23a17c24025d975086",
+    "src/model.js": "2c9647ed0f979260fdd4710bd004ac5f9dc2fcee773156beb28f2fa4f5a8d384",
+    "src/store.js": "e7265432a779f689ba297ead3f25adbbc107802aa92e786d6fb22e8683db8632",
+    "scripts/serve.mjs": "751387a35353165e399036dfd315b5362cc2181872781477a0a9496b483f078b",
+    "scripts/check-tusa-browser.mjs": "f75f3e3ba6b97a27a04f4f47ee613a5d4d78b1afdf0482893cf2ff1acad1ba82",
+    "scripts/browser-check.mjs": "32c1927df224a6d262aea187ed03005d9bda33c33133553b361774bb10e90aa8",
+    "scripts/build-island-labels.py": "4baad5bc0d1f1cb89d0256be65c0f58afc2d3d5dd2fbd2df2f30cd0fbb2be1ef"
+  },
+  "privacy": "Private backups, records, signatures, diagnostic downloads and screenshots stay in ignored artifacts; none committed",
+  "limitations": [
+    "Mobile checks used browser emulation, not a physical phone",
+    "Map tiles and glyphs require network access",
+    "No cross-device sync or deployment tested or performed"
+  ]
+}

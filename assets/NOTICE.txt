@@ -1,7 +1,18 @@
-Basemaps: Natural Earth land, public domain.
-https://www.naturalearthdata.com/about/terms-of-use/
-land.json: 1:50m land simplified at 0.022 degrees.
-okinawa-land.json: 1:10m land polygons in the Okinawa area, preserving coordinates to 6 decimal places.
-1:10m source: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_land.geojson
-Source SHA256: 1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416
-Maps are for a personal journal, not navigation.
+Map rendering: MapLibre GL JS (BSD-3-Clause).
+https://maplibre.org/
+Package and version are pinned in package-lock.json; no copied distribution is committed.
+
+Basemap tiles and glyphs: OpenFreeMap.
+https://openfreemap.org/
+Geographic data: OpenStreetMap contributors (ODbL), OpenMapTiles schema.
+https://www.openstreetmap.org/copyright
+https://openmaptiles.org/
+Attribution links are displayed with the map.
+
+assets/map-style.json is an original, compact style. Island and other geographic names are read from the vector tile place/water_name layers. No dive logs are uploaded to these map providers.
+
+Okinawa island gazetteer: GeoNames JP country dump, CC BY 4.0.
+https://download.geonames.org/export/dump/JP.zip
+https://www.geonames.org/
+https://creativecommons.org/licenses/by/4.0/
+Downloaded 2026-11-05; filtered to geographic island features in 25.7-27.3 N / 126.7-128.6 E. Only the filtered 109 labels are included. Japanese island-name variants are selected from the source alternate names. No user dive-log text is used to construct these map labels.
