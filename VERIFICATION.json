@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-05",
+  "scope": "Independent personal diving journal; sunny tropical design and native TUSA Android ZIP import",
+  "git": "Standalone repository, no remote, no shared object store or source-project path",
+  "tests": {
+    "modelAndCsv": 7,
+    "pythonTusaFixture": 3,
+    "desktopAndMobileBrowser": "passed, 1440x1000 and 390x844 Chrome emulation",
+    "actualTusaBackup": "4 dives, 4 signatures, 0 photos; exact source fields and backup verified",
+    "webgl": "WebGL2, moving caustics and sparkle, tap ripple, reduced motion, pause, GPU context restore with input preserved",
+    "visibleUserBrowser": "Refreshed existing local app, observed 4 logs and displayed detail with approximate-position label"
+  },
+  "personalData": "Actual ZIP, converted logs, signatures, representative coordinates, screenshots and exports remain in ignored artifacts/private-import or the browser. None committed.",
+  "limitations": [
+    "Location representatives were requested and approved by the owner; exact dive coordinates were absent.",
+    "No automatic phone/PC synchronization or public hosting.",
+    "Phone checks use Chrome emulation, not a physical phone."
+  ],
+  "hashes": {
+    ".gitignore": "47c81f31fbf11dfde8803b2132278d1c4d0a6260d393b9bb4d2d777704918444",
+    ".npmrc": "8b14a3e091441403afd948398424a163d77021152b2b67599bae9d6e3c2580a0",
+    "AGENTS.md": "bb39ad662fcb8485df35e1a851ee368e4533fcbeb769266f80fa5e8b231398b3",
+    "README.md": "7e87e6d1c54ee42c5e128ef727123399331fb2332327b97ae1b3279fcae1a8e5",
+    "index.html": "cf8ab264a6560893a303e6898ea0b81aaf9b3768e7d40568dfdcbe0a294502af",
+    "style.css": "75989ef535d2faa53248c9d6c6f676dd1337f0e84ee05f3eb31048fda972f2f5",
+    "package.json": "f9dc2379eb16e4212736fc8d857bac5fa159d9d6fc06d5421a06453ac7d972cf",
+    "package-lock.json": "d9a90303aa5cc91cec9bb443ee1880187c501b8303121a8c6ba7627cd10ade55",
+    "src/app.js": "fa8ef2ee3b05b6faff4604b080d3e01e3c9103381749058793dc3489c49f4ba2",
+    "src/map.js": "61e73a2de810201b738797c2951646ed8a138d3a7a946ebfd16f62dec9eed0b8",
+    "src/model.js": "2c9647ed0f979260fdd4710bd004ac5f9dc2fcee773156beb28f2fa4f5a8d384",
+    "src/ocean.js": "a4f0296d7d3622474d9c61f6bafae1c23fe6396c399e1d6460438327daec641e",
+    "src/store.js": "e7265432a779f689ba297ead3f25adbbc107802aa92e786d6fb22e8683db8632",
+    "assets/hibiscus.svg": "cb6fc331a8c27b43bdce7fcd99297ba811bc21a91bf54e9723f85427d566f039",
+    "assets/land.json": "239bad0c169db8c73cebbe3bce74f7a0472ce0ed9f6a54a52e2e008fba3b46c9",
+    "assets/NOTICE.txt": "f25350aa8d0cb9c3e163ff85534aef4be57893701606c61d67b126a8a20fdbb5",
+    "assets/okinawa-land.json": "50bdaf38078a237ef088eb722f7037c9c2cb8292a8d418dc388489ce22b9b222",
+    "scripts/browser-check.mjs": "0b3f93fbd1b90b606f082f5f3f1663a667fba2a5e28706d387dbe71a762fae37",
+    "scripts/check-tusa-browser.mjs": "edf5332d5db67bc83648c437fd9ccc2715d4dbbc16c5472c258daa09e6c71c57",
+    "scripts/model.test.mjs": "16d456b6fa7ffb3ad3f8c3018ea296585da7da902d19d57488340c0436b6c616",
+    "scripts/serve.mjs": "7814397e9517cbfb93e0db8cab96c7765d909887db7f7876d05a829738918e5b",
+    "scripts/import-tusa.py": "5502d3ac147cbf9626694ec812eff390d35a9ef7a931a6b1c7cbeff1d89da2c1",
+    "scripts/import-tusa.test.py": "49e820d587f27aaa297794c16c35a459e6ef9b86f35eab9f76d108375aee69a9"
+  }
+}

@@ -1,0 +1,7 @@
+Basemaps: Natural Earth land, public domain.
+https://www.naturalearthdata.com/about/terms-of-use/
+land.json: 1:50m land simplified at 0.022 degrees.
+okinawa-land.json: 1:10m land polygons in the Okinawa area, preserving coordinates to 6 decimal places.
+1:10m source: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_land.geojson
+Source SHA256: 1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416
+Maps are for a personal journal, not navigation.

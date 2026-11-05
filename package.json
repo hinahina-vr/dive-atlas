@@ -1,0 +1,13 @@
+{
+  "name": "dive-atlas",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "check": "node --test scripts/model.test.mjs && python -B scripts/import-tusa.test.py",
+    "check:browser": "node scripts/browser-check.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.62.1"
+  }
+}
