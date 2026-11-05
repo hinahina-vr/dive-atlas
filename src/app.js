@@ -1,7 +1,7 @@
-import {normalizeLog,sortLogs,summary,readBackup} from './model.js';
+import {normalizeLog,sortLogs,summary,readBackup,readPublicJournal} from './model.js';
 import {createMap} from './map.js';
 const $=s=>document.querySelector(s),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const paths={plus:'M12 5v14M5 12h14',minus:'M5 12h14',close:'m6 6 12 12M6 18 18 6',pin:'M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0ZM15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0',search:'M21 21l-6-6M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0',globe:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18',info:'M12 11v6m0-10v1M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0'};
+const paths={plus:'M12 5v14M5 12h14',minus:'M5 12h14',close:'m6 6 12 12M6 18 18 6',pin:'M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0ZM15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0',search:'M21 21l-6-6M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0',japan:'m18 3 3 1-1 3-3 1-1-2zM16 9l2 2-2 3-4 1-2 3-3 1-1-2 4-2 1-3 3-1zM6 19l-1 2-2-1 1-2zM2 22h.1',globe:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18',info:'M12 11v6m0-10v1M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0'};
 const icon=name=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name]||paths.info}"/></svg>`;
 const icons=()=>document.querySelectorAll('[data-icon]:not([data-icon-ready])').forEach(el=>{el.insertAdjacentHTML('afterbegin',icon(el.dataset.icon));el.dataset.iconReady='true';});icons();
 const samples=[
@@ -12,10 +12,17 @@ const samples=[
  {id:'sample-1',number:124,date:'2026-06-14',site:'富戸・ヨコバマ',area:'静岡・伊豆',lat:34.897,lon:139.135,depth:17.4,duration:47,temperature:21,visibility:12,creatures:'ミノカサゴ、アオリイカ',notes:'岸から少し進むだけで、違う世界が広がっていた。'}
 ].map(normalizeLog);
 const localJournal = $('meta[name="dive-atlas-mode"]').content === 'local';
+const publicJournalToggle = $('#public-journal-toggle');
+const journalPanel = $('#journal');
+const workspace = $('.workspace');
+publicJournalToggle.hidden = localJournal;
+if (!localJournal) journalPanel.hidden = true;
 $('#journal-source').textContent = localJournal
  ? 'この端末にあるログを表示します。記録の更新はローカルで行います。'
- : 'このページでは、ダイビングスポットと体験用のサンプルを閲覧できます。';
+ : 'このページでは、公開ログとダイビングスポットを閲覧できます。';
 let logs=[],demo=false,selected='',map,motionPaused=false,toastTimer=0;
+let showPublicJournal = false;
+let publicJournalRequest;
 let selectedSpot = null;
 const spotPins = $('#spot-pins');
 const spotToggle = $('#spot-toggle');
@@ -82,24 +89,43 @@ spotToggle.onclick = () => {
  try { localStorage.setItem(spotPreferenceKey, visible ? 'on' : 'off'); } catch { /* The toggle also works without storage. */ }
 };
 
-const current=()=>sortLogs(demo?samples:logs);
+const isPublicLog=()=>!localJournal&&!demo;
+const current=()=>sortLogs(demo?samples:localJournal||showPublicJournal?logs:[]);
 const shown=()=>{const q=$('#search').value.trim().toLocaleLowerCase();return current().filter(l=>[l.site,l.area,l.notes,l.creatures].join(' ').toLocaleLowerCase().includes(q));};
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),3500);}
 function display(n,unit=''){return n===null?'—':`${Number(n).toLocaleString('ja-JP')}${unit}`;}
-function render(){const all=current(),list=shown(),s=summary(all);$('#totals').innerHTML=`<div class="total"><strong>${s.dives}</strong><small>本</small><span>DIVES</span></div><div class="total"><strong>${s.places}</strong><small>ヶ所</small><span>POINTS</span></div><div class="total"><strong>${Math.floor(s.minutes/60)}</strong><small>h ${s.minutes%60}m</small><span>UNDERWATER</span></div>`;
- $('#list-count').textContent=(demo?'SAMPLE JOURNAL':'MY DIVES')+' / '+list.length;$('#demo-toggle').textContent=demo?(localJournal?'自分のログへ':'スポット地図に戻る'):'サンプルを見る';$('#sample-badge').hidden=!demo;
- $('#log-list').innerHTML=list.length?list.map(l=>`<button class="log-card ${l.id===selected?'selected':''}" data-log="${escape(l.id)}"><span class="log-no">${l.number!==null?escape(l.number):'<img src="./assets/hibiscus-pink.png" alt="" width="24" height="24">'}</span><span><time datetime="${l.date}">${l.date.replaceAll('-','.')}</time><h3>${escape(l.site)}</h3><span class="area">${escape(l.area||'エリア未設定')}${l.lat===null?' · 場所未設定':''}</span><span class="measures"><span>↧ ${display(l.depth,' m')}</span><span>◷ ${display(l.duration,' min')}</span><span>${display(l.temperature,' °C')}</span></span></span></button>`).join(''):`<div class="empty"><h3>${all.length?'見つかりませんでした':'表示できるログはありません'}</h3><p>${all.length?'別の言葉で探してみてください。':localJournal?'ローカルに用意したログをここに表示します。':'地図のピンからダイビングスポットを見られます。'}</p></div>`;
+function render(){const all=current(),list=shown(),s=summary(all);if(isPublicLog())s.places=new Set(all.map(l=>l.site)).size;$('#totals').innerHTML=`<div class="total"><strong>${s.dives}</strong><small>本</small><span>DIVES</span></div><div class="total"><strong>${s.places}</strong><small>ヶ所</small><span>POINTS</span></div><div class="total"><strong>${Math.floor(s.minutes/60)}</strong><small>h ${s.minutes%60}m</small><span>UNDERWATER</span></div>`;
+ $('#list-count').textContent=(demo?'SAMPLE JOURNAL':localJournal?'MY DIVES':'DIVE JOURNAL')+' / '+list.length;$('#demo-toggle').textContent=demo?(localJournal?'自分のログへ':'管理人のログに戻る'):'サンプルを見る';$('#sample-badge').hidden=!demo;
+ $('#log-list').innerHTML=list.length?list.map(l=>`<button class="log-card ${l.id===selected?'selected':''}" data-log="${escape(l.id)}"><span class="log-no">${l.number!==null?escape(l.number):'<img src="./assets/hibiscus-pink.png" alt="" width="24" height="24">'}</span><span><time datetime="${l.date}">${l.date.replaceAll('-','.')}</time><h3>${escape(l.site)}</h3>${isPublicLog()?'':`<span class="area">${escape(l.area||'エリア未設定')}${l.lat===null?' · 場所未設定':''}</span>`}<span class="measures"><span>↧ ${display(l.depth,' m')}</span><span>◷ ${display(l.duration,' min')}</span>${isPublicLog()?'':`<span>${display(l.temperature,' °C')}</span>`}</span></span></button>`).join(''):`<div class="empty"><h3>${all.length?'見つかりませんでした':'表示できるログはありません'}</h3><p>${all.length?'別の言葉で探してみてください。':localJournal?'ローカルに用意したログをここに表示します。':'地図のピンからダイビングスポットを見られます。'}</p></div>`;
  document.querySelectorAll('[data-log]').forEach(el=>el.onclick=()=>selectLog(el.dataset.log));
  map?.setLogs(list,selected);renderDetail();}
-function renderDetail(){const l=current().find(l=>l.id===selected),el=$('#detail');if(!l){if(selectedSpot)renderSpotDetail(el,selectedSpot);else el.hidden=true;return;}clearSpotSelection();el.hidden=false;el.innerHTML=`<div class="detail-top"><span>${demo?'SAMPLE · ':''}DIVE ${escape(l.number??'')} / ${l.date.replaceAll('-','.')}</span><button class="icon-button" id="detail-close" aria-label="ログ詳細を閉じる">${icon('close')}</button></div><h2>${escape(l.site)}</h2><div class="detail-area">${icon('pin')}${escape(l.area||'エリア未設定')}${l.lat===null?' · 位置未設定':''}${l.locationKind==='approximate'?'<span class="location-approx">位置は目安</span>':''}</div><div class="detail-numbers"><div><strong>${display(l.depth)}</strong><small>m</small><span>最大水深</span></div><div><strong>${display(l.duration)}</strong><small>min</small><span>潜水時間</span></div><div><strong>${display(l.temperature)}</strong><small>°C</small><span>水温</span></div></div><div class="tags">${l.creatures.split(/[、,]/).filter(Boolean).map(t=>`<span class="tag">${escape(t.trim())}</span>`).join('')}</div>${l.notes?`<p class="detail-notes">${escape(l.notes)}</p>`:''}${l.visibility!==null||l.buddy||l.tusa?`<div class="detail-meta">${l.visibility!==null?'透明度 '+display(l.visibility,' m'):''}${l.buddy?'　バディ '+escape(l.buddy):''}${l.tusa?.original?.AVE_DEPTH>=0?'　平均水深 '+display(l.tusa.original.AVE_DEPTH,' m'):''}</div>${l.locationKind==='approximate'?`<p class="detail-meta">${escape(l.locationLabel)}を表示中。</p>`:''}`:''}${l.photos.length?`<div class="detail-photos">${l.photos.map((p,i)=>`<img src="${p}" alt="${escape(l.site)}の写真 ${i+1}" loading="lazy">`).join('')}</div>`:''}${l.signature?`<details class="signature"><summary>サインを見る</summary><img src="${l.signature}" alt="TUSAログに保存されたサイン"></details>`:''}<div class="detail-footer"><small>${demo?'体験用の架空の記録':l.source?'取り込み：'+escape(l.source):'MY OCEAN MEMORY'}</small></div>`;
+function renderDetail(){const l=current().find(l=>l.id===selected),el=$('#detail');if(!l){if(selectedSpot)renderSpotDetail(el,selectedSpot);else el.hidden=true;return;}clearSpotSelection();el.hidden=false;el.innerHTML=`<div class="detail-top"><span>${demo?'SAMPLE · ':''}DIVE${l.number===null?'':' '+escape(l.number)} / ${l.date.replaceAll('-','.')}</span><button class="icon-button" id="detail-close" aria-label="ログ詳細を閉じる">${icon('close')}</button></div><h2>${escape(l.site)}</h2>${isPublicLog()?'':`<div class="detail-area">${icon('pin')}${escape(l.area||'エリア未設定')}${l.lat===null?' · 位置未設定':''}${l.locationKind==='approximate'?'<span class="location-approx">位置は目安</span>':''}</div>`}<div class="detail-numbers ${isPublicLog()?'detail-numbers--public':''}"><div><strong>${display(l.depth)}</strong><small>m</small><span>最大水深</span></div><div><strong>${display(l.duration)}</strong><small>min</small><span>潜水時間</span></div>${isPublicLog()?'':`<div><strong>${display(l.temperature)}</strong><small>°C</small><span>水温</span></div>`}</div><div class="tags">${l.creatures.split(/[、,]/).filter(Boolean).map(t=>`<span class="tag">${escape(t.trim())}</span>`).join('')}</div>${l.notes?`<p class="detail-notes">${escape(l.notes)}</p>`:''}${l.visibility!==null||l.buddy||l.tusa?`<div class="detail-meta">${l.visibility!==null?'透明度 '+display(l.visibility,' m'):''}${l.buddy?'　バディ '+escape(l.buddy):''}${l.tusa?.original?.AVE_DEPTH>=0?'　平均水深 '+display(l.tusa.original.AVE_DEPTH,' m'):''}</div>${l.locationKind==='approximate'?`<p class="detail-meta">${escape(l.locationLabel)}を表示中。</p>`:''}`:''}${l.photos.length?`<div class="detail-photos">${l.photos.map((p,i)=>`<img src="${p}" alt="${escape(l.site)}の写真 ${i+1}" loading="lazy">`).join('')}</div>`:''}${l.signature?`<details class="signature"><summary>サインを見る</summary><img src="${l.signature}" alt="TUSAログに保存されたサイン"></details>`:''}<div class="detail-footer"><small>${demo?'体験用の架空の記録':l.source?'取り込み：'+escape(l.source):'MY OCEAN MEMORY'}</small></div>`;
  $('#detail-close').onclick=()=>{selected='';render();};}
 function selectLog(id){selected=id;render();const l=current().find(l=>l.id===id);if(l)map?.select(l);if(innerWidth<700)$('.map-stage').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth'});}
 function toggleDemo(){clearSpotSelection();demo=!demo;selected='';$('#search').value='';render();map?.fit();}
+publicJournalToggle.onclick = () => {
+ showPublicJournal = !showPublicJournal;
+ journalPanel.hidden = !showPublicJournal;
+ workspace.classList.toggle('workspace--journal-open', showPublicJournal);
+ publicJournalToggle.setAttribute('aria-pressed', String(showPublicJournal));
+ publicJournalToggle.querySelector('.journal-toggle-state').textContent = showPublicJournal ? 'オン' : 'オフ';
+ if (!showPublicJournal) {
+  demo = false;
+  selected = '';
+  $('#search').value = '';
+ }
+ render();
+ if (showPublicJournal) {
+  loadPublicJournal();
+  if (innerWidth <= 700) journalPanel.scrollIntoView({ block: 'start' });
+ }
+};
 $('#demo-toggle').onclick=toggleDemo;
 $('#search').oninput=render;
 $('#zoom-in').onclick=()=>map?.zoomBy(1.4);
 $('#zoom-out').onclick=()=>map?.zoomBy(1/1.4);
-$('#fit').onclick=()=>map?.fit();
+$('#view-world').onclick=()=>map?.showWorld();
+$('#view-japan').onclick=()=>map?.showJapan();
 $('#motion-toggle').onclick=()=>{
  motionPaused=!motionPaused;
  map?.pauseMotion(motionPaused);
@@ -126,9 +152,25 @@ async function readLocalJournal() {
   throw error;
  }
 }
+function loadPublicJournal() {
+ if (publicJournalRequest) return;
+ $('#storage-status').textContent = '公開ログを読み込み中';
+ publicJournalRequest = fetch('./journal.json').then(async response => {
+  if (!response.ok) throw new Error('公開ログを読み込めませんでした。');
+  logs = readPublicJournal(await response.json());
+  $('#storage-status').textContent = 'ログ閲覧専用';
+  render();
+ }).catch(error => {
+  publicJournalRequest = undefined;
+  $('#storage-status').textContent = error.message;
+ });
+}
 if (localJournal) {
- try { logs=await readLocalJournal(); }
- catch (error) { $('#storage-status').textContent=error.message; }
+ try {
+  logs = await readLocalJournal();
+ } catch (error) {
+  $('#storage-status').textContent = error.message;
+ }
 }
 render();
 

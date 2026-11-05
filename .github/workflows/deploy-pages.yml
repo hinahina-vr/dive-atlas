@@ -18,6 +18,11 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --ignore-scripts
+      - name: Load approved public journal
+        env:
+          DIVE_ATLAS_PUBLIC_JOURNAL: ${{ secrets.DIVE_ATLAS_PUBLIC_JOURNAL }}
+        run: |
+          node -e 'const journal = process.env.DIVE_ATLAS_PUBLIC_JOURNAL; if (journal) require("node:fs").writeFileSync("public-journal.json", journal);'
       - run: npm run build:pages -- artifacts/pages
       - uses: actions/upload-pages-artifact@v4
         with:

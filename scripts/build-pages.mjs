@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { diveSpots } from '../src/dive-spots.js';
+import { publicJournal, readPublicJournal } from '../src/model.js';
 
 const root = resolve(import.meta.dirname, '..');
 const out = resolve(root, process.argv[2] || 'artifacts/pages');
@@ -44,6 +45,12 @@ for (const file of ['maplibre-gl.mjs', 'maplibre-gl-worker.mjs', 'maplibre-gl-sh
  await cp(resolve(root, 'node_modules/maplibre-gl/dist', file), resolve(out, 'vendor', file));
 }
 await cp(resolve(root, 'node_modules/maplibre-gl/LICENSE.txt'), resolve(out, 'vendor/maplibre-LICENSE.txt'));
+const journal = await readFile(resolve(root, 'public-journal.json'), 'utf8').catch(error => {
+ if (error.code === 'ENOENT') return '[]';
+ throw error;
+});
+const approvedLogs = publicJournal(readPublicJournal(JSON.parse(journal)));
+await writeFile(resolve(out, 'journal.json'), JSON.stringify(approvedLogs)+'\n');
 await writeFile(resolve(out, 'revision.json'), JSON.stringify({revision,workingTreeChanges,spots:diveSpots.length})+'\n');
 await writeFile(resolve(out, '.nojekyll'), '');
 console.log(out);

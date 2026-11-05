@@ -21,7 +21,7 @@ TUSA Androidのバックアップをローカルで変換します。Python 3.11
 
 ## GitHub Pages
 
-`npm ci` の後、空のフォルダーを指定して `npm run build:pages -- artifacts/pages` で配信用ファイルを作れます。配信版で見られるのはスポット地図と架空のサンプルです。個人ログ、取り込みAPI、ブラウザー内のログ保存処理は配信ファイルに含めません。
+`npm ci` の後、空のフォルダーを指定して `npm run build:pages -- artifacts/pages` で配信用ファイルを作れます。配信版はスポット地図から始まり、「管理人（ひなひな）のダイブログ」をオンにすると公開ログを表示します。公開ログを含める場合は、ローカルで `node scripts/export-public-journal.mjs <元のバックアップJSON> public-journal.json` を実行します。出力は日付・ポイント名・最大水深・潜水時間の4項目です。公開許可のある出力だけを GitHub Actions の `DIVE_ATLAS_PUBLIC_JOURNAL` シークレットに登録します。元のログと出力ファイルはGitの管理外です。
 
 GitHub Pagesの公開元をGitHub Actionsに設定し、対象のコミットから **Deploy DIVE ATLAS** を手動実行します。通常のコミットでは自動配信されません。
 

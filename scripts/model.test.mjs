@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {normalizeLog,backup,readBackup,mergeLogs,parseCSV,guessMapping,csvToLogs,summary} from '../src/model.js';
+import {normalizeLog,backup,readBackup,mergeLogs,parseCSV,guessMapping,csvToLogs,summary,publicJournal,readPublicJournal} from '../src/model.js';
 const raw={date:'2026-11-05',site:'伊豆',lat:34.8,lon:139.1,depth:18,duration:45,notes:'<script>hello</script>'};
 test('zero measurements and missing coordinates are retained',()=>{const l=normalizeLog({...raw,lat:'',lon:'',temperature:0,visibility:0});assert.equal(l.lat,null);assert.equal(l.lon,null);assert.equal(l.temperature,0);assert.equal(l.visibility,0);});
 test('reject invalid coordinates and impossible dates',()=>{for(const value of [{lat:91},{lon:181},{lat:null},{date:'2026-02-30'}])assert.throws(()=>normalizeLog({...raw,...value}));});
@@ -9,3 +9,11 @@ test('CSV handles Japanese headers, quotes, commas, multiline and BOM',()=>{cons
 test('CSV missing coordinates remain unset, invalid measurements are not silently dropped',()=>{let rows=parseCSV('date,site,depth\n2026-11-05,伊豆,-1');assert.equal(csvToLogs(rows,guessMapping(rows[0])).errors.length,1);rows=parseCSV('date,site\n2026-11-05,伊豆');const r=csvToLogs(rows,guessMapping(rows[0]));assert.equal(r.logs[0].lat,null);assert.equal(summary(r.logs).places,0);assert.throws(()=>parseCSV('date,site\n"oops'));});
 
 test('TUSA metadata, missing sentinels and signature survive backup roundtrip',()=>{const l=normalizeLog({...raw,number:null,signature:'data:image/jpeg;base64,aGVsbG8=',tusa:{original:{_ID:7,POINT_LATITUDE:-999,MAX_DEPTH:17.8,START_TIME:123}},locationKind:'approximate',locationLabel:'島の代表位置',locationSource:'https://example.test/location'});assert.deepEqual(readBackup(JSON.parse(JSON.stringify(backup([l])))),[l]);assert.equal(l.number,null);assert.equal(l.tusa.original.POINT_LATITUDE,-999);});
+
+test('public journal includes only the four approved fields',()=>{
+ const privateLog=normalizeLog({...raw,buddy:'private',temperature:20,signature:'data:image/jpeg;base64,aGVsbG8='});
+ const projected=publicJournal([privateLog]);
+ assert.deepEqual(projected,[{date:raw.date,site:raw.site,depth:raw.depth,duration:raw.duration}]);
+ assert.deepEqual(publicJournal(readPublicJournal(projected)),projected);
+ assert.throws(()=>readPublicJournal([{...projected[0],lat:raw.lat}]),/4項目/);
+});
