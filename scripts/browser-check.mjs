@@ -32,6 +32,8 @@ const contents = fs.readdirSync(pages, { recursive:true }).map(String);
 assert(!contents.some(file => /private|artifacts|\.zip$|\.db$|store\.js/.test(file)));
 const revision = JSON.parse(fs.readFileSync(path.join(pages, 'revision.json'), 'utf8'));
 assert.equal(revision.spots, diveSpots.length);
+const publicRows = JSON.parse(fs.readFileSync(path.join(pages, 'journal.json'), 'utf8'));
+for (const row of publicRows) assert.deepEqual(Object.keys(row).sort(), ['date','depth','duration','site']);
 const mime = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.mjs':'text/javascript', '.json':'application/json', '.png':'image/png', '.geojson':'application/geo+json' };
 const published = http.createServer((req,res)=>{
  if(!req.url.startsWith(prefix)) return res.writeHead(404).end();
@@ -108,11 +110,76 @@ try {
 
   const publicRequests = [];
   page.on('request', request=>publicRequests.push(request.url()));
+  await page.route('**/src/map.js',async route=>{
+   const response=await route.fetch();
+   const source=await response.text();
+   const instrumented=source.replace("canvas.dataset.mapState='loading'", "window.__verifiedDiveMap=map; canvas.dataset.mapState='loading'");
+   await route.fulfill({response,body:instrumented});
+  });
   await page.goto('http://127.0.0.1:4495'+prefix);
   await mapReady();
   assert.equal(await page.locator(updateControls).count(),0);
   assert.equal(await page.locator('.spot-pin').count(),diveSpots.length);
+  const journal = page.locator('#journal');
+  const journalToggle = page.getByRole('button',{name:'管理人（ひなひな）のダイブログ',exact:true});
+  assert.equal(await journalToggle.getAttribute('aria-pressed'),'false');
+  assert(await journal.isHidden());
   assert.equal(await page.locator('.log-card').count(),0);
+  assert(!publicRequests.some(url=>url.endsWith('/journal.json')));
+  assert(await page.evaluate(()=>document.querySelector('.map-stage').clientWidth===document.querySelector('.workspace').clientWidth));
+
+  await page.getByRole('button',{name:'世界地図を表示',exact:true}).click();
+  await mapReady();
+  assert.match(await page.locator('#map-coordinate').textContent(),/0\.0°E$/);
+  assert(await page.evaluate(()=>{
+   const map=window.__verifiedDiveMap;
+   const canvas=map.getCanvas();
+   return [[-179,0],[179,0],[0,80],[0,-80]].every(coordinates=>{
+    const {x,y}=map.project(coordinates);
+    return x>=0&&x<=canvas.clientWidth&&y>=0&&y<=canvas.clientHeight;
+   });
+  }));
+  await page.screenshot({path:path.join(folder,'world-'+width+'.png')});
+  await page.getByRole('button',{name:'日本地図を表示',exact:true}).click();
+  await mapReady();
+  assert.match(await page.locator('#map-coordinate').textContent(),/134\.5°E$/);
+  await page.screenshot({path:path.join(folder,'japan-'+width+'.png')});
+
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  const lamp = await page.locator('.island-flower img').evaluateAll(images=>images.map(image=>{
+   const animation = image.getAnimations()[0];
+   animation.pause();
+   animation.currentTime=0;
+   return {duration:animation.effect.getTiming().duration, filter:getComputedStyle(image).filter};
+  }));
+  assert.deepEqual(lamp.map(value=>value.duration),[300,300]);
+  assert.match(lamp[0].filter,/brightness\(1\.16\)/);
+  assert.match(lamp[1].filter,/brightness\(0\.26\)/);
+  await page.emulateMedia({reducedMotion:'reduce'});
+
+  const journalResponse = page.waitForResponse(response=>response.url().endsWith('/journal.json')&&response.ok());
+  await journalToggle.click();
+  await journalResponse;
+  await page.waitForFunction(()=>document.querySelector('#storage-status').textContent==='ログ閲覧専用');
+  assert.equal(await journalToggle.getAttribute('aria-pressed'),'true');
+  assert(await journal.isVisible());
+  assert.equal(await page.locator('.log-card').count(),publicRows.length);
+  await page.screenshot({path:path.join(folder,'journal-'+width+'.png')});
+  if (publicRows.length) {
+   const card = page.locator('.log-card').first();
+   const row = publicRows[0];
+   assert.equal(await card.locator('time').getAttribute('datetime'),row.date);
+   await card.click();
+   assert.equal(await page.locator('#detail h2').textContent(),row.site);
+   assert.deepEqual(await page.locator('.detail-numbers span').allTextContents(),['最大水深','潜水時間']);
+   assert.equal(await page.locator('.signature,.detail-photos,.detail-notes,.detail-area,.detail-meta').count(),0);
+  }
+  await journalToggle.click();
+  assert(await journal.isHidden());
+  assert(await page.locator('#detail').isHidden());
+  assert.equal(await page.locator('.log-card').count(),0);
+  await journalToggle.click();
+  assert.equal(await page.locator('.log-card').count(),publicRows.length);
   await page.getByRole('button',{name:'サンプルを見る',exact:true}).click();
   assert.equal(await page.locator('.log-card').count(),5);
   await page.locator('[data-log="sample-5"]').click();
@@ -127,7 +194,11 @@ try {
   assert(await page.locator('#spot-pins').isVisible());
   await mapReady();
   await page.screenshot({path:path.join(folder,'pages-'+width+'.png')});
-  report.checks.push(width+'px: project subpath, public map, synthetic sample, POI toggle, no local log API or DB access');
+  await page.reload();
+  await mapReady();
+  assert(await journal.isHidden());
+  assert.equal(await journalToggle.getAttribute('aria-pressed'),'false');
+  report.checks.push(width+'px: public map, world/Japan controls, alternating lamps, opt-in journal, four public fields, sample and POI toggle');
   await context.close();
  }
  assert.deepEqual(errors,[]);

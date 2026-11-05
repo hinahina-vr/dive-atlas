@@ -13,6 +13,19 @@ export const sortLogs=logs=>[...logs].sort((a,b)=>b.date.localeCompare(a.date)||
 export function summary(logs){return {dives:logs.length,places:new Set(logs.filter(l=>l.lat!==null).map(l=>`${l.lat.toFixed(3)},${l.lon.toFixed(3)}`)).size,minutes:logs.reduce((n,l)=>n+(l.duration??0),0)};}
 export function backup(logs){return {application:'dive-atlas',schema:SCHEMA,exportedAt:new Date().toISOString(),logs:sortLogs(logs)};}
 export function readBackup(value){if(value?.application!=='dive-atlas'||value.schema!==SCHEMA||!Array.isArray(value.logs)||value.logs.length>10000)throw new Error('DIVE ATLASのバックアップ形式を確認してください。');return value.logs.map(normalizeLog);}
+export function publicJournal(logs) {
+ return sortLogs(logs).map(({date,site,depth,duration})=>({date,site,depth,duration}));
+}
+export function readPublicJournal(records) {
+ const fields=['date','site','depth','duration'];
+ if(!Array.isArray(records)||records.length>10000) throw new Error('公開ログの形式を確認してください。');
+ return records.map((record,index)=>{
+  if(!record||typeof record!=='object'||Object.keys(record).length!==fields.length||!fields.every(field=>Object.hasOwn(record,field))){
+   throw new Error('公開ログは日付・ポイント名・水深・潜水時間の4項目です。');
+  }
+  return normalizeLog({...record,id:'public-'+(index+1)});
+ });
+}
 export function mergeLogs(existing,incoming){const seen=new Set(existing.map(l=>l.id));const added=[];for(const log of incoming){if(!seen.has(log.id)){seen.add(log.id);added.push(log);}}return [...existing,...added];}
 export function parseCSV(text){text=text.replace(/^\uFEFF/,'');const rows=[];let row=[],field='',quoted=false;for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(quoted&&text[i+1]==='"'){field+='"';i++;}else quoted=!quoted;}else if(c===','&&!quoted){row.push(field);field='';}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&text[i+1]==='\n')i++;row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field='';}else field+=c;}if(quoted)throw new Error('CSVの引用符が閉じられていません。');row.push(field);if(row.some(v=>v.trim()))rows.push(row);if(rows.length<2)throw new Error('表形式のCSVを確認できませんでした。実ファイルの形式確認が必要です。');if(rows.length>10001)throw new Error('1回に取り込めるのは10,000件までです。');return rows;}
 export const CSV_FIELDS=[['date','日付'],['site','ポイント名'],['area','エリア'],['number','ログ番号'],['lat','緯度'],['lon','経度'],['depth','最大水深（m）'],['duration','潜水時間（分）'],['temperature','水温（°C）'],['visibility','透明度（m）'],['buddy','バディ'],['creatures','生きもの'],['notes','メモ']];
