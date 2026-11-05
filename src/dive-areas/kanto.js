@@ -178,4 +178,40 @@ export const kantoDiveAreas = [
     conditions: '港からほど近い船のコース。岩場を見回れる深度は海況に合わせます。',
     source: 'https://miura-diving.com/fun-diving/', sourceName: '三浦 海の学校',
   },
+  {
+    id: "nishikawana-fish-reef", name: "西川名・漁礁", area: "千葉・館山 西川名の漁礁", coordinates: [139.755106, 34.961451], difficulty: 2,
+    highlight: "カジメの生えたコンクリート漁礁の周りを、イシダイやアジ、ネンブツダイが泳ぎます。",
+    conditions: "港から船で向かう浅めのコース。西川名の外礁より潮が穏やかな海域です。",
+    source: "https://www.nishikawana-diving.com/nishikawana-dive-sites", sourceName: "西川名ダイビングサービス",
+  },
+  {
+    id: "hasama-new-paradise", name: "ニューパラダイス", area: "千葉・館山 波左間 ニューパラダイス", coordinates: [139.784578, 34.976772], difficulty: 3,
+    highlight: "砂泥底にコンクリートブロックが点在し、隙間を小さな魚やイソギンチャクが利用しています。",
+    conditions: "船で向かう漁礁。高根の海中神社とは別の海域を巡ります。",
+    source: "https://www5e.biglobe.ne.jp/~o_hasama/", sourceName: "波左間海中公園",
+  },
+  {
+    id: "banda-tire-reef", name: "坂田・タイヤ魚礁", area: "千葉・館山 坂田のタイヤ魚礁", coordinates: [139.772798, 34.977546], difficulty: 2,
+    highlight: "タイヤを使った人工漁礁。砂地の上で、構造物の内と外に集まる魚の違いを見られます。",
+    conditions: "船で向かうコース。開催状況と深度は現地事業者に確認します。",
+    source: "https://blog.livedoor.jp/manatees1/archives/52365841.html", sourceName: "マナティーズ",
+  },
+  {
+    id: "jogashima-heibune", name: "へいぶ根", area: "神奈川・三浦 城ヶ島東沖 へいぶ根", coordinates: [139.628892, 35.134229], difficulty: 3,
+    highlight: "岩礁の壁や岩の隙間で、ウミウシなどの小さな生きものを探せます。",
+    conditions: "城ヶ島の東側へ船で向かいます。海況によっては別の根が選ばれます。",
+    source: "https://www.diving-glad.jp/post/jogashima", sourceName: "ダイビングショップ GLAD",
+  },
+  {
+    id: "hayama-170", name: "170度の根", area: "神奈川・葉山 芝崎 170度の根", coordinates: [139.568853, 35.264578], difficulty: 2,
+    highlight: "芝崎の浅い岩礁。岩陰で小魚を探すと、季節で顔ぶれが変わるのが分かります。",
+    conditions: "岸から向かう浅場のコース。波がある日の開催はガイドに確認します。",
+    source: "https://nana-dive.net/fundiving/hayama.html", sourceName: "葉山ダイビングショップ NANA",
+  },
+  {
+    id: "manazuru-iwa-steel", name: "鉄骨番長（沖漁礁）", area: "神奈川・真鶴 岩沖の鉄骨漁礁", coordinates: [139.147103, 35.163003], difficulty: 4,
+    highlight: "橋の建設で余った鉄骨を沈めた漁礁。海底に立つ鋼材の周りに魚が集まります。",
+    conditions: "深い人工漁礁へ船で出ます。構造物の外側を眺める目安で、参加条件はガイドに確認します。",
+    source: "https://dive-triton.jp/%E5%B2%A9/", sourceName: "ダイビングショップ トリトン",
+  },
 ];
