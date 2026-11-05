@@ -42,4 +42,22 @@ export const ogasawaraDiveAreas = [
     conditions: '外側をガイドと巡るボートダイブ。流れが穏やかでも水深に合った経験と資格が必要です。',
     source: 'https://www.diveresort-hahajima.com/scubadiving/pointmap', sourceName: 'ダイブリゾート母島',
   },
+  {
+    id: 'chichijima-miyanohama', name: '宮之浜', area: '東京・小笠原 父島 宮之浜', coordinates: [142.194371, 27.104328], difficulty: 2,
+    highlight: '弓なりの浜の内側にサンゴが育ち、熱帯魚が集まります。',
+    conditions: '浜の内側を現地ガイドと巡る目安です。沖の兄島瀬戸は潮が速いため進入しません。',
+    source: 'https://www.vill.ogasawara.tokyo.jp/sightseeing_chichi/info_chichijima/', sourceName: '小笠原村',
+  },
+  {
+    id: 'chichijima-tsurihama', name: '釣浜', area: '東京・小笠原 父島 釣浜', coordinates: [142.207203, 27.103984], difficulty: 3,
+    highlight: '父島北側の岩に囲まれた浜。岸近くにサンゴが広がり、熱帯魚を観察できます。',
+    conditions: '浜近くのダイビング海域。沖の流れが速いため、現地ガイドと海況を確認します。',
+    source: 'https://ogasawara-info.jp/wp-content/uploads/2024/10/6-1_Ogasawara_Village_Ecotourism_Promotion_Overall_Concept_2016.pdf', sourceName: '小笠原村エコツーリズム推進全体構想',
+  },
+  {
+    id: 'chichijima-minamiukiiso', name: '南浮磯', area: '東京・小笠原 父島 小港沖 南浮磯', coordinates: [142.184629, 27.067228], difficulty: 3,
+    highlight: '沖の岩礁を囲む魚群を観察できます。クマザサハナムロなどが岩の周りを行き来します。',
+    conditions: '船で向かう岩礁コース。海況に合わせてガイドが深度やルートを決めます。',
+    source: 'https://noris-kobe.jp/diving-blog/ogasawara-2-20241018-23/', sourceName: 'ダイビングスクール ノリス',
+  },
 ];

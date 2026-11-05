@@ -144,4 +144,58 @@ export const islandCoastDiveAreas = [
     conditions: '船で湾へ向かうガイド付きコース。湧き出す場所を避け、ガイドが指定する範囲から観察します。',
     source: 'https://hidabun.com/diving/', sourceName: '式根島の宿 ひだぶん',
   },
+  {
+    id: 'oshima-keikai', name: 'ケイカイ', area: '東京・伊豆大島 ケイカイ海岸', coordinates: [139.345608, 34.789559], difficulty: 4,
+    highlight: '溶岩がつくった複雑な根が続き、季節や時間帯によってハンマーヘッドシャークを見かけることがあります。',
+    conditions: '岸から入るポイントですが、速い潮が入ります。海況と参加条件を地元ガイドに確認します。',
+    source: 'https://www.seasound.jp/izuoshima/diving-point.html', sourceName: '伊豆大島 シーサウンド',
+  },
+  {
+    id: 'hachijo-shushoke', name: 'シュショケ（休憩所下）', area: '東京・八丈島 シュショケ海岸', coordinates: [139.746952, 33.107791], difficulty: 3,
+    highlight: '溶岩の岩場が水中まで続き、アーチと細い水路が現れます。',
+    conditions: '溶岩の足場を歩くビーチコース。岩の下を通る区間はガイドに確認します。',
+    source: 'https://www.hisaichi.jp/dive-site/', sourceName: '八丈島 比三一ダイバーズクラブ',
+  },
+  {
+    id: 'hachijo-yaken', name: 'ヤケンヶ浜', area: '東京・八丈島 ヤケンヶ浜', coordinates: [139.749355, 33.102902], difficulty: 2,
+    highlight: '入り組んだ溶岩の根のそばに広い砂地があり、晴れた日は砂紋がよく見えます。',
+    conditions: 'ゴロタの浜から入るコース。岩場のうねりを見ながら当日のルートを選びます。',
+    source: 'https://www.hisaichi.jp/dive-site/', sourceName: '八丈島 比三一ダイバーズクラブ',
+  },
+  {
+    id: 'kozu-saima', name: 'サイマ', area: '東京・神津島 南西 サイマ沖', coordinates: [139.12468, 34.182412], difficulty: 3,
+    highlight: '切り立った岩の間に海中の谷が続き、下を見ながら泳ぐと地形の起伏がよく分かります。',
+    conditions: '前浜港側から船で向かうコース。風向きと潮で行き先が変わります。',
+    source: 'https://www.kozu-nangoku.com/divingpoint', sourceName: '神津島ダイビング 南国',
+  },
+  {
+    id: 'kozu-miurawan', name: '多幸湾・ナガンネ', area: '東京・神津島 多幸湾（東岸 三浦湾）', coordinates: [139.1506, 34.189938], difficulty: 3,
+    highlight: '湾口の岩礁の壁にキンギョハナダイが集まり、ウミガメを見かけることもあります。',
+    conditions: '東岸から船で向かうコース。湾口は当日の潮に合わせて案内されます。',
+    source: 'https://www.kozu-nangoku.com/divingpoint', sourceName: '神津島ダイビング 南国',
+  },
+  {
+    id: 'miyake-togahama', name: '富賀浜', area: '東京・三宅島 富賀浜沖', coordinates: [139.476929, 34.055504], difficulty: 3,
+    highlight: '島南西の岩場。海岸から海へ続く火山島の地形をたどれます。',
+    conditions: '観光協会が案内する岸からのダイビング海域。エントリーできる海況を現地で確認します。',
+    source: 'https://www.miyakejima.gr.jp/wp/wp-content/uploads/2017/10/MIYAKE-Diving-Point-Map.pdf', sourceName: '三宅島観光協会',
+  },
+  {
+    id: 'miyake-sanbondake', name: '三本岳（大野原群島）', area: '東京・三宅島沖 大野原群島', coordinates: [139.3885, 34.0455], difficulty: 5,
+    highlight: '外洋から突き出す火山性の岩礁群。水中からも島の急な地形が感じられます。',
+    conditions: '三宅島の西に離れた海域。釣りとの共用区域があるため、現地ガイドと漁協の案内に従います。',
+    source: 'https://www.miyakejima.gr.jp/wp/wp-content/uploads/2017/10/MIYAKE-Diving-Point-Map.pdf', sourceName: '三宅島観光協会',
+  },
+  {
+    id: 'miyake-meganeiwa', name: 'メガネ岩沖', area: '東京・三宅島 メガネ岩沖', coordinates: [139.474182, 34.071431], difficulty: 4,
+    highlight: '岩の窓が水中に連なり、外の青と岩陰の明暗が際立つ場所です。',
+    conditions: '観光協会の案内では6月と10月に開く海域。年ごとの日程と参加条件を現地で確認します。',
+    source: 'https://www.miyakejima.gr.jp/wp/wp-content/uploads/2017/10/MIYAKE-Diving-Point-Map.pdf', sourceName: '三宅島観光協会',
+  },
+  {
+    id: 'miyake-chotaro', name: '長太郎池', area: '東京・三宅島 長太郎池の磯', coordinates: [139.54159, 34.054316], difficulty: 2,
+    highlight: '溶岩の岩場が波を遮る南東岸の磯。島の火山地形と浅場の生きものを近くで眺められます。',
+    conditions: '島の海域マップでビーチダイビングが案内されています。外側の波と現地の利用区分を確認します。',
+    source: 'https://www.miyakejima.gr.jp/wp/wp-content/uploads/2017/10/MIYAKE-Diving-Point-Map.pdf', sourceName: '三宅島観光協会',
+  },
 ];
