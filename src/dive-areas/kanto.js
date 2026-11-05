@@ -71,7 +71,7 @@ export const kantoDiveAreas = [
     source: miuraGuide, sourceName: padi,
   },
   {
-    id: 'miyagawa-tobine', name: '宮川湾・トビ根', area: '神奈川・三浦 宮川湾', coordinates: [139.642, 35.140], difficulty: 2,
+    id: 'miyagawa-tobine', name: '宮川湾・トビ根', area: '神奈川・三浦 宮川湾 トビ根', coordinates: [139.642, 35.140], difficulty: 2,
     highlight: '入り組んだ岩をソフトコーラルが覆い、岩の隙間にはコケギンポやウミウシがいます。',
     conditions: '港から短い船移動で行ける比較的浅い根です。ガイドと根の周りを巡る目安です。',
     source: 'https://miura-diving.com/diving-point/miyagawa-bay/', sourceName: '三浦 海の学校',
@@ -135,5 +135,47 @@ export const kantoDiveAreas = [
     highlight: '砂浜から遠浅の海に入り、砂底に落ちる日差しや岸を行き来する小魚を観察できます。',
     conditions: '穏やかな日にガイドと砂浜から入るルート。講習や体験にも使われます。',
     source: 'https://tds-sara.com/points', sourceName: '館山ダイビングサービスSARA',
+  },
+  {
+    id: 'katsuura-benten', name: '鵜原・弁天', area: '千葉・勝浦 鵜原 弁天根', coordinates: [140.260863, 35.12907], difficulty: 2,
+    highlight: '白砂の上に岩礁があり、根の周りで魚を眺めながら岩陰の小さな生きものも探せます。',
+    conditions: '鵜原沖へ船で出るルート。沖の根の中では流れが緩い日を選びやすい海域です。',
+    source: 'https://katsuura-ds.com/point/', sourceName: '勝浦ダイビングサービス',
+  },
+  {
+    id: 'katsuura-umanose', name: 'ウマノセ', area: '千葉・勝浦沖 ウマノセ', coordinates: [140.281634, 35.119803], difficulty: 4,
+    highlight: '外房の沖に立つ大きな根。潮が当たる側では、根を取り巻く魚群が見どころです。',
+    conditions: '冬季に案内される沖のボートポイント。深度と流れに対応できる経験が求められます。',
+    source: 'https://katsuura-ds.com/point/', sourceName: '勝浦ダイビングサービス',
+  },
+  {
+    id: 'namegawa-kuroiwa', name: '行川・黒岩', area: '千葉・勝浦 行川 黒岩', coordinates: [140.241852, 35.119031], difficulty: 2,
+    highlight: '岩が棚のように張り出す浅い根。岩陰を外から眺めると、ネコザメを見かけることがあります。',
+    conditions: '行川から船で向かいます。根が潮を遮る比較的浅いコースです。',
+    source: 'https://divetoday.net/fandive.html', sourceName: 'DiveToday',
+  },
+  {
+    id: 'namegawa-magurone', name: 'マグロ根', area: '千葉・勝浦 行川 マグロ根', coordinates: [140.229492, 35.113449], difficulty: 4,
+    highlight: '岩礁の上でイサキやタカベが群れ、その外側をワラサやカンパチが通ることがあります。',
+    conditions: '沖のボートコース。潮が速くなるため、中層での移動や流れのある海に慣れた方向けです。',
+    source: 'https://divetoday.net/fandive.html', sourceName: 'DiveToday',
+  },
+  {
+    id: 'jogashima-kajinohama', name: '梶の浜', area: '神奈川・三浦 城ヶ島 梶の浜', coordinates: [139.611897, 35.137949], difficulty: 1,
+    highlight: '浅い岩場で、小さな生きものをゆっくり探せます。冬はウミウシやダンゴウオが見どころです。',
+    conditions: '岸から入る浅場。講習や久しぶりに潜る人の練習にも使われます。',
+    source: 'https://miura-diving.com/fun-diving/', sourceName: '三浦 海の学校',
+  },
+  {
+    id: 'zushi-tsubune', name: 'ツブ根', area: '神奈川・逗子沖 ツブ根', coordinates: [139.530058, 35.296073], difficulty: 3,
+    highlight: '根を覆うソフトコーラルの間に、ウミウシや甲殻類が隠れています。',
+    conditions: '船で向かう沖の根。深さと当日の潮に合わせてコースを選びます。',
+    source: 'https://zushi-ds.com/free/points', sourceName: '逗子ダイビングサービス',
+  },
+  {
+    id: 'miyagawa-kasagone', name: 'カサゴ根', area: '神奈川・三浦 宮川湾 カサゴ根', coordinates: [139.632947, 35.13475], difficulty: 2,
+    highlight: '根魚が岩の隙間に隠れる根。時期によっては産卵に来るアオリイカを見られます。',
+    conditions: '港からほど近い船のコース。岩場を見回れる深度は海況に合わせます。',
+    source: 'https://miura-diving.com/fun-diving/', sourceName: '三浦 海の学校',
   },
 ];
