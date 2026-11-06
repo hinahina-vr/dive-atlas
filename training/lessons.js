@@ -169,6 +169,7 @@ export function remainingMaskWater(initial, cleared, progress = 0) {
 }
 
 export const neutralAir = .48;
+export const balanceLabels = { sink: '沈み気味', steady: '高さが安定', rise: '浮き気味' };
 
 export function balanceStatus(air) {
   if (air < .40) return 'sink';

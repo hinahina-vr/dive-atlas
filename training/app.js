@@ -1,4 +1,4 @@
-import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater, inflatorAir, neutralAir, balanceStatus, adjustAir } from './lessons.js';
+import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater, inflatorAir, neutralAir, balanceLabels, balanceStatus, adjustAir } from './lessons.js';
 import { createPlacement } from './placement.js';
 import { createPress } from './press.js';
 import { createExample } from './example.js';
@@ -453,7 +453,6 @@ el['next-lesson'].addEventListener('click', event => {
   if (event.detail === 0) el.instruction.focus({ preventScroll: compact });
   if (compact) showViewport();
 });
-const balanceLabels = { sink: '沈み気味', steady: '高さが安定', rise: '浮き気味' };
 const trimControls = [
   { id: 'trim-add', anchor: 'trim-add', label: '少し給気', direction: 1 },
   { id: 'trim-vent', anchor: 'trim-vent', label: '少し排気', direction: -1 }
@@ -463,6 +462,7 @@ function trim(direction) {
   feedback();
   saveCurrentDraft();
   refreshEffect();
+  return true;
 }
 for (const { id, direction } of trimControls) el[id].addEventListener('click', () => trim(direction));
 
@@ -476,7 +476,7 @@ el.perspective.addEventListener('click', () => {
 });
 function renderXREntry() {
   const button = el['vr-practice'];
-  button.hidden = !xrSupported || !view || !['mask', 'recovery'].includes(practice.lesson.scene) || Boolean(example.current()) ||
+  button.hidden = !xrSupported || !view || !['mask', 'recovery', 'inflator'].includes(practice.lesson.scene) || Boolean(example.current()) ||
     practice.index === practice.lesson.actions.length;
   button.disabled = xrBusy;
 }
@@ -504,6 +504,7 @@ el['vr-practice'].addEventListener('click', async () => {
         };
       },
       press,
+      trim,
       apply: (id, dock) => apply(id, false, dock),
       onEnd() {
         xrBusy = false;

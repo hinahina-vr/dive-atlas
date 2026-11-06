@@ -244,8 +244,77 @@ try {
   const reachReview = await page.evaluate(()=>JSON.parse(localStorage.getItem('dive-atlas.owd-review.v1.recovery')));
   assert.equal(reachReview.route,'reach-exhale');
   assert.deepEqual(reachReview.steps,[]);
+
+  await page.getByRole('button',{name:'インフレーター',exact:true}).click();
+  const inflatorPanel = (x,y) => [-.52+(x/1024-.5)*.99,1.60-.94+(.5-y/346)*.3345,-1.28];
+  const height = air => .20 + 1.08 * (air - .48);
+  const buttonPoint = (air, raised, x, y, z) => {
+    const tilt = -.13, scale = 1.55;
+    return [.61+scale*(x*Math.cos(tilt)-y*Math.sin(tilt)),
+      1.43+height(air)+(raised ? .68 : -.44)+scale*(x*Math.sin(tilt)+y*Math.cos(tilt)),
+      .23+scale*z-2.43];
+  };
+  const addPoint = buttonPoint(0,false,.20,.06,.12);
+  const handlePoint = buttonPoint(.48,false,-.13,.18,.10);
+  const ventPoint = air => buttonPoint(air,true,.20,-.135,.13);
+  const trimPoint = (air, add) => buttonPoint(air,true,.20,add ? .112 : -.185,add ? .125 : .13);
+  const dockAbove = [.52,2.40,-2.04];
+  const dockBelow = [.52,1.01,-2.02];
+  const leaveInflator = inflatorPanel(892,57);
+  const confirmHeight = inflatorPanel(512,215);
+  const airLevel = () => page.locator('#effect-meter').evaluate(node => Number(node.style.getPropertyValue('--level')));
+  const balanceCue = () => page.locator('#buoyancy-status').innerText();
+
+  await start();
+  const beforeAir = await capture('inflator-empty');
+  await use(addPoint,460);
+  assert.equal(await progress(),'1');
+  assert.equal(await airLevel(),.48);
+  assert(!(await capture('inflator-filled')).equals(beforeAir));
+  await use(handlePoint);
+  await use(dockBelow);
+  assert.equal(await progress(),'1');
+  assert.match(await page.locator('#feedback').innerText(),/位置が違います/);
+  await use(handlePoint);
+  await use(dockAbove);
+  assert.equal(await progress(),'2');
+  await aimAt(ventPoint(.48));
+  await trigger(1);
+  await page.waitForTimeout(250);
+  await capture('inflator-venting');
+  await trigger(0);
+  await page.waitForFunction(() => document.querySelector('#feedback').textContent.includes('途中で止まりました'));
+  const interruptedAir = await airLevel();
+  assert(interruptedAir>0&&interruptedAir<.48);
+  await use(leaveInflator);
+  await page.waitForFunction(()=>window.qaEvents.includes('end'));
+  await page.reload();
+  await page.locator('#resume-practice').click();
+  assert.equal(await progress(),'2');
+  assert.equal(await airLevel(),interruptedAir);
+  await start();
+  await use(ventPoint(interruptedAir),950);
+  assert.equal(await progress(),'3');
+  assert.equal(await airLevel(),0);
+  assert.equal(await balanceCue(),'沈み気味');
+  await use(confirmHeight);
+  assert.equal(await progress(),'3');
+  for(const air of [0,.16,.32,.48]) await use(trimPoint(air,true));
+  assert.equal(await airLevel(),.64);
+  assert.equal(await balanceCue(),'浮き気味');
+  const high = await capture('inflator-rise');
+  await use(trimPoint(.64,false));
+  assert.equal(await airLevel(),.48);
+  assert.equal(await balanceCue(),'高さが安定');
+  assert(!(await capture('inflator-steady')).equals(high));
+  await use(confirmHeight);
+  assert.equal(await progress(),'4');
+  await use(leaveInflator);
+  await page.waitForFunction(()=>window.qaEvents.includes('end'));
+  const inflatorReview = await page.evaluate(()=>JSON.parse(localStorage.getItem('dive-atlas.owd-review.v1.inflator')));
+  assert.deepEqual(inflatorReview.steps,['raise','balance']);
   assert.deepEqual(errors,[]);
-  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button gated by lesson','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route']},null,2));
+  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button gated by lesson','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes']},null,2));
   console.log(folder);
 } catch(error) {
   console.log(JSON.stringify({errors, browser:await page.evaluate(()=>({iwer:!!window.xrDevice,events:window.qaEvents,session:!!window.qaSession,feedback:document.querySelector('#feedback')?.textContent}))}));
