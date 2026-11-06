@@ -993,6 +993,25 @@ try {
       await dock(mobile, 'above').tap();
       assert.equal(await value(mobile), '2');
       const beforeVent = await center(part(mobile, 'vent'));
+      await mobile.evaluate(() => {
+        const next = document.querySelector('#trim-add');
+        const parent = next.parentElement;
+        const sibling = next.nextSibling;
+        window.restoreTrimControl = () => {
+          parent.insertBefore(next, sibling);
+          next.removeAttribute('style');
+          delete window.restoreTrimControl;
+        };
+        document.addEventListener('pointerup', event => {
+          if (event.target.dataset.part !== 'vent') return;
+          // The next control can appear where the vent gesture ends.
+          Object.assign(next.style, {
+            position: 'fixed', zIndex: '9999', width: '54px', height: '54px',
+            left: (event.clientX - 27) + 'px', top: (event.clientY - 27) + 'px'
+          });
+          document.body.append(next);
+        }, { once: true });
+      });
       await hold(mobile, 'vent', waterInput, 1, async () => {
         assert.equal(await meterLevel(mobile), 0);
         const lowered = await center(part(mobile, 'vent'));
@@ -1000,7 +1019,16 @@ try {
         await mobile.screenshot({ path: join(output, 'mobile-inflator.png'), fullPage: true });
       });
       assert.equal(await value(mobile), '3');
+      const overlaidTrim = mobile.locator('body > #trim-add');
+      await overlaidTrim.waitFor();
+      await mobile.waitForTimeout(350);
+      assert.equal(await meterLevel(mobile), 0, 'Releasing the vent never activates the new inflation control');
+      await overlaidTrim.tap();
+      assert.equal(await meterLevel(mobile), .16, 'A separate tap still adds air at the same position');
+      await mobile.evaluate(() => window.restoreTrimControl());
+      await mobile.locator('#trim-vent').tap();
       assert.equal(await mobile.locator('#buoyancy-status').innerText(), '沈み気味');
+      checks.push('390 px touch: releasing a hold cannot activate a button appearing at the same point');
       const trimMarker = part(mobile, 'trim-add');
       await trimMarker.waitFor();
       const markerY = () => trimMarker.evaluate(node => Number.parseFloat(node.style.top));

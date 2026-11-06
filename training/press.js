@@ -54,6 +54,8 @@ export function createPress({ begin, change, complete, interrupted }) {
   function bind(node, action) {
     node.classList.add('is-press-control');
     node.addEventListener('contextmenu', event => event.preventDefault());
+    // The hold uses pointer events. A follow-up touch click can hit the next control after render.
+    node.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
     node.addEventListener('pointerdown', event => {
       if (!event.isPrimary || event.button !== 0) return;
       if (startHold(action, event.pointerId, node)) node.setPointerCapture(event.pointerId);
