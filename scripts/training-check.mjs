@@ -1088,7 +1088,14 @@ try {
       await hold(mobile, 'sweep', waterInput);
       assert.equal(await value(mobile), '2');
       await mobile.locator('#reset-view').tap();
-      await movePart(mobile, 'replace', dock(mobile, 'mouth'), waterInput, async () => {
+      await movePart(mobile, 'replace', 'mouth', waterInput, async () => {
+        assert(await mobile.locator('#view-help').isHidden());
+        assert(await mobile.locator('#grip-label').evaluate(node => {
+          const caption = node.getBoundingClientRect();
+          const header = document.querySelector('.view-header').getBoundingClientRect();
+          const camera = document.querySelector('#view-controls').getBoundingClientRect();
+          return caption.height > 0 && caption.top >= header.bottom && caption.right <= camera.left;
+        }), 'The carry caption clears the header and the camera buttons');
         await mobile.screenshot({ path: join(output, 'mobile-carry-regulator.png') });
       });
       assert.equal(await value(mobile), '3');

@@ -298,8 +298,10 @@ function makePanel(lesson, following) {
       const inspection = inspecting && next?.inspection;
       const finGroup = finRecallGroups[finChoice];
       const finInput = fins && !state.guide && (finChoice || placing);
-      const compact = next ? (inflator && next.id !== 'balance') || ((fins || gear) && !inspection && !finInput) :
+      const recoveryPlacement = recovery && placing;
+      const compact = next ? recoveryPlacement || (inflator && next.id !== 'balance') || ((fins || gear) && !inspection && !finInput) :
         !state.review.length && !following && state.mode !== 'guided';
+      if (recovery) mesh.position.x = recoveryPlacement ? -.87 : -.41;
       context.clearRect(0, 0, 1024, 346);
       rect(0, 0, 1024, !hasController || (compact && !demo) ? 246 : 346, '#f1fffd');
       texture.needsUpdate = true;
@@ -313,7 +315,7 @@ function makePanel(lesson, following) {
       if (demo) { drawExample(demo, state, hovered, reviewIndex >= 0); return; }
       if (state.review[reviewIndex]) { drawReview(state, hovered, reviewIndex); return; }
       if (!next) { drawResult(state, hovered); return; }
-      const canHint = !state.guide && !state.active;
+      const canHint = !state.guide && !state.active && !carrying;
       text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', canHint ? 398 : 530);
       const note = fins && inspection ? 'かかとを動かすと、フィンはどうなった？' :
         inspection ? inspection.prompt :
@@ -346,7 +348,7 @@ function makePanel(lesson, following) {
           placing ? (state.guide ? '正面を向いて「口元」を選ぶ' : '取り付け先に照準を合わせる') :
           !state.guide ? '次の操作を思い出し、器材かボタンを選ぶ' :
           ['sweep', 'reach', 'trace-hose'].includes(next.id) ? '右肩側を見て、ホースの目印を探す' : '';
-        if (note) text(note, 32, 303, 32, '#246270');
+        if (note) text(note, 32, recoveryPlacement ? 197 : 303, 32, '#246270');
       } else {
         const label = inflator
           ? (done.has('vent') ? balanceLabels[balanceStatus(air)] : 'BCDのふくらみ')

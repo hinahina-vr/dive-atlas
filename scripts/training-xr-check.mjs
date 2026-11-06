@@ -436,6 +436,7 @@ try {
   const carried = await carryPose();
   assert(carried.regulator[0] < startCarry.regulator[0] - .12, 'The regulator moves toward the mouth before release');
   assert(Math.abs(carried.end[0] - (carried.regulator[0] - .15)) < .015, 'The hose stays connected during the move');
+  assert(await page.evaluate(() => !window.qaPanelText.includes('慎重に吸う')), 'The placement panel leaves the next action and the carried part clear');
   await capture('recovery-carried-to-mouth');
   await page.evaluate(() => {
     window.qaMissingRays = new Set([window.xrDevice.controllers.right.inputSource.targetRaySpace]);
