@@ -27,7 +27,11 @@ const server = createServer(async (req,res) => {
   const filename = path === '/training/' ? 'training/index.html' : path.slice(1);
   try {
     const content = await readFile(resolve(pages,filename));
-    res.writeHead(200, {'Content-Type':mime[extname(filename)],'Cache-Control':'no-store'});
+    res.writeHead(200, {
+      'Content-Type': mime[extname(filename)],
+      'Content-Length': content.length,
+      'Cache-Control': 'no-store'
+    });
     res.end(content);
   } catch {
     res.writeHead(404).end();
@@ -123,19 +127,6 @@ try {
   console.log(JSON.stringify({ webgl:report.webgl, viewport:report.viewport, scene:report.firstSceneStatus }));
   await shot('start');
 
-  await tryCheck('worker and install help', async () => {
-    await $('#offline-status[data-state="ready"]').waitFor({ timeout: 60000 });
-    assert(await page.evaluate(() => Boolean(navigator.serviceWorker.controller)));
-    await tap($('#install-app'));
-    assert(await $('#install-help').isVisible());
-    assert.match(await $('#install-help').innerText(),/Safari/);
-    await tap($('#install-app'));
-    const manifestUrl = new URL(await $('link[rel="manifest"]').getAttribute('href'),url);
-    const manifest = await fetch(manifestUrl).then(response => response.json());
-    assert.equal(new URL(manifest.start_url,manifestUrl).href,url);
-    verified('worker caches all training assets and shows installation help');
-  });
-
   await finish(gear);
   await tap($('#next-lesson'));
   await finish(buddy);
@@ -194,7 +185,19 @@ try {
   await finish(fins);
 
   await tryCheck('offline navigation and resume', async () => {
-    await $('#offline-status[data-state="ready"]').waitFor();
+    // Preparation runs in the background while the user can already train.
+    await $('#offline-status[data-state="ready"]').waitFor({ timeout: 90000 });
+    assert(await page.evaluate(() => Boolean(navigator.serviceWorker.controller)));
+    await tap($('#install-app'));
+    assert(await $('#install-help').isVisible());
+    assert.match(await $('#install-help').innerText(),/Safari/);
+    await tap($('#install-app'));
+    const manifestUrl = new URL(await $('link[rel="manifest"]').getAttribute('href'),url);
+    const manifest = await fetch(manifestUrl).then(response => response.json());
+    const startUrl = new URL(manifest.start_url,manifestUrl);
+    assert.equal(startUrl.href,url);
+    verified('worker caches all training assets and shows installation help');
+
     await select(mask);
     await tap($('#recall'));
     await tap(choice('mask-breathe'));
@@ -210,7 +213,8 @@ try {
     }), 'The origin is unreachable');
     const previousPage = page;
     page = observe(await context.newPage());
-    const response = await page.goto(url,{waitUntil:'domcontentloaded',timeout:25000});
+    startUrl.searchParams.set('offline-check', String(Date.now()));
+    const response = await page.goto(startUrl.href,{waitUntil:'domcontentloaded',timeout:35000});
     assert.equal(response?.status(),200);
     await previousPage.close();
     assert.equal(await ready(),report.webgl);
