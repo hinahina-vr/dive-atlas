@@ -257,12 +257,12 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 }
 #mask-overlay.is-flooded .mask-window span { border-top-color: transparent; border-radius: 0; }
 #mask-overlay.is-clear .mask-window span { opacity: 0; }
-#perspective {
-  position: absolute; z-index: 2; top: 14px; right: 14px;
+.view-modes { position: absolute; z-index: 2; top: 14px; right: 14px; display: flex; gap: 5px; }
+.view-mode {
   min-height: 42px; padding: 0 10px; border: 1px solid #79aaa5;
   border-radius: 8px; background: #f3fffaef; color: #164a58; font-size: .75rem; font-weight: 700;
 }
-#perspective:hover { border-color: var(--teal); background: #d6f7ea; }
+.view-mode:hover { border-color: var(--teal); background: #d6f7ea; }
 #perspective[aria-pressed="true"] { border-color: #5eaaa0; background: #dcf9ed; }
 @media (prefers-reduced-motion: reduce) {
   .mask-window span { transition: none; }
@@ -361,7 +361,7 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
   .viewport { height: clamp(280px, 39svh, 380px); }
   .panel { padding: 14px; }
   .view-title { top: 12px; left: 12px; }
-  #perspective { top: 9px; right: 9px; }
+  .view-modes { top: 9px; right: 9px; }
   .view-controls { bottom: 9px; right: 9px; }
   #view-help { bottom: 21px; left: 12px; }
   .footnote { flex-wrap: wrap; }
@@ -397,7 +397,7 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
   .progress { margin: 6px 0 10px; }
   #instruction { margin: 8px 0; padding: 8px 9px; min-height: 0; }
   .view-title { top: 9px; left: 10px; }
-  #perspective { top: 9px; right: 9px; }
+  .view-modes { top: 9px; right: 9px; }
   .view-controls { bottom: 9px; right: 9px; }
   #view-help { bottom: 18px; left: 12px; }
 }

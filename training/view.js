@@ -48,9 +48,10 @@ export function createView(container, onProject, onAvailabilityChange) {
   let visible = true;
   let activePointer;
   let contextLost = false;
+  let xrSession;
 
   function queue() {
-    if (!contextLost && visible && !frame && !document.hidden) frame = requestAnimationFrame(draw);
+    if (!contextLost && !xrSession && visible && !frame && !document.hidden) frame = requestAnimationFrame(draw);
   }
 
   function projectAnchors(anchors) {
@@ -78,7 +79,7 @@ export function createView(container, onProject, onAvailabilityChange) {
 
   function draw(time) {
     frame = 0;
-    if (contextLost || !model || document.hidden) return;
+    if (contextLost || xrSession || !model || document.hidden) return;
     const delta = last ? Math.min(time - last, 50) : 17;
     last = time;
     const settling = time - changed < 620;
@@ -126,7 +127,7 @@ export function createView(container, onProject, onAvailabilityChange) {
     if (!width || !height || contextLost) return;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(width, height, false);
+    if (!xrSession) renderer.setSize(width, height, false);
     queue();
   }
 
@@ -142,6 +143,7 @@ export function createView(container, onProject, onAvailabilityChange) {
   canvas.addEventListener('webglcontextlost', event => {
     event.preventDefault();
     contextLost = true;
+    xrSession?.end().catch(() => {});
     cancelAnimationFrame(frame);
     frame = 0;
     last = 0;
@@ -206,10 +208,48 @@ export function createView(container, onProject, onAvailabilityChange) {
     return Boolean(detail);
   }
 
+  async function enterMaskXR(session, options) {
+    const { createMaskXR } = await import('./xr-mask.js');
+    if (xrSession || contextLost || !options.readState()) throw new Error('VR view unavailable');
+    const exercise = createMaskXR(renderer, session, {
+      ...options, lights: [sky, key, rim, fill].map(light => light.clone())
+    });
+    const pixelRatio = renderer.getPixelRatio();
+    xrSession = session;
+    cancelAnimationFrame(frame);
+    frame = 0;
+    renderer.xr.enabled = true;
+    renderer.xr.setReferenceSpaceType('local');
+    function restore() {
+      if (xrSession !== session) return;
+      session.removeEventListener('end', restore);
+      renderer.setAnimationLoop(null);
+      renderer.xr.enabled = false;
+      exercise.dispose();
+      xrSession = null;
+      last = 0;
+      if (renderer.getPixelRatio() !== pixelRatio) renderer.setPixelRatio(pixelRatio);
+      resizeView();
+      options.onEnd();
+    }
+    try {
+      // Three.js owns framebuffer teardown and restores the canvas size before restore().
+      renderer.setAnimationLoop(exercise.render);
+      const attached = renderer.xr.setSession(session);
+      session.addEventListener('end', restore, { once: true });
+      await attached;
+    } catch (error) {
+      await session.end().catch(() => {});
+      restore();
+      throw error;
+    }
+  }
+
   let previous;
   let previousScenario;
   return {
     rotate,
+    enterMaskXR,
     resetCamera() {
       detailOrbit.set(1, Math.PI / 2, 0);
       resetCamera(previous);

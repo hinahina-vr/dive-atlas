@@ -9,7 +9,7 @@ import { prepareOffline } from './offline.js';
 const byId = id => document.getElementById(id);
 const landscapeLayout = matchMedia('(orientation: landscape) and (max-height: 520px) and (min-width: 560px)');
 const el = Object.fromEntries([
-  'viewport', 'scene', 'scene-status', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall',
+  'viewport', 'scene', 'scene-status', 'hotspots', 'mask-overlay', 'perspective', 'vr-mask', 'lessons', 'guided', 'recall',
   'view-label', 'view-subtitle', 'view-help', 'view-controls',
   'rotate-left', 'rotate-right', 'reset-view', 'module-label', 'step-count', 'progress',
   'review-overview-status', 'review-next', 'review-queue', 'review-queue-title', 'review-queue-list',
@@ -30,6 +30,8 @@ let view;
 let viewFailed = false;
 let immersive = false;
 let activePress = '';
+let xrSupported = false;
+let xrBusy = false;
 let inspecting;
 const marks = new Map();
 const example = createExample({ render, frame: drawExample });
@@ -438,6 +440,50 @@ el.perspective.addEventListener('click', () => {
   saveCurrentDraft();
   render();
 });
+function renderXREntry() {
+  const button = el['vr-mask'];
+  button.hidden = !xrSupported || !view || practice.lesson.scene !== 'mask' || Boolean(example.current()) ||
+    practice.index === practice.lesson.actions.length;
+  button.disabled = xrBusy;
+}
+
+el['vr-mask'].addEventListener('click', async () => {
+  if (xrBusy || el['vr-mask'].hidden) return;
+  xrBusy = true;
+  renderXREntry();
+  const run = practice;
+  let session;
+  try {
+    session = await navigator.xr.requestSession('immersive-vr');
+    await view.enterMaskXR(session, {
+      lesson: run.lesson,
+      readState() {
+        if (practice !== run || example.current()) return null;
+        return {
+          steps: run.lesson.actions,
+          index: run.index,
+          guide: run.mode === 'guided' || hint,
+          active: activePress,
+          message: el.feedback.textContent,
+          water: remainingMaskWater(run.lesson.maskFill, run.index === run.lesson.actions.length, run.pressure['mask-exhale'])
+        };
+      },
+      press,
+      apply,
+      onEnd() {
+        xrBusy = false;
+        renderXREntry();
+        (el['vr-mask'].hidden ? el.reset : el['vr-mask']).focus({ preventScroll: true });
+      }
+    });
+  } catch {
+    await session?.end().catch(() => {});
+    xrBusy = false;
+    renderXREntry();
+    feedback('VRを開始できませんでした。画面の練習はそのまま続けられます。', 'retry');
+  }
+});
+
 el['show-example'].addEventListener('click', () => {
   if (example.current()) closeExample();
   else showExample(undefined, practice.scenario);
@@ -649,6 +695,7 @@ function render() {
     immersive && ['sweep', 'reach'].includes(step?.id) ? 'ドラッグで右肩側を見る' :
     immersive && lesson.scene !== 'inflator' ? 'ドラッグで見回す' : 'ドラッグで回転';
   el.perspective.hidden = Boolean(demo) || !view || lesson.scene === 'gear';
+  renderXREntry();
   el.perspective.textContent = lesson.scene === 'inflator'
     ? (immersive ? '器材台で見る' : '水中で見る')
     : (immersive ? '模型で見る' : 'ダイバー視点');
@@ -804,6 +851,12 @@ function setSceneView(next, message = '') {
 
 render();
 prepareOffline(byId('offline-status'));
+if (window.isSecureContext && navigator.xr) {
+  navigator.xr.isSessionSupported('immersive-vr').then(supported => {
+    xrSupported = supported;
+    renderXREntry();
+  }).catch(() => {});
+}
 try {
   const { createView } = await import('./view.js');
   const sceneView = createView(el.scene, project, available => {
