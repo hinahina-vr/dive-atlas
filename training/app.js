@@ -20,7 +20,7 @@ const el = Object.fromEntries([
   'buoyancy-panel', 'buoyancy-status', 'trim-add', 'trim-vent',
   'show-example', 'example-guide', 'example-caption', 'example-controls', 'example-prev', 'example-play',
   'example-next', 'example-recall', 'example-exit', 'previous-review', 'previous-review-count', 'previous-review-list', 'practice-footer',
-  'inspection-panel', 'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
+  'inspection-panel', 'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'result-summary', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
 ].map(id => [id, byId(id)]));
 const workspace = el.viewport.closest('.workspace');
 
@@ -41,6 +41,7 @@ let stagedExample;
 let practiceCamera;
 let returnFromExample;
 let reviewQueueOpen = false;
+let resultFrame = 0;
 const recent = new Map();
 let storage;
 try { storage = window.localStorage; } catch { /* Practice still works without storage. */ }
@@ -237,15 +238,27 @@ function apply(id, fromKeyboard = false, dock) {
     return;
   }
   hint = false;
-  if (practice.index === practice.lesson.actions.length) {
+  const finished = practice.index === practice.lesson.actions.length;
+  if (finished) {
     if (practice.mode === 'recall') recent.set(practice.lesson.id, saveReview(storage, practice));
     discardCurrentDraft();
   } else saveCurrentDraft();
   feedback(result.message);
   render();
-  if (fromKeyboard) {
+  if (finished) {
+    const completed = practice;
+    // Move the page after the touch release and its click have finished.
+    resultFrame = requestAnimationFrame(() => {
+      resultFrame = 0;
+      if (practice !== completed || el.result.hidden) return;
+      const heading = el['result-heading'];
+      heading.focus({ preventScroll: true });
+      if (portraitLayout.matches) el.result.scrollIntoView({ block: 'start' });
+      else heading.scrollIntoView({ block: 'nearest' });
+    });
+  } else if (fromKeyboard) {
     const firstChoice = el.choices.querySelector('.is-guide') || el.choices.querySelector('.choice');
-    (firstChoice || (el['next-lesson'].hidden ? el.reset : el['next-lesson'])).focus({ preventScroll: true });
+    firstChoice?.focus({ preventScroll: true });
   }
 }
 
@@ -426,9 +439,18 @@ el['resume-practice'].addEventListener('click', () => {
   showViewport();
 });
 el['next-lesson'].addEventListener('click', event => {
-  openLesson(lessons[lessonIndex(practice.lesson) + 1]);
-  if (portraitLayout.matches && event.detail === 0) el.instruction.focus({ preventScroll: true });
-  if (portraitLayout.matches || landscapeLayout.matches) showViewport();
+  cancelAnimationFrame(resultFrame);
+  resultFrame = 0;
+  const next = lessons[lessonIndex(practice.lesson) + 1];
+  if (!next) {
+    el.lessons.focus();
+    el.lessons.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  openLesson(next);
+  const compact = portraitLayout.matches || landscapeLayout.matches;
+  if (event.detail === 0) el.instruction.focus({ preventScroll: compact });
+  if (compact) showViewport();
 });
 const balanceLabels = { sink: '沈み気味', steady: '高さが安定', rise: '浮き気味' };
 const trimControls = [
@@ -484,7 +506,8 @@ el['vr-mask'].addEventListener('click', async () => {
       onEnd() {
         xrBusy = false;
         renderXREntry();
-        (el['vr-mask'].hidden ? el.reset : el['vr-mask']).focus({ preventScroll: true });
+        if (practice === run && !el.result.hidden) el['result-heading'].focus();
+        else (el['vr-mask'].hidden ? el.reset : el['vr-mask']).focus({ preventScroll: true });
       }
     });
   } catch {
@@ -542,9 +565,10 @@ function closeExample() {
   render();
   view?.restoreCamera(practiceCamera);
   practiceCamera = null;
-  if (returnFromExample?.getClientRects().length) returnFromExample.focus();
-  else el['show-example'].focus({ preventScroll: true });
+  const target = returnFromExample?.();
   returnFromExample = null;
+  if (target?.getClientRects().length) target.focus();
+  else el['show-example'].focus({ preventScroll: true });
 }
 
 function exampleUnderwater(lesson) {
@@ -598,11 +622,22 @@ function drawExampleGuide(state, positions, docks) {
 
 function reviewRow(action, scenario, lesson = practice.lesson, compact = false) {
   const row = document.createElement('li');
-  const replay = button(compact ? '見本を見る' : 'この手順の見本を見る', 'quiet review-example', () => {
-    showExample(lesson.actions.indexOf(action), scenario, lesson, compact ? replay : undefined);
+  const replay = button('見本を見る', 'quiet review-example', () => {
+    const list = row.parentElement;
+    const selector = '[data-review-step="' + CSS.escape(action.id) + '"]';
+    showExample(lesson.actions.indexOf(action), scenario, lesson, () => list?.querySelector(selector));
   });
+  replay.dataset.reviewStep = action.id;
   replay.setAttribute('aria-label', action.label + '手順の見本を見る');
-  row.append(compact ? action.label : action.label + '。' + action.detail, replay);
+  if (compact) row.append(action.label);
+  else {
+    const title = document.createElement('strong');
+    title.textContent = action.label;
+    const detail = document.createElement('p');
+    detail.textContent = action.detail;
+    row.append(title, detail);
+  }
+  row.append(replay);
   return row;
 }
 
@@ -818,14 +853,15 @@ function render() {
   el.result.hidden = Boolean(step);
   if (!step) {
     const review = needsReview(practice);
-    el['result-heading'].textContent = review.length ? 'もう一度見ておきたい手順' : '練習完了';
-    const item = document.createElement('li');
-    item.textContent = mode === 'recall' ? 'ヒントを使わず、すべての手順を思い出せました。' :
-      '一通り試せました。自力で復習するモードでもう一度試せます。';
-    el.review.replaceChildren(...(review.length ? review.map(action => reviewRow(action, practice.scenario)) : [item]));
+    el['result-heading'].textContent = review.length ? '見直す手順は' + review.length + 'つ' : '練習完了';
+    el['result-summary'].hidden = Boolean(review.length);
+    el['result-summary'].textContent = mode === 'recall' ? 'ヒントなしですべての手順を思い出せました。' :
+      '次は「自力で復習」で、手順を思い出してみましょう。';
+    el.review.hidden = !review.length;
+    el.review.replaceChildren(...review.map(action => reviewRow(action, practice.scenario)));
     const next = lessons[lessonIndex(lesson) + 1];
-    el['next-lesson'].hidden = !next;
-    el['next-lesson'].textContent = lesson.id === 'gear' ? 'バディの器材を確認 ›' : next ? next.title + 'へ ›' : '';
+    el['next-lesson'].textContent = lesson.id === 'gear' ? 'バディの器材を確認 ›' :
+      next ? next.title + 'へ ›' : '練習メニューに戻る';
   }
   view?.show(lesson, done, immersive, practice.scenario);
 }

@@ -391,8 +391,10 @@ try {
   }
   assert.match(await desktop.locator('#review').innerText(), /BCDを取り付ける/);
   checks.push('1440 px gear close-ups: date, seal, gauge, correct and incorrect answers');
-  assert.equal(await desktop.locator('#result-heading').innerText(), 'もう一度見ておきたい手順');
-  await desktop.locator('#next-lesson').click();
+  assert.equal(await desktop.locator('#result-heading').innerText(), '見直す手順は3つ');
+  await desktop.waitForFunction(() => document.activeElement?.id === 'result-heading');
+  await desktop.locator('#next-lesson').press('Enter');
+  assert(await desktop.locator('#instruction').evaluate(node => node === document.activeElement));
   assert.equal(await desktop.locator('#lesson-title').innerText(), 'バディチェック');
   await desktop.locator('#hotspots .is-guide:visible').waitFor();
   await desktop.screenshot({ path: join(output, 'desktop-buddy.png'), fullPage: true });
@@ -698,7 +700,22 @@ try {
   const waterInput = touchDrag(await mobile.context().newCDPSession(mobile));
   await hold(mobile, 'mask-exhale', waterInput);
   assert.equal(await mobile.locator('#review li').count(), 2);
+  await mobile.waitForFunction(() => {
+    const heading = document.querySelector('#result-heading');
+    const box = heading.getBoundingClientRect();
+    return heading === document.activeElement && box.top >= 0 && box.bottom <= innerHeight;
+  });
   assert.equal(await mobile.locator('#mask-overlay').evaluate(node => node.style.getPropertyValue('--mask-water')), '0%');
+  const replayResult = mobile.locator('#review [data-review-step="mask-hold"]');
+  await replayResult.tap();
+  assert.equal(await mobile.locator('#step-title').innerText(), 'マスクの上側を押さえる');
+  await mobile.locator('#example-exit').tap();
+  assert(await replayResult.evaluate(node => {
+    const box = node.getBoundingClientRect();
+    return node === document.activeElement && box.top >= 0 && box.bottom <= innerHeight;
+  }));
+  await mobile.screenshot({ path: join(output, 'mobile-review-result.png') });
+  checks.push('390 px recall completion reveals the result, and the missed-step example returns to its original result row');
   const maskReviewKey = reviewKey(lessons[2]);
   const saved = await mobile.evaluate(key => localStorage.getItem(key), maskReviewKey);
   assert.deepEqual(JSON.parse(saved).steps, ['mask-breathe', 'mask-hold']);
@@ -1107,6 +1124,9 @@ try {
   assert.match(await noGl.locator('#inspection-panel').innerText(), /間にすき間ができました/);
   await answer(noGl, 'repair').tap();
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
+  const backToMenu = noGl.getByRole('button', { name: '練習メニューに戻る' });
+  await backToMenu.press('Enter');
+  assert(await noGl.locator('#lessons').evaluate(node => node === document.activeElement));
   checks.push('360 px WebGL-unavailable fallback: gear, mask, alternate recovery, inflator and loose fin fit still complete');
   await noGl.context().close();
 

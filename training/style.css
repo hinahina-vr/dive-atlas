@@ -335,8 +335,15 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
 .panel-footer { display: flex; flex-wrap: wrap; gap: 5px 16px; }
 .quiet { min-height: 40px; background: transparent; border: 0; padding: 0 3px; color: #335f68; font-size: .78rem; font-weight: 700; }
 .quiet:hover { color: var(--teal); text-decoration: underline; }
-.result-heading { font-weight: 750; color: var(--teal); }
-#review { color: #365e68; padding-left: 1.2rem; font-size: .8rem; line-height: 1.55; margin: 7px 0 13px; }
+#result { margin: 10px 0; padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: #eaf8f2; scroll-margin-top: 8px; }
+#result-heading { margin: 0 0 9px; color: var(--teal); font-size: 1.04rem; }
+#result-summary { margin: 0 0 11px; color: #365e68; font-size: .82rem; line-height: 1.55; }
+#review { display: grid; gap: 6px; margin: 0 0 11px; padding: 0; list-style: none; }
+#review li { padding: 8px 10px 2px; border: 1px solid var(--line); border-radius: 8px; background: #fafffe; }
+#review strong, #previous-review-list strong { display: block; }
+#review li p { margin: 3px 0 0; color: #365e68; font-size: .8rem; line-height: 1.55; }
+#review .review-example { min-height: 44px; }
+#next-lesson { width: 100%; }
 .primary { min-height: 44px; border: 1px solid; border-radius: 8px; padding: 0 15px; font-size: .84rem; font-weight: 750; }
 #offline-status {
   display: inline-flex; align-items: center; gap: 6px; margin: 3px 0 0 4px; padding: 3px 7px;

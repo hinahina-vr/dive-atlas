@@ -143,8 +143,9 @@ try {
   assert.equal(review.route,'mask-full');
   assert.deepEqual(review.steps,['mask-breathe']);
   await page.locator('#result').waitFor();
+  await page.waitForFunction(() => document.activeElement?.id === 'result-heading');
   assert.deepEqual(errors,[]);
-  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button gated by lesson','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review']},null,2));
+  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button gated by lesson','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result']},null,2));
   console.log(folder);
 } catch(error) {
   console.log(JSON.stringify({errors, browser:await page.evaluate(()=>({iwer:!!window.xrDevice,events:window.qaEvents,session:!!window.qaSession,feedback:document.querySelector('#feedback')?.textContent}))}));

@@ -127,11 +127,12 @@
         <div id="choices" role="group" aria-label="操作を選ぶ"></div>
         <div id="placement-menu" role="group" aria-label="取り付け先を選ぶ" hidden></div>
         <p id="feedback" role="status" aria-live="polite"></p>
-        <div id="result" hidden>
-          <p class="result-heading" id="result-heading"></p>
-          <ul id="review"></ul>
-          <button type="button" id="next-lesson" class="primary" hidden></button>
-        </div>
+        <section id="result" aria-labelledby="result-heading" hidden>
+          <h3 id="result-heading" tabindex="-1"></h3>
+          <p id="result-summary" hidden></p>
+          <ul id="review" hidden></ul>
+          <button type="button" id="next-lesson" class="primary"></button>
+        </section>
         <div id="mask-settings" class="lesson-settings" hidden>
           <label>練習を始めるときの水の量
             <select id="mask-fill">
