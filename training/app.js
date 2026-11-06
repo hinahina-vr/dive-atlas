@@ -668,7 +668,7 @@ function render() {
   el.hint.hidden = !step || mode === 'guided' || hint;
   el['step-label'].textContent = showGuide ? (hint ? 'ヒント' : '次の操作') : '自力で復習';
   el['step-title'].textContent = showGuide ? step.label : '次は何をする？';
-  el['step-description'].textContent = showGuide ? step.detail : (viewFailed ? '下の選択肢から操作を選んでください。' : '器材の目印か、下の選択肢から操作を選んでください。');
+  el['step-description'].textContent = showGuide ? step.detail : (view ? '器材の目印か、下の選択肢から操作を選んでください。' : '下の選択肢から操作を選んでください。');
   const options = view && (lesson.docks || lesson.scene === 'mask') && mode === 'guided' && step ? [step] : available;
   el.choices.replaceChildren(...options.map((action, i) => {
     const guided = showGuide && action === step;
@@ -739,6 +739,7 @@ function setSceneView(next, message = '') {
   view = next;
   viewFailed = !view;
   el['scene-status'].textContent = message;
+  el['scene-status'].classList.toggle('scene-error', !view);
   el['scene-status'].hidden = Boolean(view);
   el.viewport.classList.toggle('is-unavailable', !view);
   el['view-help'].hidden = !view;

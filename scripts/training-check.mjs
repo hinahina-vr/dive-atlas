@@ -557,15 +557,24 @@ try {
   await mobile.route('**/training/view.js', async route => { await sceneGate; await route.continue(); });
   try {
     await mobile.goto(previewUrl + 'training/', { waitUntil: 'commit' });
+    assert.match(await mobile.locator('#scene-status').innerText(), /3Dを準備しています/);
+    assert(await mobile.locator('#scene-status').isVisible());
     await mobile.getByRole('button', { name: 'インフレーター', exact: true }).tap();
+    await getChoice(mobile, 'add-air').tap();
+    assert.equal(await value(mobile), '1');
+    assert(await mobile.locator('#scene-status').isVisible());
   } finally {
     loadScene();
   }
   await mobile.locator('#viewport.is-water #scene canvas').waitFor();
+  assert(await mobile.locator('#scene-status').isHidden());
+  assert.equal(await value(mobile), '1');
+  assert.equal(await meterLevel(mobile), .48);
+  await part(mobile, 'raise').waitFor();
   await mobile.unroute('**/training/view.js');
   await mobile.getByRole('button', { name: '機材セッティング', exact: true }).tap();
   await ready(mobile);
-  checks.push('390 px cold start: a water lesson selected while 3D loads starts in its water view');
+  checks.push('390 px cold start: loading notice, text input during 3D loading, then the same progress and BCD air in water view');
   await part(mobile, 'inspect').tap();
   assert(await mobile.locator('#viewport.has-detail').isVisible());
   await answer(mobile, 'normal').tap();
