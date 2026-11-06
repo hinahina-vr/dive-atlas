@@ -288,6 +288,12 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
 .step-label { color: var(--teal); font-size: .69rem; font-weight: 700; letter-spacing: .08em; }
 .step-title { font-size: 1rem; font-weight: 750; margin: 4px 0 2px; }
 .step-description { color: #365e68; font-size: .8rem; line-height: 1.55; }
+#buoyancy-panel {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;
+  padding: 8px; margin-bottom: 8px; border: 1px solid #a0cfc4; border-radius: 8px; background: #f4faf5;
+}
+#buoyancy-status { grid-column: 1 / -1; padding: 1px 2px; font-size: .79rem; font-weight: 700; color: #74501a; }
+#buoyancy-status[data-state="steady"] { color: #185e4e; }
 #choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 .choice {
   min-height: 44px; border: 1px solid #a4c7cb; border-radius: 8px; background: #f1faf9;

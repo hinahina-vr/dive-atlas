@@ -17,17 +17,21 @@ export function readDraft(storage) {
         !raw.done.every((id, i) => actions[i].id === id)) return null;
     const index = raw.done.length;
     const byId = new Map(actions.map(action => [action.id, action]));
-    if (!Array.isArray(raw.choices) || raw.choices.length !== actions.length ||
-        new Set(raw.choices).size !== actions.length || !raw.choices.every(id => byId.has(id))) return null;
+    if (!Array.isArray(raw.choices) || raw.choices.length <= index ||
+        new Set(raw.choices).size !== raw.choices.length || !raw.choices.every(id => byId.has(id)) ||
+        !raw.done.every(id => raw.choices.includes(id))) return null;
+    const choices = raw.choices.map(id => byId.get(id));
+    choices.push(...actions.filter(action => !raw.choices.includes(action.id)));
     if (!Array.isArray(raw.missed) || !Array.isArray(raw.assisted)) return null;
     const visited = new Set(actions.slice(0, index + 1).map(action => action.id));
     const missed = new Set(raw.missed.filter(id => visited.has(id)));
     const assisted = new Set(raw.assisted.filter(id => visited.has(id)));
     const step = actions[index];
-    const progress = step.pressTime && raw.progress > 0 && raw.progress <= 1 && typeof raw.progress === 'number' ? raw.progress : 0;
+    const progress = (step.pressTime || step.balance) && Number.isFinite(raw.progress) && raw.progress > 0 && raw.progress <= 1
+      ? raw.progress : 0;
     if (!index && !missed.size && !assisted.size && !progress) return null;
     const pressure = progress ? { [step.id]: progress } : {};
-    const practice = { lesson, mode: raw.mode, choices: raw.choices.map(id => byId.get(id)), index, missed, assisted, pressure, scenario: raw.scenario };
+    const practice = { lesson, mode: raw.mode, choices, index, missed, assisted, pressure, scenario: raw.scenario };
     return { id: raw.id, practice, immersive: raw.immersive };
   } catch {
     return null;

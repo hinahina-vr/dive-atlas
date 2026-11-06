@@ -1,4 +1,4 @@
-import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater } from './lessons.js';
+import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater, inflatorAir, neutralAir, balanceStatus, adjustAir } from './lessons.js';
 import { createPlacement } from './placement.js';
 import { createPress } from './press.js';
 import { createExample } from './example.js';
@@ -15,6 +15,7 @@ const el = Object.fromEntries([
   'review-overview-status', 'review-next', 'practice-draft', 'draft-description', 'resume-practice',
   'lesson-title', 'lesson-description', 'instruction', 'step-label', 'step-title', 'step-description',
   'mask-settings', 'mask-fill', 'recovery-methods', 'recovery-search', 'recovery-clear',
+  'buoyancy-panel', 'buoyancy-status', 'trim-add', 'trim-vent',
   'show-example', 'example-guide', 'example-caption', 'example-controls', 'example-prev', 'example-play',
   'example-next', 'example-recall', 'example-exit', 'previous-review', 'previous-review-count', 'previous-review-list', 'practice-footer',
   'inspection-panel', 'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
@@ -221,6 +222,7 @@ function apply(id, fromKeyboard = false, dock) {
     saveCurrentDraft();
     const message = result.wrongInspection ? '器材の状態をもう一度見てください。' :
       result.wrongDock ? '位置が違います。器材の位置を見直しましょう。' :
+      result.wrongBalance ? '浮き沈みを見ながら、もう少し調整しましょう。' :
       practice.mode === 'guided' ? '今の手順を先に試してみましょう。' : 'この場面では、先に別の操作があります。';
     feedback(message, 'retry');
     return;
@@ -383,6 +385,19 @@ el['resume-practice'].addEventListener('click', () => {
   showViewport();
 });
 el['next-lesson'].addEventListener('click', () => openLesson(lessons[lessonIndex(practice.lesson) + 1]));
+const balanceLabels = { sink: '沈み気味', steady: '高さが安定', rise: '浮き気味' };
+const trimControls = [
+  { id: 'trim-add', anchor: 'trim-add', label: '少し給気', direction: 1 },
+  { id: 'trim-vent', anchor: 'trim-vent', label: '少し排気', direction: -1 }
+];
+function trim(direction) {
+  if (example.current() || !adjustAir(practice, direction)) return;
+  feedback();
+  saveCurrentDraft();
+  refreshEffect();
+}
+for (const { id, direction } of trimControls) el[id].addEventListener('click', () => trim(direction));
+
 el['rotate-left'].addEventListener('click', () => view?.rotate(-.44));
 el['rotate-right'].addEventListener('click', () => view?.rotate(.44));
 el['reset-view'].addEventListener('click', () => view?.resetCamera());
@@ -452,14 +467,17 @@ function drawExample(state) {
     stagedExample = { lesson, index, applied, view, done, scenario };
   }
   const moving = !complete && motion > 0 && motion < 1;
-  if (step.pressTime || changedPose) {
-    renderEffects(lesson, stagedExample.done, step.pressTime ? { [step.id]: motion } : {}, moving ? step.id : '');
+  if (step.pressTime || step.balance || changedPose) {
+    const pressure = step.balance ? { balance: neutralAir * Math.floor(motion * 3) / 3 } :
+      step.pressTime ? { [step.id]: motion } : {};
+    renderEffects(lesson, stagedExample.done, pressure, moving ? step.id : '');
   }
 }
 
 function drawExampleGuide(state, positions, docks) {
   const guide = el['example-guide'];
-  const point = state.motion >= 1 || state.step.inspection?.closeUp ? null : positions[state.step.anchor];
+  const anchor = state.step.balance ? 'trim-add' : state.step.anchor;
+  const point = state.motion >= 1 || state.step.inspection?.closeUp ? null : positions[anchor];
   const dock = point && state.step.attachment ? docks[state.step.attachment.dock] : null;
   guide.toggleAttribute('hidden', !point && !dock);
   if (!point && !dock) return;
@@ -535,7 +553,15 @@ function renderEffects(lesson, done, pressure, active) {
   const has = id => done.includes(id);
   const clear = has('mask-exhale');
   const water = remainingMaskWater(lesson.maskFill ?? 0, clear, pressure['mask-exhale']);
-  const air = has('vent') ? 0 : has('add-air') ? 1 - (pressure.vent || 0) : pressure['add-air'] || 0;
+  const air = inflatorAir(has('add-air'), has('vent'), pressure);
+  const balance = has('vent') ? balanceStatus(air) : null;
+  if (balance) {
+    const cue = el['buoyancy-status'];
+    if (cue.dataset.state !== balance) {
+      cue.dataset.state = balance;
+      cue.textContent = balanceLabels[balance];
+    }
+  }
   const maskOverlay = el['mask-overlay'];
   maskOverlay.classList.toggle('is-pressed', active === 'mask-exhale');
   maskOverlay.classList.toggle('is-sealed', has('mask-hold') && !clear);
@@ -544,7 +570,7 @@ function renderEffects(lesson, done, pressure, active) {
   maskOverlay.style.setProperty('--mask-water', (100 * water) + '%');
   const meter = el['effect-meter'];
   meter.hidden = !view || (lesson.scene !== 'mask' && lesson.scene !== 'inflator');
-  const meterLabel = lesson.scene === 'mask' ? 'マスク内の水' : 'BCDのふくらみ';
+  const meterLabel = lesson.scene === 'mask' ? 'マスク内の水' : balanceLabels[balance] || 'BCDのふくらみ';
   if (meter.firstElementChild.textContent !== meterLabel) meter.firstElementChild.textContent = meterLabel;
   meter.style.setProperty('--level', String(lesson.scene === 'mask' ? water : air));
   view?.interact(pressure, active);
@@ -609,6 +635,7 @@ function render() {
   }));
   el['lesson-title'].textContent = lesson.title;
   el['lesson-description'].textContent = lesson.description;
+  el['buoyancy-panel'].hidden = !step?.balance || Boolean(demo);
   el['mask-settings'].hidden = lesson.id !== 'mask' || Boolean(demo);
   el['recovery-methods'].hidden = lesson.id !== 'recovery' || Boolean(demo);
   el['source-link'].href = lesson.source;
@@ -662,12 +689,14 @@ function render() {
   }));
 
   if (!viewFailed) {
-    const markerActions = showGuide ? [step, ...available.filter(action => action !== step)] : available;
+    const markerActions = step?.balance ? trimControls :
+      showGuide ? [step, ...available.filter(action => action !== step)] : available;
     for (const action of markerActions) {
       if (marks.has(action.anchor)) continue;
       const guided = showGuide && action === step;
       const marker = button('', 'hotspot' + (guided ? ' is-guide' : ''), action.attachment || action.pressTime ? null : () => {
-        if (action.inspection) openInspection(action, marker, false);
+        if (action.direction) trim(action.direction);
+        else if (action.inspection) openInspection(action, marker, false);
         else apply(action.id);
       });
       if (action.attachment) placement.bind(marker, action, { docks: lesson.docks, guided });

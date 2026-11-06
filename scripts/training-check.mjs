@@ -4,7 +4,8 @@ import { createServer } from 'node:http';
 import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { chromium } from 'playwright-core';
-import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater, recoveryRoute } from '../training/lessons.js';
+import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater, recoveryRoute,
+  neutralAir, adjustAir, balanceStatus, inflatorAir } from '../training/lessons.js';
 import { readReview, reviewKey, saveReview } from '../training/reviews.js';
 import { readDraft, draftKey, saveDraft, clearDraft } from '../training/drafts.js';
 import { writeTrainingWorker } from './training-offline.mjs';
@@ -13,8 +14,11 @@ const root = resolve(import.meta.dirname, '..');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 const checks = [];
 const inspectionAnswer = (lesson, scenario, action) => lesson.scenarios[scenario].includes(action.id) ? 'repair' : 'normal';
-const attempt = (practice, action) => choose(practice, action.id,
-  action.inspection ? inspectionAnswer(practice.lesson, practice.scenario, action) : action.attachment?.dock);
+const attempt = (practice, action) => {
+  if (action.balance && practice.lesson.actions[practice.index] === action) practice.pressure.balance = neutralAir;
+  return choose(practice, action.id,
+    action.inspection ? inspectionAnswer(practice.lesson, practice.scenario, action) : action.attachment?.dock);
+};
 for (const lesson of lessons) {
   const practice = newPractice(lesson, 'recall', () => 0);
   const [first, second, third] = lesson.actions;
@@ -140,6 +144,30 @@ assert.equal(attempt(buddyDraft, buddy.actions[0]).ok, true);
 assert.equal(saveDraft(draftStorage, 'buddy-draft', buddyDraft, false), true);
 assert.deepEqual(readDraft(draftStorage), { id: 'buddy-draft', practice: buddyDraft, immersive: false });
 checks.push('Draft storage: preserves route, order, scenario, water and review flags, rejects changed steps and protects another run');
+const inflatorLesson = lessons.find(lesson => lesson.id === 'inflator');
+const airRun = newPractice(inflatorLesson, 'recall');
+assert.equal(adjustAir(airRun, 1), false);
+assert.equal(attempt(airRun, inflatorLesson.actions[0]).ok, true);
+assert.equal(inflatorAir(true, false, airRun.pressure), .48);
+saveDraft(draftStorage, 'pre-adjustment', airRun, true);
+const oldInflatorDraft = JSON.parse(draftData.get(draftKey));
+oldInflatorDraft.choices = oldInflatorDraft.choices.filter(id => id !== 'balance');
+draftData.set(draftKey, JSON.stringify(oldInflatorDraft));
+assert.equal(readDraft(draftStorage).practice.choices.at(-1).id, 'balance');
+assert.equal(readDraft(draftStorage).practice.index, 1);
+for (const action of inflatorLesson.actions.slice(1, -1)) assert.equal(attempt(airRun, action).ok, true);
+assert.equal(choose(airRun, 'balance').wrongBalance, true);
+assert.equal(balanceStatus(inflatorAir(true, true, airRun.pressure)), 'sink');
+for (let i = 0; i < 4; i += 1) assert.equal(adjustAir(airRun, 1), true);
+assert.equal(balanceStatus(inflatorAir(true, true, airRun.pressure)), 'rise');
+assert.equal(choose(airRun, 'balance').wrongBalance, true);
+assert.equal(adjustAir(airRun, -1), true);
+assert.equal(airRun.pressure.balance, neutralAir);
+assert.equal(balanceStatus(inflatorAir(true, true, airRun.pressure)), 'steady');
+assert.equal(saveDraft(draftStorage, 'air-draft', airRun, true), true);
+assert.equal(readDraft(draftStorage).practice.pressure.balance, neutralAir);
+assert.equal(choose(airRun, 'balance').ok, true);
+checks.push('Inflator adjustment: refuses false balance, supports overshoot and correction, saves air and upgrades an existing draft');
 
 const artifactBase = join(root, 'artifacts');
 await mkdir(artifactBase, { recursive: true });
@@ -773,7 +801,7 @@ try {
     } else if (lesson.id === 'inflator') {
       const initial = await center(part(mobile, 'add-air'));
       await hold(mobile, 'add-air', waterInput, 1, async () => {
-        assert.equal(await meterLevel(mobile), 1);
+        assert.equal(await meterLevel(mobile), .48);
         const lifted = await center(part(mobile, 'add-air'));
         assert(lifted.y < initial.y - 9, 'BCD rises relative to the screen while adding air');
       });
@@ -788,6 +816,27 @@ try {
         assert(lowered.y > beforeVent.y + 9, 'BCD drops relative to the screen while venting');
         await mobile.screenshot({ path: join(output, 'mobile-inflator.png'), fullPage: true });
       });
+      assert.equal(await value(mobile), '3');
+      assert.equal(await mobile.locator('#buoyancy-status').innerText(), '沈み気味');
+      const trimStart = await center(part(mobile, 'trim-add'));
+      await part(mobile, 'trim-add').tap();
+      for (let i = 0; i < 3; i += 1) await mobile.locator('#trim-add').tap();
+      assert.equal(await meterLevel(mobile), .64);
+      assert.equal(await mobile.locator('#buoyancy-status').innerText(), '浮き気味');
+      const trimHigh = await center(part(mobile, 'trim-add'));
+      assert(trimHigh.y < trimStart.y - 10, 'Short air pulses raise the model relative to the reference');
+      const storedAir = await mobile.evaluate(key => JSON.parse(localStorage.getItem(key)).progress, draftKey);
+      assert.equal(storedAir, .64);
+      await part(mobile, 'trim-vent').tap();
+      assert.equal(await meterLevel(mobile), neutralAir);
+      assert.equal(await mobile.locator('#buoyancy-status').innerText(), '高さが安定');
+      assert.equal(await mobile.locator('#effect-meter span').innerText(), '高さが安定');
+      const trimSettled = await center(part(mobile, 'trim-add'));
+      assert(trimSettled.y > trimHigh.y + 5, 'Short venting lowers the model from the overshoot');
+      await mobile.screenshot({ path: join(output, 'mobile-inflator-balance.png'), fullPage: true });
+      await getChoice(mobile, 'balance').tap();
+      assert.equal(await value(mobile), '4');
+      checks.push('390 px inflator: short pulses on 3D and touch controls raise the BCD, venting returns it to steady height');
     } else {
       await operate(mobile, lesson.actions[0], 'tap');
       await mobile.evaluate(() => window.scrollTo(0, 0));
@@ -912,7 +961,13 @@ try {
   await noGl.locator('#recovery-clear').selectOption('exhale');
   for (const action of recoveryRoute('reach-exhale').actions) await operate(noGl, action, 'tap');
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
-  checks.push('360 px WebGL-unavailable fallback: gear, mask and alternate recovery drills still complete');
+  await noGl.getByRole('button', { name: 'インフレーター', exact: true }).tap();
+  for (const action of inflatorLesson.actions.slice(0, -1)) await operate(noGl, action, 'tap');
+  for (let i = 0; i < 3; i += 1) await noGl.locator('#trim-add').press('Enter');
+  assert.equal(await noGl.locator('#buoyancy-status').innerText(), '高さが安定');
+  await getChoice(noGl, 'balance').press('Enter');
+  assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
+  checks.push('360 px WebGL-unavailable fallback: gear, mask, alternate recovery and inflator adjustment still complete');
   await noGl.context().close();
 
   const offlineUrl = previewUrl + 'training/';

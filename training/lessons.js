@@ -122,7 +122,13 @@ export const lessons = [
     actions: [
       press('add-air', '給気ボタンを短く押す', '給気を短く試し、BCDが少しふくらむのを見ます。', 'BCDが少しふくらみました。', 290),
       attach('raise', '排気口を高くする', 'このモデルでは、ホース先端の排気口をBCD内の空気より高い位置にします。', '排気口が高い位置に来ました。', 'インフレーター', 'above', '排気するときの高さを選んでください。'),
-      press('vent', '排気ボタンを押す', '排気ボタンを押し、BCDから空気が抜けるのを見ます。', 'BCDから空気が抜けました。', 730)
+      press('vent', '排気ボタンを押す', '排気ボタンを押し、BCDから空気が抜けるのを見ます。', 'BCDから空気が抜けました。', 730),
+      {
+        ...action('balance', '高さを確認する',
+          '給気と排気を少しずつ試し、模型が同じ高さにとどまるところを探します。',
+          '模型が同じ高さを保ちました。給気と排気の反応を確認できました。'),
+        balance: true
+      }
     ]
   },
   {
@@ -151,6 +157,26 @@ const fullMask = {
 
 export function remainingMaskWater(initial, cleared, progress = 0) {
   return cleared ? 0 : initial * (1 - progress);
+}
+
+export const neutralAir = .48;
+
+export function balanceStatus(air) {
+  if (air < .40) return 'sink';
+  if (air > .56) return 'rise';
+  return 'steady';
+}
+
+export function inflatorAir(added, vented, pressure) {
+  if (vented) return pressure.balance ?? 0;
+  return .48 * (added ? 1 - (pressure.vent || 0) : pressure['add-air'] || 0);
+}
+
+export function adjustAir(practice, direction) {
+  if (!practice.lesson.actions[practice.index]?.balance) return false;
+  const current = Math.round((practice.pressure.balance ?? 0) * 100);
+  practice.pressure.balance = Math.min(96, Math.max(0, current + 16 * direction)) / 100;
+  return true;
 }
 
 const recovery = lessons.find(lesson => lesson.id === 'recovery');
@@ -204,9 +230,11 @@ export function choose(practice, id, dock) {
   const fault = action.inspection && practice.lesson.scenarios[practice.scenario].includes(id);
   const wrongDock = Boolean(action.attachment && action.attachment.dock !== dock);
   const wrongInspection = Boolean(action.inspection && Boolean(fault) !== (dock === 'repair'));
-  if (id !== expected.id || wrongDock || wrongInspection) {
+  const wrongBalance = Boolean(action.balance && balanceStatus(practice.pressure.balance ?? 0) !== 'steady');
+  if (id !== expected.id || wrongDock || wrongInspection || wrongBalance) {
     practice.missed.add(expected.id);
-    return { ok: false, expected, wrongDock: id === expected.id && wrongDock, wrongInspection: id === expected.id && wrongInspection };
+    return { ok: false, expected, wrongDock: id === expected.id && wrongDock,
+      wrongInspection: id === expected.id && wrongInspection, wrongBalance: id === expected.id && wrongBalance };
   }
   practice.index += 1;
   return { ok: true, expected, message: fault ? action.inspection.corrected : action.done };

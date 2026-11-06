@@ -1,5 +1,5 @@
 import * as T from '../vendor/three.module.js';
-import { remainingMaskWater } from './lessons.js';
+import { remainingMaskWater, inflatorAir, neutralAir } from './lessons.js';
 
 const mat = (color, roughness = .55, metalness = 0) => new T.MeshStandardMaterial({ color, roughness, metalness });
 const rubber = mat(0x172933, .83);
@@ -450,11 +450,6 @@ function diver(root, lesson) {
   };
 }
 
-function airAmount(done, pressure) {
-  if (done.has('vent')) return 0;
-  return done.has('add-air') ? 1 - (pressure.vent || 0) : pressure['add-air'] || 0;
-}
-
 function inflator(root, inWater = false) {
   if (!inWater) stage(root);
   const bladder = group(root, -.61, -.21, -.30);
@@ -473,7 +468,10 @@ function inflator(root, inWater = false) {
   head.scale.setScalar(1.55);
   head.rotation.z = -.13;
   return {
-    anchors: { 'add-air': [head, v(.055, .02, .12)], raise: [head, v(-.13, .18, .10)], vent: [head, v(.05, -.11, .13)] },
+    anchors: {
+      'add-air': [head, v(.055, .02, .12)], raise: [head, v(-.13, .18, .10)], vent: [head, v(.05, -.11, .13)],
+      'trim-add': [head, v(.115, .087, .125)], 'trim-vent': [head, v(.022, -.19, .13)]
+    },
     docks: { above: [root, v(.52, .77, .39)], below: [root, v(.52, -.62, .41)] },
     grabbable: { raise: head },
     sync() {
@@ -483,7 +481,7 @@ function inflator(root, inWater = false) {
     },
     update(done, k, _time, interaction) {
       const raised = done.has('raise');
-      const air = airAmount(done, interaction.pressure);
+      const air = inflatorAir(done.has('add-air'), done.has('vent'), interaction.pressure);
       bladder.scale.lerp(v(1 + .16 * air, 1 + .16 * air, 1 + .58 * air), k);
       head.position.lerp(raised ? v(.61, .54, .23) : v(.61, -.44, .23), k);
       head.userData.supply.position.z = interaction.active === 'add-air' ? .070 : .084;
@@ -794,8 +792,9 @@ export function makeDiveModel(root, lesson) {
     model = {
       ...parts,
       update(done, k, time, interaction) {
-        const air = airAmount(done, interaction.pressure);
-        equipment.position.y = T.MathUtils.lerp(equipment.position.y, .59 * air, k < 1 ? k * .47 : 1);
+        const air = inflatorAir(done.has('add-air'), done.has('vent'), interaction.pressure);
+        const height = done.has('vent') ? 1.10 * (air - neutralAir) : .94 * air;
+        equipment.position.y = T.MathUtils.lerp(equipment.position.y, height, k < 1 ? k * .47 : 1);
         parts.update(done, k, time, interaction);
       }
     };
