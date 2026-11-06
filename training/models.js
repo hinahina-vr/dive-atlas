@@ -396,7 +396,7 @@ function diver(root, lesson) {
 
   return {
     anchors: recovery ? {
-      bubbles: [torso, v(.20, .22, .59)], sweep: [arm, v(-.14, -.40, .12)],
+      bubbles: [torso, v(.20, .22, .59)], sweep: [torso, v(-.68, -.66, .145)],
       reach: [torso, v(-.56, .35, -.14)], 'trace-hose': [torso, v(-.71, .12, -.07)],
       replace: [replaceTarget, v(-.08, -.10, .12)], purge: [clearTarget, v(0, .01, .115)],
       'reg-exhale': [clearTarget, v(-.19, -.10, .14)],
@@ -424,17 +424,22 @@ function diver(root, lesson) {
       const purging = interaction.active === 'purge';
       regulator.userData.purge.position.z = purging ? .057 : .071;
       const retrieved = swept || traced;
+      const sweepProgress = !replaced && recovery ? (swept ? 1 : interaction.pressure.sweep || 0) : 0;
+      const bringForward = retrieved ? 1 : Math.max(0, (sweepProgress - .60) / .40);
+      const sweepArc = Math.sin(sweepProgress * Math.PI);
       replaceTarget.visible = retrieved && !replaced;
       clearTarget.visible = replaced;
       breathTarget.visible = replaced;
       const regPosition = recovery && !replaced
-        ? v(retrieved ? -.80 : -.56, retrieved ? .06 : reachRoute ? .13 : -.39, retrieved ? .41 : -.31)
+        ? v(T.MathUtils.lerp(-.56, -.80, bringForward),
+          T.MathUtils.lerp(reachRoute ? .13 : -.39, .06, bringForward), T.MathUtils.lerp(-.31, .41, bringForward))
         : v(0, .245, .433);
       regulator.position.lerp(regPosition, k);
-      torso.rotation.z = T.MathUtils.lerp(torso.rotation.z, swept && !replaced ? -.16 : 0, k);
-      arm.rotation.z = T.MathUtils.lerp(arm.rotation.z, retrieved && !replaced ? -.62 : .08, k);
-      arm.rotation.x = T.MathUtils.lerp(arm.rotation.x, reaching ? -2.44 : retrieved && !replaced ? -1.13 : 0, k);
-      lower.rotation.x = T.MathUtils.lerp(lower.rotation.x, reaching ? -1.26 : retrieved && !replaced ? -.70 : -.12, k);
+      const armLift = !replaced && traced ? 1 : sweepProgress;
+      torso.rotation.z = T.MathUtils.lerp(torso.rotation.z, -.16 * Math.min(1, sweepProgress * 2), k);
+      arm.rotation.z = T.MathUtils.lerp(arm.rotation.z, .08 - .70 * armLift - .24 * sweepArc, k);
+      arm.rotation.x = T.MathUtils.lerp(arm.rotation.x, reaching ? -2.44 : .82 * sweepArc - 1.13 * armLift, k);
+      lower.rotation.x = T.MathUtils.lerp(lower.rotation.x, reaching ? -1.26 : -.12 - .58 * armLift, k);
       fingertips.visible = !recovery && held;
       mask.rotation.x = T.MathUtils.lerp(mask.rotation.x, exhaling ? -.15 : held ? -.06 : 0, k);
       const remaining = remainingMaskWater(lesson.maskFill ?? 0, clear, interaction.pressure['mask-exhale']);
@@ -722,6 +727,18 @@ function immersionRegulator(root, reachRoute) {
     : [v(.66, -.62, 2.11), v(to.x * .82 + .15, to.y - .15, to.z + .24)];
   const updateHose = flexibleHose(root, .033, rubber, route);
   const motionAnchor = group(root, 1.60, -.33, 1.63);
+  const restRegulator = regulator.position.clone();
+  const readyRegulator = v(.24, -.36, 1.07);
+  const graspOffset = v(.08, -.12, .16);
+  const sweepContact = restRegulator.clone().add(graspOffset);
+  const sweepReach = new T.CatmullRomCurve3([
+    v(.50, -.66, 1.82), v(.60, -1.10, 2.02), v(.89, -.89, 2.19), sweepContact
+  ]);
+  const sweepBring = new T.CatmullRomCurve3([
+    sweepContact, v(1.37, -.49, 1.40), v(.80, -.49, 1.17), readyRegulator.clone().add(graspOffset)
+  ]);
+  const sweepCatchAt = .60;
+  const target = v(0, 0, 0);
   const restEnd = v(1.41, -.37, 1.70);
   const reachPath = reachRoute ? new T.CatmullRomCurve3([hoseOrigin, ...route(hoseOrigin, restEnd), restEnd]) : null;
   if (reachRoute) {
@@ -734,8 +751,7 @@ function immersionRegulator(root, reachRoute) {
   const breathingAnchor = group(root, .16, -.30, 1.1);
   sphere(root, .14, .16, .10, cloth, -.38, -.49, 1.48);
   const bubbles = Array.from({ length: 11 }, () => sphere(root, .026, .028, .024, lens));
-  let elapsed = 0;
-  let recoveredBefore = false;
+  let sweeping = null;
   let tracing = 0;
   return {
     docks: { mouth: [root, v(.02, -.27, 1.56)], chest: [root, v(-.38, -.40, 1.41)] },
@@ -751,8 +767,10 @@ function immersionRegulator(root, reachRoute) {
         reachPath.getPoint(tracing, arm.position);
         arm.position.y -= .053;
         arm.position.z += .062;
+      } else if (sweeping !== null && sweeping < sweepCatchAt) {
+        sweepReach.getPoint(sweeping / sweepCatchAt, arm.position);
       } else {
-        arm.position.copy(regulator.position).add(v(.08, -.12, .16));
+        arm.position.copy(regulator.position).add(graspOffset);
       }
       hoseEnd.copy(regulator.position);
       hoseEnd.x -= .15;
@@ -764,17 +782,17 @@ function immersionRegulator(root, reachRoute) {
       replaceTarget.visible = recovered && !replaced;
       clearTarget.visible = replaced;
       breathingAnchor.visible = replaced;
-      if (recovered && !recoveredBefore) elapsed = time;
-      recoveredBefore = recovered;
-      const wave = recovered && !reachRoute && !replaced && k < 1
-        ? Math.sin(Math.min((time - elapsed) / 540, 1) * Math.PI) : 0;
-      const target = replaced ? v(.02, -.27, 1.53)
-        : recovered ? v(.24 + wave * .76, -.36 - wave * .32, 1.07 + wave * .31)
-        : v(1.56, -.37, 1.70);
+      const progress = interaction.pressure.sweep || 0;
+      sweeping = !reachRoute && !recovered && !replaced && (progress > 0 || interaction.active === 'sweep') ? progress : null;
+      if (replaced) target.set(.02, -.27, 1.53);
+      else if (recovered) target.copy(readyRegulator);
+      else if (sweeping !== null && sweeping >= sweepCatchAt) {
+        sweepBring.getPoint((sweeping - sweepCatchAt) / (1 - sweepCatchAt), target).sub(graspOffset);
+      } else target.copy(restRegulator);
       regulator.position.lerp(target, k);
       tracing = done.has('reach') && !recovered ? .035 + .93 * (interaction.pressure['trace-hose'] || 0) : 0;
-      arm.visible = !replaced && (recovered || tracing > 0);
-      palm.rotation.y = tracing ? -.46 : -wave;
+      arm.visible = !replaced && (recovered || tracing > 0 || sweeping !== null);
+      palm.rotation.y = tracing ? -.46 : sweeping === null ? 0 : -.50 * Math.sin(sweeping * Math.PI);
       const purging = interaction.active === 'purge';
       const exhaling = interaction.active === 'reg-exhale';
       regulator.userData.purge.position.z = purging ? .057 : .071;

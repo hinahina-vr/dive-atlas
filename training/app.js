@@ -77,6 +77,7 @@ const press = createPress({
     const messages = {
       'mask-exhale': '水が残っています。もう一度、鼻から息を吐きましょう。',
       'add-air': '少しふくらみました。もう一度、給気ボタンを短く押します。',
+      sweep: '腕の動きが途中です。もう一度長押しして、ホースを前へ運びましょう。',
       'trace-hose': 'ホースの途中です。そのままたどりましょう。',
       'fin-wiggle': 'もう少しかかとを動かして、フィンの動きを見ましょう。',
       'reg-exhale': '中に水が残っています。口からもう一度息を吐きましょう。'
@@ -709,9 +710,9 @@ function render() {
   el.viewport.classList.toggle('is-example', Boolean(demo));
   el['show-example'].setAttribute('aria-pressed', String(Boolean(demo)));
   el['show-example'].textContent = demo ? '見本を閉じる' : '▷ 見本を見る';
-  el['view-help'].textContent = step?.pressTime ? (step.id === 'add-air' ? '目印を短く押す' : '目印を押し続ける') :
+  el['view-help'].textContent = immersive && ['sweep', 'reach'].includes(step?.id) ? 'ドラッグで右肩側を見る' :
+    step?.pressTime ? (step.id === 'add-air' ? '目印を短く押す' : '目印を押し続ける') :
     step?.attachment ? 'ドラッグ／器材→目印をタップ' :
-    immersive && ['sweep', 'reach'].includes(step?.id) ? 'ドラッグで右肩側を見る' :
     immersive && lesson.scene !== 'inflator' ? 'ドラッグで見回す' : 'ドラッグで回転';
   el.perspective.hidden = Boolean(demo) || !view || lesson.scene === 'gear';
   renderXREntry();

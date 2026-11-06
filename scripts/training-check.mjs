@@ -828,7 +828,26 @@ try {
       for (let i = 0; i < 3; i += 1) await mobile.locator('#rotate-right').tap();
       await sweep.waitFor();
       await mobile.screenshot({ path: join(output, 'mobile-recovery.png'), fullPage: true });
+      const recoveryCanvas = mobile.locator('#scene canvas');
+      const beforeSweep = await recoveryCanvas.screenshot();
       await sweep.tap();
+      assert.equal(await value(mobile), '1', 'A tap does not recover the regulator');
+      await hold(mobile, 'sweep', waterInput, .72);
+      assert.equal(await value(mobile), '1');
+      assert(await part(mobile, 'replace').isHidden());
+      assert.match(await mobile.locator('#feedback').innerText(), /腕の動きが途中/);
+      const pausedSweep = await mobile.evaluate(key => JSON.parse(localStorage.getItem(key)), draftKey);
+      assert(pausedSweep.progress >= .72 && pausedSweep.progress < 1);
+      assert(!(await recoveryCanvas.screenshot()).equals(beforeSweep), 'The arm and regulator move before the step completes');
+      await mobile.screenshot({ path: join(output, 'mobile-recovery-sweep-paused.png') });
+      await mobile.reload();
+      await ready(mobile);
+      await mobile.locator('#resume-practice').tap();
+      assert.equal(await value(mobile), '1');
+      assert.equal(await mobile.evaluate(key => JSON.parse(localStorage.getItem(key)).progress, draftKey), pausedSweep.progress);
+      for (let i = 0; i < 3; i += 1) await mobile.locator('#rotate-right').tap();
+      await mobile.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      await hold(mobile, 'sweep', waterInput);
       assert.equal(await value(mobile), '2');
       await mobile.locator('#reset-view').tap();
       await part(mobile, 'replace').tap();
@@ -886,13 +905,13 @@ try {
       assert.equal(await value(mobile), '0');
       await mobile.locator('#recovery-clear').selectOption('exhale');
       await getChoice(mobile, 'bubbles').tap();
-      await getChoice(mobile, 'sweep').tap();
+      await getChoice(mobile, 'sweep').press('Enter');
       await getChoice(mobile, 'replace').tap();
       await dockChoice(mobile, 'mouth').tap();
       await getChoice(mobile, 'reg-exhale').press('Enter');
       await getChoice(mobile, 'reg-breathe').tap();
       assert.equal(await value(mobile), '5');
-      checks.push('390 px recovery: shoulder and hose touch, interrupted trace, alternative clear, replay after reload and independent method selection');
+      checks.push('390 px recovery: sweep moves before completion and resumes after reload; shoulder trace, both clearing methods and review still work');
     } else if (lesson.id === 'inflator') {
       const initial = await center(part(mobile, 'add-air'));
       await hold(mobile, 'add-air', waterInput, 1, async () => {
