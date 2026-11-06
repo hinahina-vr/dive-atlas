@@ -208,10 +208,10 @@ export function createView(container, onProject, onAvailabilityChange) {
     return Boolean(detail);
   }
 
-  async function enterMaskXR(session, options) {
-    const { createMaskXR } = await import('./xr-mask.js');
+  async function enterPracticeXR(session, options) {
+    const { createPracticeXR } = await import('./xr-practice.js');
     if (xrSession || contextLost || !options.readState()) throw new Error('VR view unavailable');
-    const exercise = createMaskXR(renderer, session, {
+    const exercise = createPracticeXR(renderer, session, {
       ...options, lights: [sky, key, rim, fill].map(light => light.clone())
     });
     const pixelRatio = renderer.getPixelRatio();
@@ -249,7 +249,7 @@ export function createView(container, onProject, onAvailabilityChange) {
   let previousScenario;
   return {
     rotate,
-    enterMaskXR,
+    enterPracticeXR,
     resetCamera() {
       detailOrbit.set(1, Math.PI / 2, 0);
       resetCamera(previous);

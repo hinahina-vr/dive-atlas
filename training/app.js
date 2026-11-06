@@ -10,7 +10,7 @@ const byId = id => document.getElementById(id);
 const portraitLayout = matchMedia('(orientation: portrait) and (max-width: 780px)');
 const landscapeLayout = matchMedia('(orientation: landscape) and (max-height: 520px) and (min-width: 560px)');
 const el = Object.fromEntries([
-  'viewport', 'scene', 'scene-status', 'hotspots', 'mask-overlay', 'perspective', 'vr-mask', 'lessons', 'guided', 'recall',
+  'viewport', 'scene', 'scene-status', 'hotspots', 'mask-overlay', 'perspective', 'vr-practice', 'lessons', 'guided', 'recall',
   'view-label', 'view-subtitle', 'view-help', 'view-controls',
   'rotate-left', 'rotate-right', 'reset-view', 'module-label', 'step-count', 'progress',
   'review-overview-status', 'review-next', 'review-queue', 'review-queue-title', 'review-queue-list',
@@ -475,21 +475,21 @@ el.perspective.addEventListener('click', () => {
   render();
 });
 function renderXREntry() {
-  const button = el['vr-mask'];
-  button.hidden = !xrSupported || !view || practice.lesson.scene !== 'mask' || Boolean(example.current()) ||
+  const button = el['vr-practice'];
+  button.hidden = !xrSupported || !view || !['mask', 'recovery'].includes(practice.lesson.scene) || Boolean(example.current()) ||
     practice.index === practice.lesson.actions.length;
   button.disabled = xrBusy;
 }
 
-el['vr-mask'].addEventListener('click', async () => {
-  if (xrBusy || el['vr-mask'].hidden) return;
+el['vr-practice'].addEventListener('click', async () => {
+  if (xrBusy || el['vr-practice'].hidden) return;
   xrBusy = true;
   renderXREntry();
   const run = practice;
   let session;
   try {
     session = await navigator.xr.requestSession('immersive-vr');
-    await view.enterMaskXR(session, {
+    await view.enterPracticeXR(session, {
       lesson: run.lesson,
       readState() {
         if (practice !== run || example.current()) return null;
@@ -498,17 +498,18 @@ el['vr-mask'].addEventListener('click', async () => {
           index: run.index,
           guide: run.mode === 'guided' || hint,
           active: activePress,
+          pressure: run.pressure,
           message: el.feedback.textContent,
           water: remainingMaskWater(run.lesson.maskFill, run.index === run.lesson.actions.length, run.pressure['mask-exhale'])
         };
       },
       press,
-      apply,
+      apply: (id, dock) => apply(id, false, dock),
       onEnd() {
         xrBusy = false;
         renderXREntry();
         if (practice === run && !el.result.hidden) el['result-heading'].focus();
-        else (el['vr-mask'].hidden ? el.reset : el['vr-mask']).focus({ preventScroll: true });
+        else (el['vr-practice'].hidden ? el.reset : el['vr-practice']).focus({ preventScroll: true });
       }
     });
   } catch {
