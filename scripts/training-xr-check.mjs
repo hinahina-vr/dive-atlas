@@ -421,7 +421,7 @@ try {
   };
   // Aim at the caps themselves, separate from the labels beside the controls.
   const addPoint = buttonPoint(0,false,0,.058,.099);
-  const handlePoint = buttonPoint(.48,false,0,.182,.071);
+  const handlePoint = buttonPoint(.48,false,-.045,.365,.066);
   const ventPoint = air => buttonPoint(air,true,0,-.128,.097);
   const trimPoint = (air, add) => add ? buttonPoint(air,true,0,.058,.099) : ventPoint(air);
   const dockAbove = [.52,2.40,-2.04];

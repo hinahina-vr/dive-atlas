@@ -193,7 +193,8 @@ export function createView(container, onProject, onAvailabilityChange) {
       orbit.theta = lesson?.scene === 'gear' ? .46 : .29;
       orbit.phi = lesson?.scene === 'fins' ? 1.04 : 1.29;
       orbit.radius = lesson?.scene === 'gear' ? 6.35 : 5.2;
-      look.set(0, lesson?.scene === 'fins' ? -.37 : -.03, 0);
+      const center = lesson?.scene === 'fins' ? -.37 : lesson?.scene === 'inflator' && alternateView ? -.27 : -.03;
+      look.set(0, center, 0);
     }
     queue();
   }

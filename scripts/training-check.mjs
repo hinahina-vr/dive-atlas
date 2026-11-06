@@ -764,7 +764,14 @@ try {
     return title.right <= document.querySelector('#perspective').getBoundingClientRect().left &&
       title.bottom <= document.querySelector('#effect-meter').getBoundingClientRect().top;
   }));
+  await portrait.evaluate(() => { window.__originalRandom = Math.random; Math.random = () => .01; });
+  await portrait.locator('#guided').tap();
+  await portrait.locator('#recall').tap();
+  await portrait.evaluate(() => { Math.random = window.__originalRandom; delete window.__originalRandom; });
+  assert.equal(await getChoice(portrait, 'raise').evaluate(node => node === document.querySelector('#choices button')), true);
+  for (const id of ['add-air', 'raise', 'vent']) await part(portrait, id).waitFor({ timeout: 7000 });
   await portrait.screenshot({ path: join(output, 'mobile-narrow-inflator.png') });
+  checks.push('320 px inflator recall: both physical buttons and the grip on the hose remain available when the shuffled list puts the hose first');
   await portrait.context().close();
   checks.push('320 × 568: a hint reveals the 3D control, and the scene title fits beside the view switch');
 

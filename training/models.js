@@ -598,7 +598,7 @@ function inflator(root, inWater = false) {
   head.rotation.z = -.13;
   return {
     anchors: {
-      'add-air': addButton, raise: [head, v(0, .182, .071)], vent: releaseButton,
+      'add-air': addButton, raise: [head, v(-.045, .365, .066)], vent: releaseButton,
       'trim-add': addButton, 'trim-vent': releaseButton
     },
     docks: { above: [root, v(.52, .77, .39)], below: [root, v(.52, -.62, .41)] },
