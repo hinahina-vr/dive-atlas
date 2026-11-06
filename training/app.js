@@ -503,7 +503,7 @@ el['vr-practice'].addEventListener('click', async () => {
           pressure: run.pressure,
           message: el.feedback.textContent,
           retry: el.feedback.dataset.tone === 'retry',
-          reviewCount: finished && run.mode === 'recall' ? needsReview(run).length : null,
+          review: finished ? needsReview(run) : [],
           water: remainingMaskWater(run.lesson.maskFill, finished, run.pressure['mask-exhale'])
         };
       },

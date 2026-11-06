@@ -20,7 +20,13 @@ const inflatorControls = [
   maskControls.at(-1)
 ];
 
-const nextBuddyControl = { id: 'next-buddy', label: 'バディチェックへ ›', x: 32, y: 173, w: 960, h: 85 };
+const nextBuddyControl = { id: 'next-buddy', label: 'バディチェックへ ›', x: 538, y: 173, w: 454, h: 85 };
+const reviewControl = { id: 'review-open', label: '見直す手順を見る', x: 32, y: 173, w: 454, h: 85 };
+const reviewControls = [
+  { id: 'review-prev', label: '‹ 前の手順', x: 32, y: 268, w: 284, h: 60 },
+  { id: 'review-back', label: '結果に戻る', x: 370, y: 268, w: 284, h: 60 },
+  { id: 'review-next', label: '次の手順 ›', x: 708, y: 268, w: 284, h: 60 }
+];
 
 const inspectionSlots = [
   { id: 'normal', label: '足についてくる', x: 32, y: 173, w: 454, h: 85 },
@@ -130,54 +136,91 @@ function makePanel(lesson) {
   }
   let previous = '';
   let visibleControls = controls;
+  const exit = maskControls.at(-1);
+
+  function drawControls(options, state, hovered, primary) {
+    visibleControls = options;
+    for (const control of options) {
+      const index = state.steps.findIndex(step => step.id === control.id);
+      const done = index >= 0 && index < state.index;
+      const guided = (state.guide && index === state.index) || control.id === primary;
+      const selected = hovered === control.id;
+      const fill = done ? '#e5efed' : selected ? '#7be5d4' : guided ? '#a8eee0' : '#d5efec';
+      rect(control.x, control.y, control.w, control.h, fill);
+      text((done ? '✓ ' : '') + control.label, control.x + 18, control.y + control.h / 2, 32,
+        done ? '#466b71' : '#133f49', control.w - 36);
+    }
+  }
+
+  function drawReview(state, hovered, reviewIndex) {
+    const step = state.review[reviewIndex];
+    text('見直し  ' + (reviewIndex + 1) + ' / ' + state.review.length, 32, 58, 46, '#103b49', 700);
+    text(step.label, 32, 115, 43, '#103b49');
+    let line = '';
+    let y = 165;
+    const bodySize = 36;
+    context.font = '700 ' + bodySize + 'px sans-serif';
+    for (const character of step.detail) {
+      if (context.measureText(line + character).width > 960) {
+        text(line, 32, y, bodySize, '#246270');
+        y += 38;
+        line = '';
+      }
+      line += character;
+    }
+    if (line) text(line, 32, y, bodySize, '#246270');
+    const options = reviewControls.filter(control =>
+      (control.id !== 'review-prev' || reviewIndex > 0) &&
+      (control.id !== 'review-next' || reviewIndex + 1 < state.review.length));
+    drawControls([...options, exit], state, hovered);
+  }
+
+  function drawResult(state, hovered) {
+    text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', 700);
+    const count = state.review.length;
+    text(count ? '見直す手順は' + count + 'つ' : '練習完了 · 見直す手順なし', 32, 129, 39, '#246270');
+    const options = [];
+    if (count) options.push(lesson.id === 'gear' ? reviewControl : { ...reviewControl, w: 960 });
+    if (lesson.id === 'gear') options.push(count ? nextBuddyControl : { ...nextBuddyControl, x: 32, w: 960 });
+    drawControls([...options, exit], state, hovered, lesson.id === 'gear' ? 'next-buddy' : 'review-open');
+  }
   return {
     mesh,
     pick(hit) {
       const x = hit.uv.x * 1024, y = (1 - hit.uv.y) * 346;
       return visibleControls.find(({ x: left, y: top, w, h }) => x >= left && x <= left + w && y >= top && y <= top + h)?.id;
     },
-    draw(state, hovered, placing, done, inspecting) {
+    draw(state, hovered, placing, done, inspecting, reviewIndex) {
       const air = inflator ? inflatorAir(done.has('add-air'), done.has('vent'), state.pressure) : 0;
       const amount = Math.round((inflator ? air : state.water) * 100);
-      const key = [state.index, state.guide, state.message, state.retry, state.reviewCount, amount, hovered, placing, inspecting].join('|');
+      const key = [state.index, state.guide, state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex].join('|');
       if (key === previous) return;
       previous = key;
       const next = state.steps[state.index];
       const inspection = inspecting && next?.inspection;
-      const canAdvance = lesson.id === 'gear' && !next;
-      const compact = (inflator && next?.id !== 'balance') || ((fins || gear) && !inspection && !canAdvance);
+      const compact = next ? (inflator && next.id !== 'balance') || ((fins || gear) && !inspection) :
+        !state.review.length && lesson.id !== 'gear';
       context.clearRect(0, 0, 1024, 346);
       rect(0, 0, 1024, compact ? 246 : 346, '#f1fffd');
+      texture.needsUpdate = true;
+      if (state.review[reviewIndex]) { drawReview(state, hovered, reviewIndex); return; }
+      if (!next) { drawResult(state, hovered); return; }
       text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', 700);
       const note = fins && inspection ? 'かかとを動かすと、フィンはどうなった？' :
         inspection ? inspection.prompt :
-        canAdvance ? '機材セット完了' :
         (fins || gear) && placing ? '照準を合わせて置く' :
         inflator && placing ? '排気口を置く高さを選ぶ' :
         (fins || gear || inflator) && state.guide ? next?.label : '';
-      text(note || state.message || (!next ? '練習完了' : '操作に照準を合わせてトリガーを押す'), 32, 129, 34, '#246270');
-      const options = canAdvance ? [nextBuddyControl] :
-        inspection ? inspectionSlots.map(slot => fins ? slot : { ...slot, label: inspection[slot.id] }) : [];
-      visibleControls = compact ? controls.slice(-1) : [...options, ...controls];
-      visibleControls.forEach(control => {
-        const index = state.steps.findIndex(step => step.id === control.id);
-        const done = index >= 0 && index < state.index;
-        const guide = control.id === 'next-buddy' || (state.guide && index === state.index);
-        const selected = hovered === control.id;
-        const fill = done ? '#e5efed' : selected ? '#7be5d4' : guide ? '#a8eee0' : '#d5efec';
-        rect(control.x, control.y, control.w, control.h, fill);
-        text((done ? '✓ ' : '') + control.label, control.x + 18, control.y + control.h / 2, 32,
-          done ? '#466b71' : '#133f49', control.w - 36);
-      });
+      text(note || state.message || '操作に照準を合わせてトリガーを押す', 32, 129, 34, '#246270');
+      const options = inspection ? inspectionSlots.map(slot => fins ? slot : { ...slot, label: inspection[slot.id] }) : [];
+      drawControls(compact ? [exit] : [...options, ...controls], state, hovered);
       if (fins || gear) {
         const hint = placing ? 'トリガーを離すか、置く場所を選ぶ' :
           state.retry ? state.message : inspection ? inspection.note || '' :
-          !next ? (state.reviewCount === null ? 'VRを閉じると復習結果に戻ります' :
-            state.reviewCount ? '見直す手順は' + state.reviewCount + 'つ · 通常画面で確認' : '見直す手順なし') :
           next.pressTime ? 'トリガーを押し続ける' : fins ? '足元にある目印を探す' : '器材の目印を選ぶ';
         text(hint, 32, compact ? 197 : 300, 32, '#246270');
       } else if (recovery) {
-        const note = placing ? '正面を向いて「口元」を選ぶ' : !next ? 'VRを閉じると復習結果に戻ります' :
+        const note = placing ? '正面を向いて「口元」を選ぶ' :
           !state.guide ? '次の操作を思い出し、器材かボタンを選ぶ' :
           ['sweep', 'reach', 'trace-hose'].includes(next.id) ? '右肩側を見て、ホースの目印を探す' : next.label;
         text(note, 32, 303, 32, '#246270');
@@ -190,7 +233,6 @@ function makePanel(lesson) {
         rect(436, meterY, 556, 28, '#d6eeeb');
         if (amount) rect(436, meterY, 556 * amount / 100, 28, '#31998a');
       }
-      texture.needsUpdate = true;
     }
   };
 }
@@ -271,15 +313,20 @@ function spatialTargets(lesson, model, scene) {
   const forward = new T.Vector3();
   const delta = new T.Vector3();
   return {
-    update(state, placing, eye, orientation, inspecting) {
+    update(state, placing, eye, orientation, inspecting, reviewStep) {
+      const stepIndex = reviewStep && state.steps.indexOf(reviewStep);
       forward.set(0, 0, -1).applyQuaternion(orientation);
       for (const { id, dock, parent, point, mesh, index, phaseOnly, sharedAnchor } of targets) {
         mesh.visible = false;
-        if (placing ? !dock : dock || index < state.index || !parent.visible) continue;
-        if (id === inspecting || (phaseOnly && index !== state.index)) continue;
-        if (gear && placing === 'bcd' && id === 'inflator') continue;
-        if (gear && !dock && (inspecting || sharedAnchor >= state.index ||
-          index > state.index + (state.guide ? 0 : 2))) continue;
+        if (reviewStep) {
+          if (!parent.visible || (dock ? id !== reviewStep.attachment?.dock : index !== stepIndex)) continue;
+        } else {
+          if (placing ? !dock : dock || index < state.index || !parent.visible) continue;
+          if (id === inspecting || (phaseOnly && index !== state.index)) continue;
+          if (gear && placing === 'bcd' && id === 'inflator') continue;
+          if (gear && !dock && (inspecting || sharedAnchor >= state.index ||
+            index > state.index + (state.guide ? 0 : 2))) continue;
+        }
         parent.localToWorld(mesh.position.copy(point));
         if (delta.subVectors(mesh.position, eye).normalize().dot(forward) < .70) continue;
         mesh.quaternion.copy(orientation);
@@ -296,9 +343,9 @@ function spatialTargets(lesson, model, scene) {
       }
       return nearest;
     },
-    highlight(hovered) {
+    highlight(hovered, reviewing) {
       for (const { id, mesh } of targets) {
-        if (mesh.visible) mesh.material.color.setHex(id === hovered ? 0x9bf2df : 0xffffff);
+        if (mesh.visible) mesh.material.color.setHex(reviewing || id === hovered ? 0x9bf2df : 0xffffff);
       }
     },
     dispose() {
@@ -335,6 +382,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     root.scale.setScalar(.70);
   }
   const completed = new Set();
+  const reviewPressure = {};
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const rig = new T.Group();
   const camera = new T.PerspectiveCamera(45, 1, .05, 40);
@@ -390,6 +438,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
   let continueRequested = false;
   let holding;
   let inspecting;
+  let reviewIndex = -1;
   let carry;
   const carriedPosition = new T.Vector3();
   const restingPosition = new T.Vector3();
@@ -404,7 +453,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     raycaster.set(origin, direction);
     const hit = raycaster.intersectObject(mesh)[0];
     const id = hit && panel.pick(hit);
-    const target = targets?.pick(raycaster);
+    const target = reviewIndex < 0 && targets?.pick(raycaster);
     if (target && (!id || target.distance < hit.distance)) return target;
     return id ? { id, distance: hit.distance } : null;
   };
@@ -442,6 +491,10 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     function select() {
       if (selected === 'exit') close();
       else if (selected === 'next-buddy') continueRequested = true;
+      else if (selected === 'review-open' && readState()?.review.length) reviewIndex = 0;
+      else if (selected === 'review-back') reviewIndex = -1;
+      else if (selected === 'review-prev' && reviewIndex > 0) reviewIndex -= 1;
+      else if (selected === 'review-next' && reviewIndex + 1 < readState()?.review.length) reviewIndex += 1;
       else if (carry?.controller === controller) {
         const target = aim(controller);
         carry = null;
@@ -533,6 +586,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
           if (next) {
             cancelInputs();
             inspecting = null;
+            reviewIndex = -1;
             unmount();
             presentation = mount(next.lesson, next.scenario);
             state = readState();
@@ -560,31 +614,35 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
       rig.updateMatrixWorld(true);
       if (holding) press.tickHold(holding, time);
       const current = holding ? readState() : state;
+      const reviewStep = current.review[reviewIndex];
+      const shownIndex = reviewStep ? current.steps.indexOf(reviewStep) : current.index;
       const motion = reduceMotion.matches ? 240 : time;
       if (lens) {
-        lens.material.uniforms.water.value = current.water;
+        lens.material.uniforms.water.value = reviewStep ? lesson.maskFill : current.water;
         lens.material.uniforms.time.value = motion * .0012;
       }
       completed.clear();
-      for (let index = 0; index < current.index; index += 1) completed.add(current.steps[index].id);
+      for (let index = 0; index < shownIndex; index += 1) completed.add(current.steps[index].id);
       const blending = inflator && previousTime !== undefined && !reduceMotion.matches;
       const blend = blending ? 1 - Math.exp(-Math.min(time - previousTime, 100) / 75) : 1;
       previousTime = time;
       const active = current.active || (pulse?.until > time ? pulse.action : '');
-      model.update(completed, blend, motion, { active, pressure: current.pressure, detail: gear ? inspecting : undefined });
+      model.update(completed, blend, motion, {
+        active, pressure: reviewStep ? reviewPressure : current.pressure, detail: gear ? reviewStep?.id || inspecting : undefined
+      });
       if (!fins && !gear) model.sync?.();
-      targets?.update(current, placing, visor.getWorldPosition(eye), visor.quaternion, inspecting);
+      targets?.update(current, placing, visor.getWorldPosition(eye), visor.quaternion, inspecting, reviewStep);
       moveCarriedPart();
       if (fins || gear) model.sync();
-      preview?.show(inspecting);
+      preview?.show(reviewStep?.id || inspecting);
       let hovered;
       for (const { controller, line } of pointers) {
         const hit = aim(controller);
         line.scale.z = hit?.distance || .84;
         hovered ??= hit?.id;
       }
-      if (fins || gear) targets.highlight(hovered);
-      panel.draw(current, hovered, placing, completed, inspecting);
+      if (fins || gear || reviewStep) targets?.highlight(hovered, Boolean(reviewStep));
+      panel.draw(current, hovered, placing, completed, inspecting, reviewIndex);
       renderer.render(scene, camera);
     },
     dispose() {
