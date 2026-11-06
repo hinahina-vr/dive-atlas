@@ -145,7 +145,7 @@ export const islandCoastDiveAreas = [
     source: "https://shikinejima-magazine.jp/202610shikinjima-diving/", sourceName: "式根島マガジン 式根島マリンの案内による潜水記録",
   },
   {
-    id: 'oshima-keikai', name: 'ケイカイ', area: '東京・伊豆大島 ケイカイ海岸', coordinates: [139.345608, 34.789559], difficulty: 4, icon: 'shark',
+    id: 'oshima-keikai', name: 'ケイカイ', area: '東京・伊豆大島 ケイカイ海岸', coordinates: [139.345608, 34.789559], difficulty: 4, icon: 'hammerhead',
     highlight: '溶岩がつくった複雑な根が続き、季節や時間帯によってハンマーヘッドシャークを見かけることがあります。',
     conditions: '岸から入るポイントですが、速い潮が入ります。海況と参加条件を地元ガイドに確認します。',
     source: 'https://www.seasound.jp/izuoshima/diving-point.html', sourceName: '伊豆大島 シーサウンド',
@@ -187,7 +187,7 @@ export const islandCoastDiveAreas = [
     source: 'https://www.miyakejima.gr.jp/wp/wp-content/uploads/2017/10/MIYAKE-Diving-Point-Map.pdf', sourceName: '三宅島観光協会',
   },
   {
-    id: 'miyake-meganeiwa', name: 'メガネ岩沖', area: '東京・三宅島 メガネ岩沖', coordinates: [139.474182, 34.071431], difficulty: 4, icon: 'reef',
+    id: 'miyake-meganeiwa', name: 'メガネ岩沖', area: '東京・三宅島 メガネ岩沖', coordinates: [139.474182, 34.071431], difficulty: 4, icon: 'arch',
     highlight: '岩の窓が水中に連なり、外の青と岩陰の明暗が際立つ場所です。',
     conditions: '観光協会の案内では6月と10月に開く海域。年ごとの日程と参加条件を現地で確認します。',
     source: 'https://www.miyakejima.gr.jp/wp/wp-content/uploads/2017/10/MIYAKE-Diving-Point-Map.pdf', sourceName: '三宅島観光協会',
@@ -223,7 +223,7 @@ export const islandCoastDiveAreas = [
     source: "https://www.hisaichi.jp/dive-site/", sourceName: "八丈島 比三一ダイバーズクラブ",
   },
   {
-    id: "hachijo-kyokuchohama", name: "局長浜", area: "東京・八丈島 三根 局長浜沖", coordinates: [139.783516, 33.156811], difficulty: 4, icon: "reef",
+    id: "hachijo-kyokuchohama", name: "局長浜", area: "東京・八丈島 三根 局長浜沖", coordinates: [139.783516, 33.156811], difficulty: 4, icon: "ribbonEel",
     highlight: "浅場の先に、壁のように落ち込む沖の根があります。暖かい時期にはハナヒゲウツボも記録されています。",
     conditions: "ボートで入る根のコース。壁の側は深さが増すため、ガイドと回る範囲を決めます。",
     source: "https://www.hisaichi.jp/dive-site/", sourceName: "八丈島 比三一ダイバーズクラブ",
@@ -469,7 +469,7 @@ export const islandCoastDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/959", sourceName: "ダイビングポイント情報サイト 三十根",
   },
   {
-    id: "hachijokojima-ichinone", name: "一の根", area: "東京・八丈小島 南西沖 一の根の離れ根", coordinates: [139.684725, 33.115484], difficulty: 4, icon: "fish",
+    id: "hachijokojima-ichinone", name: "一の根", area: "東京・八丈小島 南西沖 一の根の離れ根", coordinates: [139.68905, 33.11385], difficulty: 4, icon: "fish",
     highlight: "離れ根に岩壁や割れ目があり、根の周りをテングダイやヨスジフエダイが泳ぎます。",
     conditions: "八丈小島の南西側のボート海域です。",
     source: "https://divingpoint.net/divepoints/view/960", sourceName: "ダイビングポイント情報サイト 一の根",
@@ -523,7 +523,7 @@ export const islandCoastDiveAreas = [
     source: "https://divingfreeway.com/diving-points", sourceName: "フリーウェイ 佐渡",
   },
   {
-    id: "sado-hirane-thermal", name: "平根崎・海中温泉", area: "新潟・佐渡 外海府 平根崎沖", coordinates: [138.238907, 38.130776], difficulty: 3, icon: "reef",
+    id: "sado-hirane-thermal", name: "平根崎・海中温泉", area: "新潟・佐渡 外海府 平根崎沖", coordinates: [138.238907, 38.130776], difficulty: 3, icon: "vent",
     highlight: "水深15m付近の海底から泡が立ち上がる、平根崎沖の温泉の海域です。",
     conditions: "岸から入った潜水記録。波と出入りの条件は現地に確認し、湧出口からは距離を取ります。",
     source: "https://www.visitsado.com/spot/detail0145/", sourceName: "さど観光ナビ 平根崎",
@@ -866,5 +866,23 @@ export const islandCoastDiveAreas = [
     highlight: "天井の隙間から光が入り、暗いホールの中で光の筋が見えます。",
     conditions: "タダナエ群島のボート海域。波が穏やかな日に現地ガイドが案内するポイントです。",
     source: "https://aquamate.jp/point_map/", sourceName: "神津島アクアメイトダイビングクラブ",
+  },
+  {
+    id: "kozu-tadanae-matsugashita", name: "タダナエ群島・松ヶ下", area: "東京・神津島 沖祇苗 南西側の岩壁", coordinates: [139.1911, 34.2063], difficulty: 4, icon: "reef",
+    highlight: "切り立った岩壁の沖をタカベが群れ、壁のくぼみにも生きものが隠れています。",
+    conditions: "ボートで向かう岩壁のコース。水深は30m前後まで。流れに応じてガイドがルートを決めます。",
+    source: "https://www.kozu-nangoku.com/divingpoint", sourceName: "神津島ダイビング 南国",
+  },
+  {
+    id: "oshima-kerama-modoki", name: "ケラマモドキ", area: "東京・伊豆大島 ケイカイ北側の砂地と溶岩礁", coordinates: [139.357238, 34.793224], difficulty: 3, icon: "turtle",
+    highlight: "浅い灰白色の砂地から溶岩の水路が続き、沖側の石の間にはウミガメが休むことがあります。",
+    conditions: "ケイカイ北側のビーチ海域。現地ガイドのポイント図に基づく代表位置です。",
+    source: "https://yellow-dive.com/course/fun/", sourceName: "伊豆大島 イエローダイブ ポイント図",
+  },
+  {
+    id: "hachijokojima-kannagi", name: "カンナギ", area: "東京・八丈小島 南西沖 カンナギの離れ岩", coordinates: [139.68146,33.11489], difficulty: 5, icon: "butterflyfish",
+    highlight: "離れ岩の周りにシラコダイの群れが集まります。八丈小島での潜水取材では、ユウゼンがまとまって泳ぐ姿も観察されています。",
+    conditions: "外洋のボート海域。低い離れ岩の南西沖を代表位置とし、潜降位置は当日の潮とうねりを見て現地ガイドが決めます。",
+    source: "https://oceana.ne.jp/pr/127059", sourceName: "オーシャナ 八丈小島の潜水取材",
   },
 ];

@@ -121,7 +121,7 @@ export const kyushuIslandDiveAreas = [
     source: "https://www.mugamuga.com/diving/point.html", sourceName: "沖永良部島 むがむがダイビング",
   },
   {
-    id: 'yoron-ukatsu', name: '宇勝アーチ', area: '鹿児島・与論島 宇勝沖', coordinates: [128.424683, 27.076705], difficulty: 4, icon: 'cave',
+    id: 'yoron-ukatsu', name: '宇勝アーチ', area: '鹿児島・与論島 宇勝沖', coordinates: [128.424683, 27.076705], difficulty: 4, icon: 'arch',
     highlight: '海底の開口部から落ちる光と、外側のサンゴの明るさが対照的な地形です。',
     conditions: '島の北側へ船で出るファンダイビング。地形コースの参加条件は現地ガイドに確認します。',
     source: 'https://tamadiving.synapse-site.jp/point.html', sourceName: '与論島 タマダイビング',
@@ -205,7 +205,7 @@ export const kyushuIslandDiveAreas = [
     source: "https://www.amami-diving.jp/diving-point", sourceName: "ルプラ奄美大島",
   },
   {
-    id: "amami-babel", name: "バベル", area: "鹿児島・奄美大島 北部 バベルの砂地", coordinates: [129.62941, 28.450094], difficulty: 3, icon: "fish",
+    id: "amami-babel", name: "バベル", area: "鹿児島・奄美大島 北部 バベルの砂地", coordinates: [129.62941, 28.450094], difficulty: 3, icon: "puffer",
     highlight: "春から夏には、アマミホシゾラフグが砂を盛って作る円形の産卵床が見られることがあります。",
     conditions: "ボートで向かう砂地のコース。産卵床の位置や深さは時期によって変わります。",
     source: "https://www.amami-diving.jp/diving-point", sourceName: "ルプラ奄美大島",
@@ -295,7 +295,7 @@ export const kyushuIslandDiveAreas = [
     source: "https://www.mugamuga.com/diving/point.html", sourceName: "むがむがダイビング",
   },
   {
-    id: "okinoerabu-happy-arch", name: "ハッピーアーチ", area: "鹿児島・沖永良部島 南西岸沖", coordinates: [128.534546, 27.342799], difficulty: 2, icon: "cave",
+    id: "okinoerabu-happy-arch", name: "ハッピーアーチ", area: "鹿児島・沖永良部島 南西岸沖", coordinates: [128.534546, 27.342799], difficulty: 2, icon: "arch",
     highlight: "二つの岩のアーチがあり、周囲ではヨスジフエダイとアカヒメジの黄色い群れが見られます。",
     conditions: "船から潜る地形ポイント。砂地やアーチの外から見るコースもあります。",
     source: "https://okierabu.net/okinoerabu-diving-point/", sourceName: "シードリーム沖永良部",
@@ -325,7 +325,7 @@ export const kyushuIslandDiveAreas = [
     source: "https://www.mugamuga.com/diving/point.html", sourceName: "むがむがダイビング",
   },
   {
-    id: "okinoerabu-w-arch", name: "沖永良部・Wアーチ", area: "鹿児島・沖永良部島 南岸沖のWアーチ", coordinates: [128.610686, 27.346043], difficulty: 3, icon: "cave",
+    id: "okinoerabu-w-arch", name: "沖永良部・Wアーチ", area: "鹿児島・沖永良部島 南岸沖のWアーチ", coordinates: [128.610686, 27.346043], difficulty: 3, icon: "arch",
     highlight: "大きな岩のアーチが二つ並び、岩肌には色や形の変わったホヤがついています。",
     conditions: "南岸のボートポイント。アーチの内外を回る範囲は海況に合わせます。",
     source: "https://www.mugamuga.com/diving/point.html", sourceName: "むがむがダイビング",
@@ -607,13 +607,13 @@ export const kyushuIslandDiveAreas = [
     source: "https://okierabu.net/okinoerabu-diving-point/", sourceName: "シードリーム沖永良部",
   },
   {
-    id: "okinoerabu-twins-arch", name: "双子のアーチ", area: "鹿児島・沖永良部島 南東側 双子のアーチ沖", coordinates: [128.578491, 27.329075], difficulty: 3, icon: "cave",
+    id: "okinoerabu-twins-arch", name: "双子のアーチ", area: "鹿児島・沖永良部島 南東側 双子のアーチ沖", coordinates: [128.578491, 27.329075], difficulty: 3, icon: "arch",
     highlight: "二つの大きなアーチが重なる地形で、沖側の壁にはハナゴイやノコギリダイが群れます。",
     conditions: "南東側のボート海域。難易度はアーチ周辺の目安です。",
     source: "https://okierabu.net/okinoerabu-diving-point/", sourceName: "シードリーム沖永良部",
   },
   {
-    id: "yakushima-zero", name: "ゼロ戦（一湊タンク下）", area: "鹿児島・屋久島 一湊湾 沖の戦闘機残骸", coordinates: [130.4901926, 30.4593483], difficulty: 3, icon: "wreck",
+    id: "yakushima-zero", name: "ゼロ戦（一湊タンク下）", area: "鹿児島・屋久島 一湊湾 沖の戦闘機残骸", coordinates: [130.4901926, 30.4593483], difficulty: 3, icon: "aircraftWreck",
     highlight: "砂地に残る戦時中のエンジンとプロペラが魚のすみかになり、アザハタやキンメモドキが集まります。",
     conditions: "残骸は水深20〜25m付近。途中で中層を泳ぐため、浮力管理に慣れた人向けです。",
     source: "https://mori-umi.net/tour/point/", sourceName: "屋久島ダイビングサービス もりとうみ",
@@ -637,7 +637,7 @@ export const kyushuIslandDiveAreas = [
     source: "https://mori-umi.net/tour/point/", sourceName: "屋久島ダイビングサービス もりとうみ",
   },
   {
-    id: "yakushima-jungle-gym", name: "ジャングルジム", area: "鹿児島・屋久島 一湊湾 西側の人工漁礁", coordinates: [130.4833881, 30.4590581], difficulty: 2, icon: "reef",
+    id: "yakushima-jungle-gym", name: "ジャングルジム", area: "鹿児島・屋久島 一湊湾 西側の人工漁礁", coordinates: [130.4833881, 30.4590581], difficulty: 2, icon: "structure",
     highlight: "コンクリートの箱を積んだ漁礁は、名前どおり遊具のような形。箱の間にキンメモドキが集まります。",
     conditions: "漁礁のある海底は水深18m前後です。",
     source: "https://mori-umi.net/tour/point/", sourceName: "屋久島ダイビングサービス もりとうみ",
@@ -667,7 +667,7 @@ export const kyushuIslandDiveAreas = [
     source: "https://www.yakushimatatsunoko.com/newsite2025/pointmap/", sourceName: "屋久島ダイビングスクールたつのこ",
   },
   {
-    id: "kuchinoerabu-yumugi", name: "湯向", area: "鹿児島・口永良部島 湯向沖の海中温泉", coordinates: [130.26951182400808, 30.454767831051186], difficulty: 4, icon: "reef",
+    id: "kuchinoerabu-yumugi", name: "湯向", area: "鹿児島・口永良部島 湯向沖の海中温泉", coordinates: [130.26951182400808, 30.454767831051186], difficulty: 4, icon: "vent",
     highlight: "切り立つ岩から温泉が湧き、深い斜面にはスミレナガハナダイやスジハナダイが見られます。",
     conditions: "ボート海域。深場を含み、催行はガイドと最新の火山情報で確認。",
     source: "https://www.yakushimatatsunoko.com/newsite2025/pointmap/", sourceName: "屋久島ダイビングスクールたつのこ",
@@ -847,7 +847,7 @@ export const kyushuIslandDiveAreas = [
     source: "https://www.blue-earth21kokura.com/kdsguidebook25.pdf", sourceName: "口之島ダイビングサービス ポイントガイド",
   },
   {
-    id: "tokara-spa-world", name: "スパワールド", area: "鹿児島・トカラ列島 口之島 東岸の海底温泉", coordinates: [129.9331, 29.98229], difficulty: 4, icon: "reef",
+    id: "tokara-spa-world", name: "スパワールド", area: "鹿児島・トカラ列島 口之島 東岸の海底温泉", coordinates: [129.9331, 29.98229], difficulty: 4, icon: "vent",
     highlight: "海底から細かな泡が湧き、周囲に湯の花がつきます。近くの岩にはニザダイやハナビラクマノミが集まります。",
     conditions: "口之島東側のボート海域。位置は現地ガイド図からの目安です。",
     source: "https://www.blue-earth21kokura.com/kdsguidebook25.pdf", sourceName: "口之島ダイビングサービス ポイントガイド",
@@ -1003,7 +1003,7 @@ export const kyushuIslandDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/721", sourceName: "ダイビングポイント情報サイト アサ曽根",
   },
   {
-    id: "danjo-kami-akase", name: "上ノ赤瀬", area: "長崎・男女群島 マルタ近くの瀬", coordinates: [128.400307, 32.060901], difficulty: 4, icon: "macro",
+    id: "danjo-kami-akase", name: "上ノ赤瀬", area: "長崎・男女群島 マルタ近くの瀬", coordinates: [128.400307, 32.060901], difficulty: 4, icon: "seahorse",
     highlight: "イソバナの枝にピグミーシーホースが見つかった記録があり、ウミガメも観察されています。",
     conditions: "潮が当たる外洋のボート海域です。",
     source: "https://divingpoint.net/divepoints/view/723", sourceName: "ダイビングポイント情報サイト 上ノ赤瀬",
@@ -1883,5 +1883,35 @@ export const kyushuIslandDiveAreas = [
     highlight: "白い砂浜の沖に礁が広がり、サンゴや魚が見られる海域です。",
     conditions: "赤崎の岸寄りには遊泳・素潜りの利用もあります。ボートで潜る範囲は現地ガイドに確認してください。",
     source: "https://divingpoint.net/divepoints/view/1122", sourceName: "ダイブポイント 与論島 赤崎",
+  },
+  {
+    id: "amami-goendama", name: "五円玉", area: "鹿児島・奄美大島 笠利東岸 奄美空港の南沖", coordinates: [129.71559177531162, 28.42922948063285], difficulty: 3, icon: "fish",
+    highlight: "奄美空港の南沖にある根です。潮が当たる岩場でグルクンが群れることがあります。",
+    conditions: "笠利の太平洋側へ船で向かう海域。風と潮の条件が合う日に案内されます。",
+    source: "https://hikarudivers.blogspot.com/2020/10/?m=0", sourceName: "ひかるダイバーズ 奄美大島の潜水記録",
+  },
+  {
+    id: "kakeroma-yubanare-rock", name: "夕離れロック", area: "鹿児島・加計呂麻島 西沖 夕離のサンゴ礁", coordinates: [129.15155, 28.13026], difficulty: 4, icon: "coral",
+    highlight: "無人島の周りのサンゴ礁で、デバスズメダイが群れて泳ぐ姿が記録されています。",
+    conditions: "加計呂麻島の外洋側のボート海域。風とうねりに応じて案内場所が変わります。",
+    source: "https://kohollo.jp/news/%e5%a5%84%e7%be%8e%e5%a4%a7%e5%b3%b6%e3%80%80%e3%83%80%e3%82%a4%e3%83%93%e3%83%b3%e3%82%b0.html", sourceName: "アクアダイブコホロ 夕離れロック",
+  },
+  {
+    id: "kakeroma-sukomobanare", name: "須子茂離れ", area: "鹿児島・加計呂麻島 西沖 須子茂離の岩礁", coordinates: [129.16772, 28.12242], difficulty: 4, icon: "reef",
+    highlight: "須子茂の沖にある無人島の岩礁を巡ります。海が穏やかな日の記録では、30mほど先まで見通せたことがあります。",
+    conditions: "外洋側へ船で向かう遠征海域。島の周囲は風向きやうねりで条件が変わります。",
+    source: "https://www.setouchi-welcome.com/spotinfo/%E9%98%BF%E5%A4%9A%E5%9C%B0%E3%81%AE%E3%83%87%E3%82%A4%E3%82%B4", sourceName: "奄美せとうち観光協会",
+  },
+  {
+    id: "kakeroma-kose", name: "小瀬", area: "鹿児島・加計呂麻島 江仁屋離島西沖 小瀬の離れ瀬", coordinates: [129.1498431, 28.1975393], difficulty: 4, icon: "fish",
+    highlight: "江仁屋離島の西に離れ瀬があり、澄んだ外洋でキビナゴの群れが見られた記録があります。",
+    conditions: "外洋のボート海域。瀬の周りの流れとうねりをガイドと確認します。",
+    source: "https://kohollo.jp/news/%e5%a4%96%e6%b4%8b%e2%99%aa-6.html", sourceName: "アクアダイブコホロ 小瀬の潜水記録",
+  },
+  {
+    id: "amami-shirahama", name: "白浜ビーチ", area: "鹿児島・奄美大島 瀬戸内町 白浜海水浴場沖", coordinates: [129.2717, 28.199], difficulty: 2, icon: "anemone",
+    highlight: "遠浅の白砂にサンゴが点在します。イソギンチャクのそばのクマノミや、浅い海底のナマコの仲間を観察できます。",
+    conditions: "白浜Ⅰ・Ⅱを含むビーチ海域。遊泳者や養殖施設との距離を取り、入る範囲は現地ガイドと確認します。",
+    source: "https://kohollo.jp/category/divingpoint/%e7%99%bd%e6%b5%9c%e3%83%93%e3%83%bc%e3%83%81%e2%85%a0%ef%bc%86%e2%85%a1", sourceName: "アクアダイブコホロ 白浜ビーチの潜水記録",
   },
 ];

@@ -97,7 +97,7 @@ export const kiiDiveAreas = [
     source: "https://missocean.co.jp/dive-point/", sourceName: "ミスオーシャン ダイビングサービス",
   },
   {
-    id: "shirahama-double-arch", name: "白浜・Wアーチ", area: "和歌山・白浜 海中展望塔沖の二連アーチ", coordinates: [135.335551, 33.686938], difficulty: 3, icon: "cave",
+    id: "shirahama-double-arch", name: "白浜・Wアーチ", area: "和歌山・白浜 海中展望塔沖の二連アーチ", coordinates: [135.335551, 33.686938], difficulty: 3, icon: "arch",
     highlight: "細長い根にアーチが二つ並び、岩の向こうに差し込む光と魚群を一緒に眺められます。",
     conditions: "ボートで行く地形ポイント。岩の通路に入る範囲は海況と装備に合わせます。",
     source: "https://missocean.co.jp/dive-point/", sourceName: "ミスオーシャン ダイビングサービス",
@@ -229,7 +229,7 @@ export const kiiDiveAreas = [
     source: "https://tanabedivingservice.jp/tanabenoumi.html", sourceName: "田辺ダイビングサービス",
   },
   {
-    id: "tanabe-marine-arch", name: "マリンアーチ", area: "和歌山・田辺湾 マリンアーチの岩礁", coordinates: [135.328560, 33.713917], difficulty: 3, icon: "cave",
+    id: "tanabe-marine-arch", name: "マリンアーチ", area: "和歌山・田辺湾 マリンアーチの岩礁", coordinates: [135.328560, 33.713917], difficulty: 3, icon: "arch",
     highlight: "クレバスの先に岩のアーチが開き、割れ目や岩棚に根魚が集まります。",
     conditions: "ボートで岩の外側を巡る海域。うねりで通過ルートが変わります。",
     source: "https://tanabedivingservice.jp/tanabenoumi.html", sourceName: "田辺ダイビングサービス",
@@ -241,7 +241,7 @@ export const kiiDiveAreas = [
     source: "https://tanabedivingservice.jp/tanabenoumi.html", sourceName: "田辺ダイビングサービス",
   },
   {
-    id: "tanabe-long-arch", name: "ロングアーチ", area: "和歌山・田辺湾 ロングアーチの岩礁", coordinates: [135.338945, 33.710204], difficulty: 4, icon: "cave",
+    id: "tanabe-long-arch", name: "ロングアーチ", area: "和歌山・田辺湾 ロングアーチの岩礁", coordinates: [135.338945, 33.710204], difficulty: 4, icon: "arch",
     highlight: "長いアーチの暗がりにハタンポが集まり、岩の奥にはさらに小さな洞窟があります。",
     conditions: "ボート海域。洞内へ入る範囲は資格や装備、うねりに応じます。",
     source: "https://divingpoint.net/divepoints/view/422", sourceName: "ダイビングポイント情報サイト",

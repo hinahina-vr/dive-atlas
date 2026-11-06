@@ -10,6 +10,12 @@ import { ogasawaraDiveAreas } from './dive-areas/ogasawara.js';
 import { okinawaDiveAreas } from './dive-areas/okinawa.js';
 import { okinawaIslandDiveAreas } from './dive-areas/okinawa-islands.js';
 import { taiwanDiveAreas } from './dive-areas/taiwan.js';
+import { marianaDiveAreas } from './dive-areas/marianas.js';
+import { guamDiveAreas } from './dive-areas/guam.js';
+import { palauDiveAreas } from './dive-areas/palau.js';
+import { thailandDiveAreas } from './dive-areas/thailand.js';
+import { indonesiaDiveAreas } from './dive-areas/indonesia.js';
+import { philippinesDiveAreas } from './dive-areas/philippines.js';
 
 // Pins indicate the area around each spot. Difficulty is an editorial 1–5 estimate for the route described.
 const okinawaBeginners = 'https://blog.padi.com/jp/dive-spots-in-okinawa-for-beginner/';
@@ -148,6 +154,12 @@ export const diveSpots = [
   ...okinawaDiveAreas,
   ...okinawaIslandDiveAreas,
   ...taiwanDiveAreas,
+  ...marianaDiveAreas,
+  ...guamDiveAreas,
+  ...palauDiveAreas,
+  ...thailandDiveAreas,
+  ...indonesiaDiveAreas,
+  ...philippinesDiveAreas,
   ...islandDiveAreas,
   ...islandCoastDiveAreas,
   ...ogasawaraDiveAreas,
@@ -157,7 +169,7 @@ export const diveSpots = [
   ...northernJapanDiveAreas,
   // Selected areas outside Japan.
   {
-    id: 'blue-corner', name: 'ブルーコーナー', area: 'パラオ', coordinates: [134.21448, 7.13871], difficulty: 5, icon: 'coral',
+    id: 'blue-corner', name: 'ブルーコーナー', area: 'パラオ', coordinates: [134.21448, 7.13871], difficulty: 5, icon: 'shark',
     highlight: 'サンゴ礁の先端に魚の群れが集まり、その外側をリーフシャークが行き交います。',
     conditions: '潮流が強くなりやすいドリフトポイント。流れのある海での経験が必要です。',
     source: 'https://www.padi.com/dive-site/palau/blue-corner-2/', sourceName: 'PADI',

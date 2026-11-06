@@ -15,8 +15,8 @@ export const okinawaIslandDiveAreas = [
     source: kume, sourceName: '沖縄観光情報WEBサイト おきなわ物語',
   },
   {
-    id: 'kume-tonbara', name: 'トンバラ', area: '沖縄・久米島 南沖', coordinates: [126.82343, 26.25401], difficulty: 5, icon: 'fish',
-    highlight: '沖に立つ大岩の周りをイソマグロなどの回遊魚が通ります。',
+    id: 'kume-tonbara', name: 'トンバラ', area: '沖縄・久米島 南沖', coordinates: [126.82343, 26.25401], difficulty: 5, icon: 'hammerhead',
+    highlight: '沖に立つ大岩の周りをイソマグロやツムブリが通ります。冬にはハンマーヘッドシャークの観察例もあります。',
     conditions: '外洋で潮流が強い海域。流れのあるボートダイブに慣れた人向けです。',
     source: kume, sourceName: '沖縄観光情報WEBサイト おきなわ物語',
   },
@@ -33,13 +33,13 @@ export const okinawaIslandDiveAreas = [
     source: miyako, sourceName: '伊良部・下地島マリンレジャー組合',
   },
   {
-    id: 'irabu-w-arch', name: 'Wアーチ', area: '沖縄・宮古諸島 伊良部島 Wアーチ礁', coordinates: [125.15368, 24.86790], difficulty: 3, icon: 'cave',
+    id: 'irabu-w-arch', name: 'Wアーチ', area: '沖縄・宮古諸島 伊良部島 Wアーチ礁', coordinates: [125.15368, 24.86790], difficulty: 3, icon: 'arch',
     highlight: '浅い岩棚に大小のアーチがあり、外側から眺めると青い海を切り取ったように見えます。',
     conditions: '明るい側から岩の開口部を眺めるボートルートの評価です。',
     source: 'https://miyako-aquaticadventure.com/double-arch.html', sourceName: 'アクアティックアドベンチャー',
   },
   {
-    id: 'miyako-nanamata', name: '七又アーチ', area: '沖縄・宮古島 七又海岸', coordinates: [125.41600, 24.72553], difficulty: 3, icon: 'cave',
+    id: 'miyako-nanamata', name: '七又アーチ', area: '沖縄・宮古島 七又海岸', coordinates: [125.41600, 24.72553], difficulty: 3, icon: 'arch',
     highlight: '白い砂に岩のアーチがかかります。湧き出す淡水と海水の境目で景色が揺らいで見えることもあります。',
     conditions: '岩の外側から観察するボートルートの目安です。南岸のうねりで行き先が変わることがあります。',
     source: 'https://miyako-aquaticadventure.com/7arch.html', sourceName: 'アクアティックアドベンチャー',
@@ -57,7 +57,7 @@ export const okinawaIslandDiveAreas = [
     source: ishigakiWest, sourceName: 'マリンハウスJAM',
   },
   {
-    id: 'ishigaki-nagura', name: '名蔵湾・アカククリの根', area: '沖縄・石垣島 名蔵湾', coordinates: [124.12394, 24.41328], difficulty: 3, icon: 'fish',
+    id: 'ishigaki-nagura', name: '名蔵湾・アカククリの根', area: '沖縄・石垣島 名蔵湾', coordinates: [124.12394, 24.41328], difficulty: 3, icon: 'batfish',
     highlight: '体が平たいアカククリが根の周りに集まります。小魚に体の掃除をされる姿が見られることも。',
     conditions: '根へ向かうボートルート。湾の濁りで見通しが短くなる日はガイドとの間隔を保ちます。',
     source: ishigakiWest, sourceName: 'マリンハウスJAM',
@@ -69,7 +69,7 @@ export const okinawaIslandDiveAreas = [
     source: sekisei, sourceName: 'カマンタダイビングクラブ石垣島',
   },
   {
-    id: 'ishigaki-sakieda', name: '崎枝ビッグアーチ', area: '沖縄・石垣島 崎枝', coordinates: [124.10785, 24.46390], difficulty: 3, icon: 'cave',
+    id: 'ishigaki-sakieda', name: '崎枝ビッグアーチ', area: '沖縄・石垣島 崎枝', coordinates: [124.10785, 24.46390], difficulty: 3, icon: 'arch',
     highlight: '大きく開いた岩の窓から外の青い海が見えます。日が高い時間は岩の間にも光が差します。',
     conditions: '岩の開口部を外側から見るボートルート。暗い区間への進入は含みません。',
     source: sekisei, sourceName: 'カマンタダイビングクラブ石垣島',
@@ -147,7 +147,7 @@ export const okinawaIslandDiveAreas = [
     source: tarama, sourceName: '多良間村',
   },
   {
-    id: 'yonaguni-irizaki', name: '西崎（いりざき）', area: '沖縄・与那国島 西崎沖', coordinates: [122.92517, 24.45168], difficulty: 5, icon: 'shark',
+    id: 'yonaguni-irizaki', name: '西崎（いりざき）', area: '沖縄・与那国島 西崎沖', coordinates: [122.92517, 24.45168], difficulty: 5, icon: 'hammerhead',
     highlight: '島の西端の外洋をイソマグロやギンガメアジが通ります。時期によってはアカシュモクザメが群れます。',
     conditions: '足元に地形が見えないことがある外洋ドリフト。潜降・中性浮力・ボート回収に慣れた人向けです。',
     source: 'https://yonaguniyds.com/diving/point/', sourceName: '与那国ダイビングサービス',
@@ -213,7 +213,7 @@ export const okinawaIslandDiveAreas = [
     source: 'https://miyako-aquaticadventure.com/wreck-ship.html', sourceName: 'アクアティックアドベンチャー',
   },
   {
-    id: 'yonaguni-umabana', name: '馬鼻崎・Wアーチ', area: '沖縄・与那国島 馬鼻崎沖', coordinates: [122.96585, 24.47574], difficulty: 3, icon: 'cave',
+    id: 'yonaguni-umabana', name: '馬鼻崎・Wアーチ', area: '沖縄・与那国島 馬鼻崎沖', coordinates: [122.96585, 24.47574], difficulty: 3, icon: 'arch',
     highlight: '岬沖の岩棚には二つのアーチがあり、アカネハナゴイなどが棚の周りを泳ぎます。',
     conditions: '船から入り、岩の窓を外側から見るルート。北側の波と流れは海況に応じて確認します。',
     source: 'https://yonaguniyds.com/diving/point/', sourceName: '与那国ダイビングサービス',
@@ -237,8 +237,8 @@ export const okinawaIslandDiveAreas = [
     source: 'https://hotmangrove.jp/site02', sourceName: 'ホットマングローブ',
   },
   {
-    id: 'iriomote-amitori', name: '網取・浅場', area: '沖縄・西表島 網取湾', coordinates: [123.6985, 24.3345], difficulty: 2, icon: 'coral',
-    highlight: '白い砂地とサンゴ礁が隣り合い、どちらを向くかで海の色と見つかる魚が変わります。',
+    id: 'iriomote-amitori', name: '網取・浅場', area: '沖縄・西表島 網取湾', coordinates: [123.6985, 24.3345], difficulty: 2, icon: 'gardenEel',
+    highlight: '白い砂地からチンアナゴやアキアナゴが顔を出し、隣のサンゴ礁ではハナダイが泳ぎます。',
     conditions: '船で湾内へ入り、ガイドと浅い範囲を巡る目安です。',
     source: 'https://hotmangrove.jp/site03', sourceName: 'ホットマングローブ',
   },
@@ -441,7 +441,7 @@ export const okinawaIslandDiveAreas = [
     source: 'https://kamanta.jp/point/', sourceName: 'カマンタダイビングクラブ石垣島',
   },
   {
-    id: "irabu-l-arch", name: "L字アーチ・ワープホール", area: "沖縄・宮古諸島 伊良部島 北岸", coordinates: [125.162773, 24.869462], difficulty: 4, icon: "cave",
+    id: "irabu-l-arch", name: "L字アーチ・ワープホール", area: "沖縄・宮古諸島 伊良部島 北岸", coordinates: [125.162773, 24.869462], difficulty: 4, icon: "arch",
     highlight: "リーフにかかる大きなアーチの下に窪地があり、岩穴にはアカマツカサやハタンポが集まります。",
     conditions: "ボートで向かう地形ポイント。深さや潮があるため、岩穴を通るかはガイドと確認します。",
     source: "https://blue-space-miyako.com/point_irabu_shimoji.html", sourceName: "ブルースペース",
@@ -495,7 +495,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://blue-space-miyako.com/point_irabu_shimoji.html", sourceName: "ブルースペース",
   },
   {
-    id: "ishigaki-arakawa-w", name: "荒川Wアーチ", area: "沖縄・八重山 石垣島 北西岸 荒川沖", coordinates: [124.174706, 24.454349], difficulty: 3, icon: "cave",
+    id: "ishigaki-arakawa-w", name: "荒川Wアーチ", area: "沖縄・八重山 石垣島 北西岸 荒川沖", coordinates: [124.174706, 24.454349], difficulty: 3, icon: "arch",
     highlight: "荒川の沖で二つのアーチを見上げられます。岩の陰と外から差し込む光の差が見どころです。",
     conditions: "船から潜る地形ポイント。アーチを通るかは海況と経験に応じて決めます。",
     source: "https://ishigaki-diving.net/divingmap/", sourceName: "ぷしぃぬしま石垣店",
@@ -513,7 +513,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://kariyushi-ishigakijima.com/diving-point", sourceName: "かりゆし石垣島",
   },
   {
-    id: "kuroshima-hanahige", name: "黒島・ハナヒゲリーフ", area: "沖縄・八重山 黒島 北側の砂地", coordinates: [123.988266, 24.266428], difficulty: 2, icon: "fish",
+    id: "kuroshima-hanahige", name: "黒島・ハナヒゲリーフ", area: "沖縄・八重山 黒島 北側の砂地", coordinates: [123.988266, 24.266428], difficulty: 2, icon: "ribbonEel",
     highlight: "白砂の間に点在する根を一つずつ回ると、穴から顔を出す青いハナヒゲウツボを探せます。",
     conditions: "比較的浅いボートポイント。小さな根をじっくり見るコースです。",
     source: "https://kariyushi-ishigakijima.com/diving-point/kuroshima", sourceName: "かりゆし石垣島",
@@ -591,7 +591,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://www.blueseason-i.com/umi/diving_point/", sourceName: "ブルーシーズン西表",
   },
   {
-    id: "iriomote-tegurin", name: "テグリン家", area: "沖縄・八重山 西表島 船浦湾口の汽水域", coordinates: [123.82725, 24.40341], difficulty: 2, icon: "coral",
+    id: "iriomote-tegurin", name: "テグリン家", area: "沖縄・八重山 西表島 船浦湾口の汽水域", coordinates: [123.82725, 24.40341], difficulty: 2, icon: "mandarinFish",
     highlight: "潮と川の水が混じる海で、サンゴのすき間に出入りするニシキテグリを探せます。",
     conditions: "汽水域のボートコース。潮や雨で透明度が変わりやすいので、当日の視界に合わせます。",
     source: "https://www.blueseason-i.com/58899/", sourceName: "ブルーシーズン西表",
@@ -849,7 +849,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://eminamarine-diving.net/divingpoint", sourceName: "エミナマリン",
   },
   {
-    id: "irabu-z-arch", name: "Zアーチ", area: "沖縄・伊良部島 北西沖", coordinates: [125.158739, 24.878043], difficulty: 3, icon: "cave",
+    id: "irabu-z-arch", name: "Zアーチ", area: "沖縄・伊良部島 北西沖", coordinates: [125.158739, 24.878043], difficulty: 3, icon: "arch",
     highlight: "張り出したリーフの下に小さなアーチがあり、東側から見ると輪郭がZに見えます。",
     conditions: "伊良部島の外礁へ船で向かいます。",
     source: "https://blue-space-miyako.com/point_irabu_shimoji.html", sourceName: "ブルースペース",
@@ -951,7 +951,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://keramajoyjoy.com/popup/d-point.html", sourceName: "JOYJOY 座間味",
   },
   {
-    id: "zamami-lighthouse-north", name: "六番崎（灯台北）", area: "沖縄・慶良間 座間味島 牛の島灯台側の棚", coordinates: [127.334472, 26.232536], difficulty: 4, icon: "macro",
+    id: "zamami-lighthouse-north", name: "六番崎（灯台北）", area: "沖縄・慶良間 座間味島 牛の島灯台側の棚", coordinates: [127.334472, 26.232536], difficulty: 4, icon: "seahorse",
     highlight: "棚から砂地へ下る途中にイソバナが生え、ピグミーシーホースを探す楽しみがあります。",
     conditions: "ボート。深い砂地へ向かう沖出しの流れがあるため、棚付近の流れも見て回ります。",
     source: "https://diving-wg.com/point/detail/rokubanzaki/", sourceName: "ダイビングWG沖縄",
@@ -1089,7 +1089,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://ishigaki-diving.net/divingmap/", sourceName: "ぷしぃぬしま石垣店",
   },
   {
-    id: "ishigaki-osaki-batfish", name: "大崎・アカククリの根", area: "沖縄・八重山 石垣島 大崎のハマサンゴ周辺", coordinates: [124.084287, 24.413906], difficulty: 3, icon: "fish",
+    id: "ishigaki-osaki-batfish", name: "大崎・アカククリの根", area: "沖縄・八重山 石垣島 大崎のハマサンゴ周辺", coordinates: [124.084287, 24.413906], difficulty: 3, icon: "batfish",
     highlight: "大きなハマサンゴの周りにアカククリが集まり、砂の斜面にはチンアナゴやハゼが顔を出します。",
     conditions: "大崎のボート海域。名蔵湾の同名ポイントとは別の場所です。",
     source: "https://www.umihe.com/umihe/pointmap/isshigakiseibu11.htm", sourceName: "石垣島ダイビング 海へ",
@@ -1107,7 +1107,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://www.umihe.com/umihe/pointmap/isshigakiseibu11.htm", sourceName: "石垣島ダイビング 海へ",
   },
   {
-    id: "ishigaki-strawberry-field", name: "名蔵ストロベリーフィールド", area: "沖縄・八重山 石垣島 名蔵湾の浅場 ストロベリーフィールド", coordinates: [124.128576, 24.411561], difficulty: 2, icon: "macro",
+    id: "ishigaki-strawberry-field", name: "名蔵ストロベリーフィールド", area: "沖縄・八重山 石垣島 名蔵湾の浅場 ストロベリーフィールド", coordinates: [124.128576, 24.411561], difficulty: 2, icon: "mandarinFish",
     highlight: "マンジュウイシモチやニシキテグリがサンゴの間に隠れ、浅場ではウミウシも探せます。",
     conditions: "名蔵湾内の浅めのボート海域です。",
     source: "https://www.umihe.com/umihe/pointmap/isshigakiseibu11.htm", sourceName: "石垣島ダイビング 海へ",
@@ -1209,7 +1209,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://www.blueseason-i.com/diving_point/43/index.html", sourceName: "ブルーシーズン西表",
   },
   {
-    id: "iriomote-yonara-ribbon", name: "ヨナラ・ハナヒゲポイント", area: "沖縄・八重山 西表島 東側 ヨナラ水道北側の礁", coordinates: [123.94343, 24.35006], difficulty: 3, icon: "macro",
+    id: "iriomote-yonara-ribbon", name: "ヨナラ・ハナヒゲポイント", area: "沖縄・八重山 西表島 東側 ヨナラ水道北側の礁", coordinates: [123.94343, 24.35006], difficulty: 3, icon: "ribbonEel",
     highlight: "サンゴ礁の間からハナヒゲウツボが顔をのぞかせることがあります。",
     conditions: "水道近くのボート海域。現地店は中級者から案内しています。",
     source: "https://www.blueseason-i.com/diving_point/44/index.html", sourceName: "ブルーシーズン西表",
@@ -1365,7 +1365,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/1748", sourceName: "ダイビングポイント情報サイト インナースペース",
   },
   {
-    id: "shimoji-eight-pole", name: "エイトポールアーチ", area: "沖縄・宮古諸島 下地島 南西沖 エイトポールアーチ", coordinates: [125.15376091003418, 24.80216243539418], difficulty: 4, icon: "cave",
+    id: "shimoji-eight-pole", name: "エイトポールアーチ", area: "沖縄・宮古諸島 下地島 南西沖 エイトポールアーチ", coordinates: [125.15376091003418, 24.80216243539418], difficulty: 4, icon: "arch",
     highlight: "根に刻まれた割れ目やアーチを見比べられます。根の上ではハナダイやスズメダイが泳ぎます。",
     conditions: "ツインケーブの隣に続く別の地形コースです。",
     source: "https://irabu-marine.org/scuba-diving/", sourceName: "伊良部・下地島マリンレジャー組合",
@@ -1461,7 +1461,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/1752", sourceName: "ダイビングポイント情報サイト ナンバー15",
   },
   {
-    id: "miyako-nishiki-paradise", name: "ニシキパラダイス", area: "沖縄・宮古諸島 宮古島 北東岸 ニシキパラダイス", coordinates: [125.33615112304688, 24.915660016311325], difficulty: 2, icon: "macro",
+    id: "miyako-nishiki-paradise", name: "ニシキパラダイス", area: "沖縄・宮古諸島 宮古島 北東岸 ニシキパラダイス", coordinates: [125.33615112304688, 24.915660016311325], difficulty: 2, icon: "mandarinFish",
     highlight: "リュウキュウキッカサンゴのすき間を、模様の鮮やかなニシキテグリが行き来します。",
     conditions: "水深10mほどまでの浅い海域。見通しは海況で変わります。",
     source: "https://divingpoint.net/divepoints/view/1741", sourceName: "ダイビングポイント情報サイト ニシキパラダイス",
@@ -1563,7 +1563,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://yonaguniyds.com/diving/point/", sourceName: "与那国ダイビングサービス",
   },
   {
-    id: "yonaguni-hammer-way", name: "ハンマーウェイ", area: "沖縄・与那国島 西崎南のハンマーウェイ", coordinates: [122.92868614196777, 24.445430599186707], difficulty: 4, icon: "shark",
+    id: "yonaguni-hammer-way", name: "ハンマーウェイ", area: "沖縄・与那国島 西崎南のハンマーウェイ", coordinates: [122.92868614196777, 24.445430599186707], difficulty: 4, icon: "hammerhead",
     highlight: "段々に続く緩やかな棚の外を、季節によってハンマーヘッドシャークが通ります。",
     conditions: "与那国島西端のボート海域。潮と海況によってコースが変わります。",
     source: "https://www.yonaguni.jp/dive/point/", sourceName: "サーウェス与那国",
@@ -1587,7 +1587,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/321", sourceName: "ダイビングポイント情報サイト ミステリーサークル",
   },
   {
-    id: "yonaguni-diyati", name: "ダイヤティ（ダブルアーチ）", area: "沖縄・与那国島 南西岸 ダイヤティの岩穴", coordinates: [122.9531478881836, 24.438554402579523], difficulty: 4, icon: "cave",
+    id: "yonaguni-diyati", name: "ダイヤティ（ダブルアーチ）", area: "沖縄・与那国島 南西岸 ダイヤティの岩穴", coordinates: [122.9531478881836, 24.438554402579523], difficulty: 4, icon: "arch",
     highlight: "大小二つの岩のドームに囲まれ、内部から見ると外海の青い光が周囲を縁取ります。",
     conditions: "南西側のボート海域。ダブルアーチとも呼ばれます。",
     source: "https://yonaguniyds.com/diving/point/", sourceName: "与那国ダイビングサービス",
@@ -1809,13 +1809,13 @@ export const okinawaIslandDiveAreas = [
     source: "https://www.vill.iheya.okinawa.jp/soshiki/9/1147.html", sourceName: "伊平屋村 ダイビングポイント案内",
   },
   {
-    id: "iheya-mini-arch", name: "ミニアーチ", area: "沖縄・伊平屋島 南東岸 白砂のアーチ", coordinates: [127.946346, 27.012990], difficulty: 3, icon: "cave",
+    id: "iheya-mini-arch", name: "ミニアーチ", area: "沖縄・伊平屋島 南東岸 白砂のアーチ", coordinates: [127.946346, 27.012990], difficulty: 3, icon: "arch",
     highlight: "白い砂地から大きな根が立ち上がり、アーチの天井にイソバナがつきます。根の周りをハナゴイやヨスジフエダイが泳ぎます。",
     conditions: "砂地と岩のアーチを巡るボート海域です。",
     source: "https://www.northisland.okinawa/%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88-1/", sourceName: "伊平屋島ダイビングサービス ノースアイランド",
   },
   {
-    id: "iheya-saikoro", name: "サイコロ", area: "沖縄・伊平屋島 南東岸 サイコロの漁礁", coordinates: [127.963480, 27.009371], difficulty: 3, icon: "fish",
+    id: "iheya-saikoro", name: "サイコロ", area: "沖縄・伊平屋島 南東岸 サイコロの漁礁", coordinates: [127.963480, 27.009371], difficulty: 3, icon: "structure",
     highlight: "チンアナゴがいる砂地に漁礁が並び、ブロックの周りをツバメウオやハマフエフキが泳ぎます。",
     conditions: "人工礁と離れ根を巡るボート海域です。",
     source: "https://www.northisland.okinawa/%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88-1/", sourceName: "伊平屋島ダイビングサービス ノースアイランド",
@@ -1833,13 +1833,13 @@ export const okinawaIslandDiveAreas = [
     source: "https://www.northisland.okinawa/%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88-1/", sourceName: "伊平屋島ダイビングサービス ノースアイランド",
   },
   {
-    id: "iheya-majinbu", name: "マジンブー", area: "沖縄・伊平屋・野甫島 南沖の離れ根", coordinates: [127.925112, 26.986929], difficulty: 2, icon: "fish",
+    id: "iheya-majinbu", name: "マジンブー", area: "沖縄・伊平屋・野甫島 南沖の離れ根", coordinates: [127.925112, 26.986929], difficulty: 2, icon: "gardenEel",
     highlight: "白砂に点在する根をスカシテンジクダイやキンメモドキが包みます。周りの砂地ではチンアナゴも探せます。",
     conditions: "野甫島沖の浅いボート海域です。",
     source: "https://www.northisland.okinawa/%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88-1/", sourceName: "伊平屋島ダイビングサービス ノースアイランド",
   },
   {
-    id: "iheya-chizuka", name: "チズカー", area: "沖縄・伊平屋諸島 具志川島沖の白砂とサンゴ", coordinates: [127.950296, 26.979834], difficulty: 2, icon: "coral",
+    id: "iheya-chizuka", name: "チズカー", area: "沖縄・伊平屋諸島 具志川島沖の白砂とサンゴ", coordinates: [127.950296, 26.979834], difficulty: 2, icon: "squid",
     highlight: "白砂のそばに枝状のハマサンゴが育ち、春から初夏にコブシメが産卵に来ることがあります。",
     conditions: "具志川島に近いボート海域です。",
     source: "https://www.northisland.okinawa/%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88-1/", sourceName: "伊平屋島ダイビングサービス ノースアイランド",
@@ -1881,7 +1881,37 @@ export const okinawaIslandDiveAreas = [
     source: "https://dive301.wixsite.com/rightstuff/divegpoint", sourceName: "ライトスタッフ 伊是名島の地点案内",
   },
   {
-    id: "ishigaki-nagura-mandarin", name: "名蔵湾・ニシキテグリ", area: "沖縄・石垣島 名蔵湾中央の枝サンゴ礁", coordinates: [124.118042, 24.410264], difficulty: 3, icon: "macro",
+    id: "izena-gohazaki", name: "ゴハ崎沖", area: "沖縄・伊是名島 北西岸 ゴハ崎沖", coordinates: [127.91678, 26.950114], difficulty: 3, icon: "coral",
+    highlight: "ユビエダハマサンゴがまとまって育つ根で、枝の上をデバスズメダイやアオバスズメダイが行き来します。根の間には白い砂地が広がります。",
+    conditions: "北西岸のボート海域。現地ガイドの記録では「ゴハ崎（仮）」で、ピンは岬沖のリーフの目安です。",
+    source: "https://izenaguin.com/2026-08-21/", sourceName: "イゼナマリンサービスグイン 潜水記録",
+  },
+  {
+    id: "izena-sugar-road", name: "シュガーロード", area: "沖縄・伊是名島 北西岸 製糖工場沖", coordinates: [127.925062, 26.951759], difficulty: 3, icon: "sand",
+    highlight: "育ったサンゴに挟まれた白砂の通り道が見どころです。キホシスズメダイやオキナワスズメダイの群れがサンゴの上を泳ぎます。",
+    conditions: "製糖工場前の名でも記録される北西岸のボート海域。ピンは工場から海側にあるリーフの目安です。",
+    source: "https://izenaguin.com/2026-08-21/", sourceName: "イゼナマリンサービスグイン 潜水記録",
+  },
+  {
+    id: "izena-hinpun", name: "ひんぷん", area: "沖縄・伊是名・屋那覇島 西沖 ヒンプンクサシ周辺", coordinates: [127.912617, 26.902936], difficulty: 4, icon: "butterflyfish",
+    highlight: "浅いサンゴ礁から外海へと景色が変わる岩礁です。キサンゴが岩を彩り、ハナゴイやカスミチョウチョウウオの群れも記録されています。",
+    conditions: "海面に出るヒンプンクサシ周辺のボート海域。流れに乗って巡るコースで、潮が速い日は見送ることがあります。",
+    source: "https://izenaguin.com/2026-04-12/", sourceName: "イゼナマリンサービスグイン 潜水記録",
+  },
+  {
+    id: "izena-ate-no-iwa", name: "当ノ岩（当ノ石）", area: "沖縄・伊是名島 東沖の露出岩", coordinates: [127.97265, 26.94113], difficulty: 4, icon: "butterflyfish",
+    highlight: "海面に出る岩を囲む外洋の根です。カスミチョウチョウウオやユメウメイロが群れ、深い側にはヤッコの仲間も見られます。",
+    conditions: "潮止まりを選んで船で向かう海域です。旧ガイドでは深い側が約40mとされ、潜る深さとコースは経験に合わせます。",
+    source: "https://izenaguin.com/2026-07-04/", sourceName: "イゼナマリンサービス グイン 潜水記録",
+  },
+  {
+    id: "izena-yanaha-skashi", name: "屋那覇のスカシ根", area: "沖縄・伊是名・屋那覇島 西側の砂地と根", coordinates: [127.91914, 26.898229], difficulty: 3, icon: "fishSchool",
+    highlight: "砂地に立つ根の周りをスカシテンジクダイやキンメモドキが取り囲みます。根を少し離れると砂の波模様も見られます。",
+    conditions: "屋那覇島西側のボート海域。島の東側のコースとは別で、ピンは西側の根がある海域の目安です。",
+    source: "https://izenaguin.com/2026-08-13/", sourceName: "イゼナマリンサービスグイン 潜水記録",
+  },
+  {
+    id: "ishigaki-nagura-mandarin", name: "名蔵湾・ニシキテグリ", area: "沖縄・石垣島 名蔵湾中央の枝サンゴ礁", coordinates: [124.118042, 24.410264], difficulty: 3, icon: "mandarinFish",
     highlight: "枝サンゴの間にニシキテグリが隠れ、初夏の日没前後に産卵が観察されています。",
     conditions: "日没前後にも案内される湾内のボート海域。枝サンゴに触れずに観察します。",
     source: "https://divingpoint.net/divepoints/view/271", sourceName: "ダイビングポイント情報サイト",
@@ -1911,7 +1941,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/282", sourceName: "ダイビングポイント情報サイト",
   },
   {
-    id: "hateruma-double-arch", name: "波照間・ダブルアーチ", area: "沖縄・八重山 波照間島東沖の二連アーチ", coordinates: [123.824844, 24.070917], difficulty: 4, icon: "cave",
+    id: "hateruma-double-arch", name: "波照間・ダブルアーチ", area: "沖縄・八重山 波照間島東沖の二連アーチ", coordinates: [123.824844, 24.070917], difficulty: 4, icon: "arch",
     highlight: "岩盤に二つの大きなアーチが開き、内側にイソバナやソフトコーラルが付いています。",
     conditions: "東沖のボート海域。風とうねりが穏やかな日に、深度と通過範囲をガイドと確認します。",
     source: "https://divingpoint.net/divepoints/view/287", sourceName: "ダイビングポイント情報サイト",
@@ -1941,7 +1971,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/761", sourceName: "ダイビングポイント情報サイト",
   },
   {
-    id: "sesoko-teguri-village", name: "テグリの里", area: "沖縄・瀬底島 北東岸 ユビエダサンゴ礁", coordinates: [127.871847, 26.653110], difficulty: 3, icon: "macro",
+    id: "sesoko-teguri-village", name: "テグリの里", area: "沖縄・瀬底島 北東岸 ユビエダサンゴ礁", coordinates: [127.871847, 26.653110], difficulty: 3, icon: "mandarinFish",
     highlight: "ユビエダサンゴの群生に色の違うスズメダイが集まり、サンゴの隙間ではニシキテグリを探せます。",
     conditions: "サンゴ礁の周りを巡る海域。波や視界に応じ、サンゴに触れず観察できる範囲を選びます。",
     source: "https://divingpoint.net/divepoints/view/777", sourceName: "ダイビングポイント情報サイト",
@@ -2001,7 +2031,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/774", sourceName: "ダイビングポイント情報サイト",
   },
   {
-    id: "sesoko-artificial-reef", name: "瀬底島漁礁", area: "沖縄・本部 瀬底島南東沖の人工礁", coordinates: [127.870731, 26.635644], difficulty: 3, icon: "wreck",
+    id: "sesoko-artificial-reef", name: "瀬底島漁礁", area: "沖縄・本部 瀬底島南東沖の人工礁", coordinates: [127.870731, 26.635644], difficulty: 3, icon: "structure",
     highlight: "沈めた車両の周囲にカマスの群れやアジアコショウダイ。海中で人工物が魚の住みかになっています。",
     conditions: "瀬底水道側のボートポイント。車両の周りを外側から回り、流れを見て浮上します。",
     source: "https://www.freestyle-diving.okinawa/fun/boat/minnashima-sesokojima/", sourceName: "フリースタイル沖縄",
@@ -2157,7 +2187,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://kanchi32.com/pointmap", sourceName: "宮古島ダイビング KANCHI",
   },
   {
-    id: "miyako-five-arch", name: "5番アーチ", area: "沖縄・宮古諸島 宮古島南西沖 5番アーチの岩礁", coordinates: [125.2687730, 24.7174360], difficulty: 3, icon: "cave",
+    id: "miyako-five-arch", name: "5番アーチ", area: "沖縄・宮古諸島 宮古島南西沖 5番アーチの岩礁", coordinates: [125.2687730, 24.7174360], difficulty: 3, icon: "arch",
     highlight: "浅いアーチの先に、沖へ張り出した岩のケーブが続きます。光の当たり方が場所ごとに変わります。",
     conditions: "南岸のボート海域。亀裂やケーブを通る範囲はガイドと決めます。",
     source: "https://kanchi32.com/pointmap", sourceName: "宮古島ダイビング KANCHI",
@@ -2283,7 +2313,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://www.scubago.com/ja/explore/divesite/hanazawa-drop-81032", sourceName: "SSI Scubago",
   },
   {
-    id: "ishigaki-emperors-chair", name: "皇帝の椅子", area: "沖縄・石垣島 石崎沖の隠れ根", coordinates: [124.1097000, 24.4855000], difficulty: 5, icon: "macro",
+    id: "ishigaki-emperors-chair", name: "皇帝の椅子", area: "沖縄・石垣島 石崎沖の隠れ根", coordinates: [124.1097000, 24.4855000], difficulty: 5, icon: "seahorse",
     highlight: "深い海底から塔のような根が立ち上がります。岩壁のウミウチワにはピグミーシーホースの観察例があります。",
     conditions: "根の上でも水深約20mあり、潮が速くなりやすい海域。経験のあるガイドと条件を選んで潜ります。",
     source: "https://www.scubago.com/ja/explore/divesite/emperors-chair-745304", sourceName: "SSI Scubago",
@@ -2498,7 +2528,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://sea-friends.net/diving_map/area_03/", sourceName: "シーフレンズ 遠征ポイント",
   },
   {
-    id: "iriomote-amitori-inner", name: "網取湾奥", area: "沖縄・西表島 西岸 網取湾の奥の砂泥地", coordinates: [123.705199, 24.317968], difficulty: 2, icon: "fish",
+    id: "iriomote-amitori-inner", name: "網取湾奥", area: "沖縄・西表島 西岸 網取湾の奥の砂泥地", coordinates: [123.705199, 24.317968], difficulty: 2, icon: "batfish",
     highlight: "湾の外側の白砂とは景色が変わり、湾奥ではヒメツバメウオやマンジュウイシモチなど内湾にすむ魚を観察できます。",
     conditions: "湾奥のボート海域です。湾口や浅場と見どころが異なり、視界に合わせて回ります。",
     source: "https://www.i-terios.com/divingmap.html", sourceName: "イ・テリオス ダイビングポイント",
@@ -2516,7 +2546,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://www.i-terios.com/divingmap.html", sourceName: "イ・テリオス ダイビングポイント",
   },
   {
-    id: "iriomote-nohara-w-arch", name: "野原崎Wアーチ", area: "沖縄・西表島 東岸 野原崎先端の二つのアーチ", coordinates: [123.940299, 24.366624], difficulty: 4, icon: "cave",
+    id: "iriomote-nohara-w-arch", name: "野原崎Wアーチ", area: "沖縄・西表島 東岸 野原崎先端の二つのアーチ", coordinates: [123.940299, 24.366624], difficulty: 4, icon: "arch",
     highlight: "岩礁に開いた二つのアーチを巡る地形コースです。岩の隙間から光が入り、岩陰に集まる小魚の輪郭が浮かびます。",
     conditions: "野原崎のボート海域です。頭上に岩がある区間はガイドが経験と海況を見て選びます。",
     source: "https://diver-online.com/archives/go_to_diving/16768", sourceName: "ダイバーオンライン 現地ガイドの海底図",
@@ -2540,7 +2570,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://www.yonaguni.jp/dive/point/", sourceName: "サーウェス与那国",
   },
   {
-    id: "yonaguni-hammerhead-rock", name: "ハンマーヘッドロック", area: "沖縄・与那国島 西崎の南西沖 ハンマーヘッドが通る岩礁", coordinates: [122.923603, 24.44174], difficulty: 5, icon: "shark",
+    id: "yonaguni-hammerhead-rock", name: "ハンマーヘッドロック", area: "沖縄・与那国島 西崎の南西沖 ハンマーヘッドが通る岩礁", coordinates: [122.923603, 24.44174], difficulty: 5, icon: "hammerhead",
     highlight: "水深約35mの底から岩が立ち上がる沖の根です。冬はハンマーヘッドを狙うコースとして知られ、ギンガメアジなどの回遊魚も通ります。",
     conditions: "沖合で潮が速くなる海域です。現地ガイドが参加者の経験と海況を見て案内します。",
     source: "https://www.divenavi.com/yonaguni/diving/", sourceName: "ダイブナビ 与那国のポイント案内",
@@ -2660,7 +2690,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://www.yonaguni.jp/dive/point/", sourceName: "サーウェス与那国",
   },
   {
-    id: "yonaguni-umabana-drop", name: "馬鼻ドロップ", area: "沖縄・与那国島 北西岸 馬鼻崎西寄りの外礁の斜面", coordinates: [122.955901, 24.47437], difficulty: 4, icon: "macro",
+    id: "yonaguni-umabana-drop", name: "馬鼻ドロップ", area: "沖縄・与那国島 北西岸 馬鼻崎西寄りの外礁の斜面", coordinates: [122.955901, 24.47437], difficulty: 4, icon: "ribbonEel",
     highlight: "馬鼻崎沖の棚が外洋へ落ちるポイントです。段差に沿って進むと、岩穴からハナヒゲウツボが顔を出すことがあります。",
     conditions: "北岸沖のボート海域です。陸の北牧場は立ち入り禁止のため、ガイドの船から向かいます。",
     source: "https://www.yonaguni.jp/dive/point/", sourceName: "サーウェス与那国",
@@ -2880,5 +2910,53 @@ export const okinawaIslandDiveAreas = [
     highlight: "海水をくみ上げて「粟國の塩」をつくる、北岸の塩工場の沖にある海域です。",
     conditions: "粟国村の資料に載るダイビングポイント。位置は工場前の沖の目安で、現在の出船は現地ガイドに確認してください。",
     source: "https://www.aguni-archive.jp/search/detail.jsp?id__=1527", sourceName: "粟国アーカイブス 塩工場",
+  },
+  {
+    id: "irabu-east-coral", name: "イーストコーラル", area: "沖縄・宮古諸島 伊良部島 東岸 イーストコーラルの根", coordinates: [125.224079, 24.827302], difficulty: 2, icon: "coral",
+    highlight: "テーブル状のサンゴが重なる根で、サンゴの間や上を泳ぐ小魚を観察できます。",
+    conditions: "佐良浜側から船で向かうサンゴ礁。浅い根を中心に巡る目安で、風向きにより行き先が変わります。",
+    source: "https://miyako-aquaticadventure.com/blog/2026/06/09/20260609irabudiving/", sourceName: "宮古島ダイビングアクアティックアドベンチャー",
+  },
+  {
+    id: "irabu-dragon-hill", name: "ドラゴンヒル", area: "沖縄・宮古諸島 伊良部島 東岸 ドラゴンヒルのサンゴ礁", coordinates: [125.22705, 24.8255], difficulty: 2, icon: "coral",
+    highlight: "浅い根にサンゴが広がり、日が差すとその上をロクセンスズメダイが行き来するのが見えます。",
+    conditions: "伊良部島東側のボート海域。地元の案内図をもとに、根の周辺に目安のピンを置いています。",
+    source: "https://www.kapilina.biz/blog/21149/", sourceName: "宮古島ダイビングショップ カピリナ",
+  },
+  {
+    id: "iheya-sazanami", name: "さざなみ", area: "沖縄・伊平屋島 島尻側のサンゴ礁", coordinates: [127.951584, 27.014632], difficulty: 2, icon: "coral",
+    highlight: "パラオハマサンゴが目印で、その周りをデバスズメダイが泳いだ記録があります。",
+    conditions: "島尻側のボート海域。北風の日に潜った記録があり、当日の行き先は現地ガイドが海況を見て決めます。",
+    source: "https://umiblog.com/blog-entry-394.html", sourceName: "feeldive 伊平屋島の潜水記録",
+  },
+  {
+    id: "iheya-azahata-reef", name: "アザハタ食堂", area: "沖縄・伊平屋島 南西沖 アザハタの離れ根", coordinates: [127.9302, 27.01534], difficulty: 3, icon: "fish",
+    highlight: "砂地に一つだけある根で、アザハタやスカシテンジクダイが観察されています。",
+    conditions: "水深約20mのボート海域。掲載の記録では、船の下の根を一周するコースで潜っています。",
+    source: "https://umiblog.com/blog-entry-396.html", sourceName: "feeldive 伊平屋島の潜水記録",
+  },
+  {
+    id: "miyako-takano-nidan-reef", name: "二段干瀬", area: "沖縄・宮古島 高野沖 二段干瀬の礁縁", coordinates: [125.347194, 24.828417], difficulty: 3, icon: "coral",
+    highlight: "高野沖に張り出すサンゴ礁。浅い礁縁では、岩の上に育つサンゴと外海へ落ちる地形を見比べられます。",
+    conditions: "高野漁港からボートで向かう海域。ピンは礁縁の調査地点を代表位置にしています。",
+    source: "https://www.timemarine-m.com/%E6%97%A7%E3%83%9A%E3%83%BC%E3%82%B8/", sourceName: "タイムマリン宮古島 高野エリアポイント解説",
+  },
+  {
+    id: "kume-muchigu-modoki", name: "ムーチーグーモドキ", area: "沖縄・久米島 イーフ沖内礁 ムーチーグーモドキの砂地", coordinates: [126.8453979, 26.3214216], difficulty: 2, icon: "macro",
+    highlight: "砂地に点在する小さな根をのぞくと、テンジクダイやハゼの仲間が見られます。岩のすき間ではエビやウミウシも探せます。",
+    conditions: "イーフビーチ沖の内礁にあるボート海域。風向きと水の濁りに合わせてガイドとコースを選びます。",
+    source: "https://www.neptune-d.com/Point-S.html", sourceName: "ネプチューン・ダイバーズ 久米島南エリア",
+  },
+  {
+    id: "kume-teichi", name: "定置網下", area: "沖縄・久米島 はての浜 南側 定置網下の砂地", coordinates: [126.8996, 26.3467], difficulty: 2, icon: "gardenEel",
+    highlight: "水深7〜10mほどの砂地にチンアナゴが顔を出します。イソバナの根では、小さなハゼやベラの幼魚も探せます。",
+    conditions: "はての浜の南側にあるボート海域。漁具と操業状況に合わせて、当日の案内範囲は現地で確認します。",
+    source: "https://www.neptune-d.com/Point-S.html", sourceName: "ネプチューン・ダイバーズ 久米島南エリア",
+  },
+  {
+    id: "taketomi-south-base", name: "竹富南・サウスベース", area: "沖縄・石西礁湖 竹富島南沖 サウスベースの離れ根", coordinates: [124.09816, 24.25992], difficulty: 3, icon: "ribbonEel",
+    highlight: "白い砂地に立つ大きな根を、スカシテンジクダイやキンメモドキが取り巻きます。根の穴ではハナヒゲウツボ、砂地ではチンアナゴを探せます。",
+    conditions: "竹富島南沖のボート海域。見どころの根は約13mで、潜る深さはコースで変わります。",
+    source: "https://ishigaki-jam.com/map/ritou1/", sourceName: "マリンハウスJAM 竹富島周辺のダイビングポイント",
   },
 ];

@@ -54,7 +54,7 @@ export const izuDiveAreas = [
     source: 'https://shobuzawa.com/', sourceName: '菖蒲沢ダイビングセンター',
   },
   {
-    id: 'mikomoto-kamene', name: '神子元島・カメ根', area: '静岡・南伊豆 神子元島沖', coordinates: [138.94385, 34.57298], difficulty: 5, icon: 'shark',
+    id: 'mikomoto-kamene', name: '神子元島・カメ根', area: '静岡・南伊豆 神子元島沖', coordinates: [138.94385, 34.57298], difficulty: 5, icon: 'hammerhead',
     highlight: '沖の岩礁を潮が通り、ハンマーヘッドシャークや回遊魚の群れが姿を見せることがあります。',
     conditions: '流れの強い外洋のドリフトです。必要な経験や参加条件を現地サービスに確認します。',
     source: south, sourceName: padi,
@@ -510,7 +510,7 @@ export const izuDiveAreas = [
     source: "https://idive.jp/point/", sourceName: "雲見 iDive",
   },
   {
-    id: "mikomoto-jabune", name: "ジャブ根", area: "静岡・南伊豆 神子元島 南西沖 ジャブ根", coordinates: [138.941013, 34.572857], difficulty: 5, icon: "shark",
+    id: "mikomoto-jabune", name: "ジャブ根", area: "静岡・南伊豆 神子元島 南西沖 ジャブ根", coordinates: [138.941013, 34.572857], difficulty: 5, icon: "hammerhead",
     highlight: "沖の根の切れ目を回遊魚が通り、潮が合う日にはハンマーヘッドの群れが現れることもあります。",
     conditions: "潮が速く、入れるタイミングが限られる外洋のボートコースです。",
     source: "https://www.sunla-izu.com/mikomoto", sourceName: "伊豆ダイビング SUNLAIZU",
@@ -816,8 +816,8 @@ export const izuDiveAreas = [
     source: "https://www.futods.com/blank-4", sourceName: "富戸ダイビングサービス",
   },
   {
-    id: "futo-tsunakiri", name: "ツナキリ", area: "静岡・東伊豆 城ヶ崎海岸 南寄りの柱状節理", coordinates: [139.1376615, 34.8880607], difficulty: 4, icon: "reef",
-    highlight: "溶岩が冷え固まってできた柱状節理が水中に続きます。岩壁の外側を回遊魚が通り、ウミガメの観察例もあります。",
+    id: "futo-tsunakiri", name: "ツナキリ", area: "静岡・東伊豆 城ヶ崎海岸 南寄りの柱状節理", coordinates: [139.1376615, 34.8880607], difficulty: 4, icon: "fishSchool",
+    highlight: "溶岩が冷え固まってできた柱状節理が水中に続きます。岩壁の外側を魚の群れが通り、ウミガメの観察例もあります。",
     conditions: "富戸港からボートで約15分。外海のうねりや流れに合わせてコースを選ぶ、中・上級向けの海域です。",
     source: "https://www.izu-divehealing.com/futopage.html", sourceName: "伊豆ダイブヒーリング",
   },
@@ -1014,7 +1014,7 @@ export const izuDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/848", sourceName: "ダイブポイント 雲見 軍艦",
   },
   {
-    id: "okawa-shore", name: "大川ビーチ", area: "静岡・東伊豆 大川の岸寄りの砂地", coordinates: [139.077605, 34.840273], difficulty: 2, icon: "macro",
+    id: "okawa-shore", name: "大川ビーチ", area: "静岡・東伊豆 大川の岸寄りの砂地", coordinates: [139.077605, 34.840273], difficulty: 2, icon: "seahorse",
     highlight: "砂地に点在する根で、タツノオトシゴの観察例があります。ナンヨウツバメウオの幼魚が現れることも。",
     conditions: "大川の岸から入る海域。現在の案内状況は現地ショップに確認してください。",
     source: "https://divingpoint.net/divepoints/view/1437", sourceName: "ダイブポイント 北川・大川 ビーチ",
@@ -1030,5 +1030,11 @@ export const izuDiveAreas = [
     highlight: "湾内の浜の前で、外洋の根へ出る前の練習に使われた潜水記録があります。",
     conditions: "田子の湾内にあるボート海域。隣のアジロ崎とは別の場所です。",
     source: "https://divingpoint.net/divepoints/view/1430", sourceName: "ダイブポイント 田子 内今浜",
+  },
+  {
+    id: "kawana-uba-coral", name: "ウバコーラル", area: "静岡・伊東 川奈 姥子神社側のほら穴沖", coordinates: [139.1302, 34.9593], difficulty: 3, icon: "coral",
+    highlight: "沖の漁礁をウミトサカやヤギが覆い、サンゴの枝の間をハナダイが泳ぎます。",
+    conditions: "夏季限定のボート海域。深い側は水深30m前後。開放時期と参加条件は現地のショップで確認してください。",
+    source: "https://www.izukko.com/new-blog/2026-6-12", sourceName: "伊豆っこダイビング 川奈の潜水記録",
   },
 ];

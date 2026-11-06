@@ -35,10 +35,10 @@ export const kantoDiveAreas = [
     source: "https://bommie.jp/diving_points", sourceName: "伊戸ダイビングサービスBOMMIE",
   },
   {
-    id: 'banda', name: '坂田・カロウ根', area: '千葉・館山 坂田', coordinates: [139.770, 34.976], difficulty: 2, icon: 'coral',
-    highlight: '根の上にソフトコーラルが広がり、キンギョハナダイがその間を泳ぎます。',
-    conditions: '静かな入り江からボートで行く岩礁。ガイドと根の周りを回るコースの目安です。',
-    source: bosoGuide, sourceName: padi,
+    id: 'banda', name: '坂田・新漁礁とカロウ根', area: '千葉・館山 坂田 松根より沖の岩礁', coordinates: [139.772551, 34.979641], difficulty: 2, icon: 'coral',
+    highlight: 'コンクリートブロックの新漁礁から、帯状の岩場がカロウ根まで続きます。カロウ根の斜面にはソフトコーラルが育ち、南の砂地ではウミエラが見られます。',
+    conditions: '坂田港からのボート海域。新漁礁とカロウ根は同じ案内コースで、ピンは松根より沖にある海域の目安です。',
+    source: 'https://seacrop.jp/about-banda/', sourceName: 'シークロップ・ダイビングスクール 坂田の海',
   },
   {
     id: 'tateyama-okinoshima', name: '沖ノ島ビーチ', area: '千葉・館山 沖ノ島', coordinates: [139.8268, 34.9902], difficulty: 1, icon: 'reef',
@@ -66,7 +66,7 @@ export const kantoDiveAreas = [
   },
   {
     id: "moroiso", name: "諸磯・海学ハウスリーフ", area: "神奈川・三浦 諸磯湾 海学ハウスリーフ",
-    coordinates: [139.612907, 35.150363], difficulty: 2, icon: "macro",
+    coordinates: [139.612907, 35.150363], difficulty: 2, icon: "seahorse",
     highlight: "浅い岩場の海藻にタツノオトシゴが隠れ、砂地ではサビハゼやハナハゼが顔を出します。",
     conditions: "三浦 海の学校前のビーチポイント。岩場と砂地を巡る、水深約7mまでの浅いコースです。",
     source: "https://scuba-monsters.com/spot_about_moroiso/", sourceName: "Scuba Monsters 諸磯",
@@ -97,7 +97,7 @@ export const kantoDiveAreas = [
     source: miuraGuide, sourceName: padi,
   },
   {
-    id: 'enoura-beach', name: '江之浦ビーチ', area: '神奈川・小田原 江之浦', coordinates: [139.143, 35.193], difficulty: 1, icon: 'macro',
+    id: 'enoura-beach', name: '江之浦ビーチ', area: '神奈川・小田原 江之浦', coordinates: [139.143, 35.193], difficulty: 1, icon: 'frogfish',
     highlight: '岩礁や砂地が岸近くで切り替わります。岩の間でカエルアンコウやクマノミを探せます。',
     conditions: '岸のスロープから入り、ガイドロープのある浅場を巡るルートです。',
     source: miuraGuide, sourceName: padi,
@@ -121,7 +121,7 @@ export const kantoDiveAreas = [
     source: 'https://nebukawadiving.com/', sourceName: '根府川ダイビングサービス',
   },
   {
-    id: 'katsuura-isomura', name: 'イソムラ', area: '千葉・勝浦 鵜原沖 イソムラ礁', coordinates: [140.27713, 35.12338], difficulty: 4, icon: 'fish',
+    id: 'katsuura-isomura', name: 'イソムラ', area: '千葉・勝浦 鵜原沖 イソムラ礁', coordinates: [140.27713, 35.12338], difficulty: 4, icon: 'fishSchool',
     highlight: '白い砂の中に大きな岩礁が立ち、深い裂け目の上をイサキやタカベの群れが横切ります。',
     conditions: '沖の根まで船で行きます。深さが変わりやすく、黒潮の流れを受ける日は泳力が求められます。',
     source: 'https://www.katsuura-kankou.net/diving/', sourceName: '勝浦市観光協会',
@@ -139,7 +139,7 @@ export const kantoDiveAreas = [
     source: 'https://tds-sara.com/points', sourceName: '館山ダイビングサービスSARA',
   },
   {
-    id: 'katsuura-benten', name: '鵜原・弁天', area: '千葉・勝浦 鵜原 弁天根', coordinates: [140.260863, 35.12907], difficulty: 2, icon: 'reef',
+    id: 'katsuura-benten', name: '鵜原・弁天', area: '千葉・勝浦 鵜原 弁天根', coordinates: [140.260863, 35.12907], difficulty: 2, icon: 'sand',
     highlight: '白砂の上に岩礁があり、根の周りで魚を眺めながら岩陰の小さな生きものも探せます。',
     conditions: '鵜原沖へ船で出るルート。沖の根の中では流れが緩い日を選びやすい海域です。',
     source: 'https://katsuura-ds.com/point/', sourceName: '勝浦ダイビングサービス',
@@ -157,7 +157,7 @@ export const kantoDiveAreas = [
     source: 'https://divetoday.net/fandive.html', sourceName: 'DiveToday',
   },
   {
-    id: 'namegawa-magurone', name: 'マグロ根', area: '千葉・勝浦 行川 マグロ根', coordinates: [140.229492, 35.113449], difficulty: 4, icon: 'fish',
+    id: 'namegawa-magurone', name: 'マグロ根', area: '千葉・勝浦 行川 マグロ根', coordinates: [140.229492, 35.113449], difficulty: 4, icon: 'fishSchool',
     highlight: '岩礁の上でイサキやタカベが群れ、その外側をワラサやカンパチが通ることがあります。',
     conditions: '沖のボートコース。潮が速くなるため、中層での移動や流れのある海に慣れた方向けです。',
     source: 'https://divetoday.net/fandive.html', sourceName: 'DiveToday',
@@ -243,7 +243,7 @@ export const kantoDiveAreas = [
     source: "https://www5e.biglobe.ne.jp/~o_hasama/p_ikesu.htm", sourceName: "波左間海中公園",
   },
   {
-    id: "namegawa-kominari", name: "コミナリビーチ", area: "千葉・勝浦 行川 コミナリの浅場", coordinates: [140.237389, 35.122471], difficulty: 2, icon: "macro",
+    id: "namegawa-kominari", name: "コミナリビーチ", area: "千葉・勝浦 行川 コミナリの浅場", coordinates: [140.237389, 35.122471], difficulty: 2, icon: "frogfish",
     highlight: "陸から続く岩礁と白砂が隣り合う浅場で、ウミウシやカエルアンコウの仲間を探せます。",
     conditions: "岸から入る浅場。行川の新浜とは別のポイントです。",
     source: "https://divingpoint.net/divepoints/view/482", sourceName: "ダイビングポイント情報サイト コミナリビーチ",
@@ -303,7 +303,7 @@ export const kantoDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/504", sourceName: "ダイビングポイント情報サイト 龍根",
   },
   {
-    id: "zushi-tsurugine", name: "剣根", area: "神奈川・逗子沖 剣根", coordinates: [139.539328, 35.286335], difficulty: 3, icon: "macro",
+    id: "zushi-tsurugine", name: "剣根", area: "神奈川・逗子沖 剣根", coordinates: [139.539328, 35.286335], difficulty: 3, icon: "frogfish",
     highlight: "とがった根の途中に裂け目があり、ウミウシの仲間やカエルアンコウを探せます。",
     conditions: "水深24mほどまでのボートポイント。潮がかかる日があります。",
     source: "https://divingpoint.net/divepoints/view/505", sourceName: "ダイビングポイント情報サイト 剣根",
@@ -321,7 +321,7 @@ export const kantoDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/509", sourceName: "ダイブポイント 鎌倉沖 イチョウネ北",
   },
   {
-    id: "kamakura-gongoro", name: "ゴンゴロウ", area: "神奈川・鎌倉沖 ゴンゴロウの根", coordinates: [139.50963, 35.296668], difficulty: 2, icon: "macro",
+    id: "kamakura-gongoro", name: "ゴンゴロウ", area: "神奈川・鎌倉沖 ゴンゴロウの根", coordinates: [139.50963, 35.296668], difficulty: 2, icon: "frogfish",
     highlight: "島のような形に連なる根にはカイメンが多く、イロカエルアンコウやマツカサウオの観察例があります。",
     conditions: "鎌倉沖のボートポイント。水深16mほどまでの記録があります。",
     source: "https://divingpoint.net/divepoints/view/512", sourceName: "ダイビングポイント情報サイト ゴンゴロウ",
@@ -399,7 +399,7 @@ export const kantoDiveAreas = [
     source: "https://sunset-beach.jp/kanaya/activity", sourceName: "金谷サンセットビーチ ダイビング案内",
   },
   {
-    id: "ito-sagano", name: "伊戸・さがの根", area: "千葉・館山 伊戸 沖前根の東の鉄骨漁礁", coordinates: [139.7732500, 34.9488200], difficulty: 4, icon: "fish",
+    id: "ito-sagano", name: "伊戸・さがの根", area: "千葉・館山 伊戸 沖前根の東の鉄骨漁礁", coordinates: [139.7732500, 34.9488200], difficulty: 4, icon: "structure",
     highlight: "砂地の上に鉄骨漁礁が立ち、骨組みの内外を小魚の群れが行き来します。テングダイの観察例もあります。",
     conditions: "水深約16〜19mのボート海域。潮が速くなるため、現地ガイドが漁礁の巡り方を決めます。",
     source: "https://bommie.jp/diving_points", sourceName: "伊戸ダイビングサービスBOMMIE",
@@ -465,7 +465,7 @@ export const kantoDiveAreas = [
     source: "https://www.sazanami-m.com/divelog/kacchama-80/", sourceName: "サザナミマリンダイビングスクール 2026年1月のログ",
   },
   {
-    id: "katsuyama-long-reef", name: "ロング根", area: "千葉・鋸南 勝山 南寄りの細長い根", coordinates: [139.820251, 35.104251], difficulty: 3, icon: "reef",
+    id: "katsuyama-long-reef", name: "ロング根", area: "千葉・鋸南 勝山 南寄りの細長い根", coordinates: [139.820251, 35.104251], difficulty: 3, icon: "shark",
     highlight: "細長い岩礁の両脇に小さな漁礁が並び、そこに小魚が集まります。根の穴からコケギンポが顔を出し、ネコザメの幼魚の観察例もあります。",
     conditions: "勝山のボート海域。水深15〜25mを目安に、根と漁礁の間を巡ります。",
     source: "https://paroparo.jp/diving/", sourceName: "かっちゃまダイビングサービス",

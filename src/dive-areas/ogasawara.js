@@ -347,7 +347,7 @@ export const ogasawaraDiveAreas = [
     source: "https://readyfor.jp/projects/shirowani/announcements/349363", sourceName: "小笠原シロワニ保全研究会・小笠原ダイビングセンター",
   },
   {
-    id: "ogasawara-yomejima-hanare", name: "はなれ根", area: "東京・小笠原 嫁島 西沖のはなれ根", coordinates: [142.200251, 27.489999], difficulty: 5, icon: "fish",
+    id: "ogasawara-yomejima-hanare", name: "はなれ根（ブンブン浅根）", area: "東京・小笠原 嫁島 西沖のはなれ根", coordinates: [142.200251, 27.489999], difficulty: 5, icon: "fish",
     highlight: "ムレハタタテダイやコクテンカタギが岩礁に集まり、外側をイソマグロが通ることもあります。",
     conditions: "嫁島の外洋側。流れが強いボートポイントです。",
     source: "https://divingpoint.net/divepoints/view/1039", sourceName: "ダイビングポイント情報サイト はなれ根",
@@ -401,7 +401,7 @@ export const ogasawaraDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/1768", sourceName: "ダイビングポイント情報サイト",
   },
   {
-    id: "ogasawara-hanahige", name: "ハナヒゲポイント", area: "東京・小笠原 父島列島・島間のサンゴ斜面", coordinates: [142.178106, 27.127324], difficulty: 3, icon: "macro",
+    id: "ogasawara-hanahige", name: "ハナヒゲポイント", area: "東京・小笠原 父島列島・島間のサンゴ斜面", coordinates: [142.178106, 27.127324], difficulty: 3, icon: "ribbonEel",
     highlight: "島の間のサンゴ斜面にハナヒゲウツボ。岩肌のくぼみにはキンチャクガニやウミウシも見つかります。",
     conditions: "ボートで斜面を巡るポイント。壁側とサンゴの棚で深度を調整します。",
     source: "https://divingpoint.net/divepoints/view/1003", sourceName: "ダイビングポイント情報サイト",
@@ -894,5 +894,23 @@ export const ogasawaraDiveAreas = [
     highlight: "二見湾の浅いサンゴ礁がゆるやかに傾斜します。起伏が小さく、水中写真をじっくり撮りやすい海域です。",
     conditions: "父島・二見湾のボート海域。近くの沈船・日吉丸とは別の浅いサンゴ礁です。",
     source: "https://divingpoint.net/divepoints/view/1048", sourceName: "ダイブポイント 小笠原 洲崎",
+  },
+  {
+    id: "ogasawara-keta-five-mile-bank", name: "5マイル浅根", area: "東京・小笠原 聟島列島 北之島の北西沖", coordinates: [142.05, 27.783333], difficulty: 5, icon: "fish",
+    highlight: "島影のない沖に隠れ根があり、2024年の遠征ではシマアジの大群が根の周りを通りました。",
+    conditions: "潮の速い外洋の遠征海域です。ピンは村の資料が示す浅根周辺の範囲の目安で、潜降位置は現地ガイドが決めます。",
+    source: "https://www.frontier-net.com/2024/08/21/17697", sourceName: "フロンティアダイビングスクール 現地遠征ログ",
+  },
+  {
+    id: "ogasawara-keta-ninoiwa", name: "二ノ岩", area: "東京・小笠原 聟島列島 北之島の北東沖 二ノ岩", coordinates: [142.1162, 27.74176], difficulty: 5, icon: "fish",
+    highlight: "海面に突き出した岩の周りで、クマザサハナムロやヒレナガカンパチの群れが観察されています。",
+    conditions: "一ノ岩と三ノ岩の間にある独立した岩礁です。聟島列島へのボート遠征で、潮やうねりを見て行き先を決めます。",
+    source: "https://www.frontier-net.com/2024/08/21/17697", sourceName: "フロンティアダイビングスクール 現地遠征ログ",
+  },
+  {
+    id: "ogasawara-keta-tatami-rock", name: "畳岩", area: "東京・小笠原 聟島列島 針之岩と媒島の間", coordinates: [142.163601, 27.645462], difficulty: 5, icon: "reef",
+    highlight: "針之岩と媒島の間で、小さな岩礁が海面に顔を出します。開けた外海の中にぽつんとある岩が目印です。",
+    conditions: "現地ガイドが聟島列島への遠征で潜った海域です。島から離れた外洋にあり、立ち寄れるかは当日の海況と潮で変わります。",
+    source: "https://www.sangyo-rodo.metro.tokyo.lg.jp/documents/d/sangyo-rodo/gyojouzu-1-#page=27", sourceName: "東京都 漁場図（畳岩の位置）",
   },
 ];
