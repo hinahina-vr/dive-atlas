@@ -9,6 +9,7 @@ const byId = id => document.getElementById(id);
 const el = Object.fromEntries([
   'viewport', 'scene', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall', 'view-label', 'view-subtitle', 'view-help',
   'rotate-left', 'rotate-right', 'reset-view', 'module-label', 'step-count', 'progress',
+  'review-overview-status', 'review-next',
   'lesson-title', 'lesson-description', 'instruction', 'step-label', 'step-title', 'step-description',
   'mask-settings', 'mask-fill', 'recovery-methods', 'recovery-search', 'recovery-clear',
   'show-example', 'example-guide', 'example-caption', 'example-controls', 'example-prev', 'example-play',
@@ -84,13 +85,12 @@ document.addEventListener('keydown', event => {
 document.addEventListener('visibilitychange', () => { if (document.hidden) example.pause(); });
 window.addEventListener('storage', event => {
   if (event.storageArea !== storage) return;
+  const changed = lessons.find(item => event.key === reviewKey(item));
   if (event.key === null) recent.clear();
-  else {
-    const lesson = lessons.find(item => event.key === reviewKey(item));
-    if (!lesson) return;
-    recent.delete(lesson.id);
-  }
-  renderHistory();
+  else if (changed) recent.delete(changed.id);
+  else return;
+  renderReviewOverview();
+  if (!changed || changed.id === practice.lesson.id) renderHistory();
 });
 
 function button(label, className, onClick) {
@@ -218,10 +218,10 @@ function start(lesson, mode) {
   render();
 }
 
-function openLesson(lesson) {
+function openLesson(lesson, mode = practice.mode) {
   const route = lesson.id === 'mask' ? el['mask-fill'].value :
     lesson.id === 'recovery' ? el['recovery-search'].value + '-' + el['recovery-clear'].value : undefined;
-  start(lessonRoute(lesson, route), practice.mode);
+  start(lessonRoute(lesson, route), mode);
 }
 
 for (const control of ['mask-fill', 'recovery-search', 'recovery-clear']) {
@@ -234,11 +234,72 @@ const lessonButtons = lessons.map((lesson, i) => {
     if (practice.lesson.id !== lesson.id) openLesson(lesson);
   });
   const number = document.createElement('span');
+  number.className = 'lesson-number';
   number.textContent = String(i + 1).padStart(2, '0');
   number.setAttribute('aria-hidden', 'true');
-  item.append(number, lesson.tab || lesson.title);
+  const name = document.createElement('span');
+  name.className = 'lesson-name';
+  name.textContent = lesson.tab || lesson.title;
+  const status = document.createElement('span');
+  status.className = 'lesson-status';
+  status.id = 'review-state-' + lesson.id;
+  item.setAttribute('aria-label', name.textContent);
+  item.setAttribute('aria-describedby', status.id);
+  item.append(number, name, status);
   el.lessons.append(item);
-  return item;
+  return { item, status };
+});
+
+function latestReview(lesson) {
+  if (!recent.has(lesson.id)) recent.set(lesson.id, readReview(storage, lesson));
+  return recent.get(lesson.id);
+}
+
+function reviewOverview() {
+  const records = lessons.map(latestReview);
+  const complete = records.filter(Boolean).length;
+  const needsWork = records.filter(record => record?.steps.length).length;
+  const review = records.findIndex(record => record?.steps.length);
+  const next = lessons[review >= 0 ? review : records.indexOf(null)];
+  return { records, complete, needsWork, next };
+}
+
+function renderReviewOverview() {
+  const { records, complete, needsWork, next } = reviewOverview();
+  lessonButtons.forEach(({ item, status }, i) => {
+    const record = records[i];
+    const count = record?.steps.length || 0;
+    const label = count ? '見直し ' + count + '項目' : record ? '復習済み' : '未復習';
+    if (status.textContent !== label) status.textContent = label;
+    item.dataset.review = count ? 'review' : record ? 'done' : 'new';
+  });
+  const summary = '自力復習 ' + complete + ' / ' + lessons.length + '種目' +
+    (needsWork ? ' ・ 見直し ' + needsWork + '種目' : '');
+  if (el['review-overview-status'].textContent !== summary) el['review-overview-status'].textContent = summary;
+  const shortcut = el['review-next'];
+  shortcut.hidden = !next || Boolean(example.current());
+  shortcut.textContent = needsWork ? '見直す ›' : complete ? '未復習へ ›' : '自力復習を始める ›';
+  shortcut.setAttribute('aria-controls', needsWork ? 'previous-review' : 'instruction');
+}
+
+el['review-next'].addEventListener('click', () => {
+  const { next, needsWork } = reviewOverview();
+  if (!next) return;
+  const current = practice.lesson.id === next.id && !example.current();
+  let destination = el.instruction;
+  if (needsWork) {
+    if (!current) openLesson(next);
+    renderHistory(true);
+    const history = el['previous-review'];
+    history.open = true;
+    destination = history.querySelector('summary');
+  } else if (!current || practice.mode !== 'recall') {
+    openLesson(next, 'recall');
+  }
+  destination.focus({ preventScroll: true });
+  if (destination.getBoundingClientRect().top < 0 || destination.getBoundingClientRect().bottom > innerHeight) {
+    destination.scrollIntoView({ block: 'center' });
+  }
 });
 
 for (const mode of ['guided', 'recall']) {
@@ -355,12 +416,11 @@ function reviewRow(action, scenario, lesson = practice.lesson) {
   return row;
 }
 
-function renderHistory() {
+function renderHistory(showCompleted = false) {
   const { lesson, index } = practice;
   const detail = el['previous-review'];
-  if (!recent.has(lesson.id)) recent.set(lesson.id, readReview(storage, lesson));
-  const record = recent.get(lesson.id);
-  detail.hidden = !record || Boolean(example.current()) || index === lesson.actions.length;
+  const record = latestReview(lesson);
+  detail.hidden = !record || Boolean(example.current()) || (!showCompleted && index === lesson.actions.length);
   if (detail.hidden) return;
   if (detail.dataset.lesson !== lesson.id) detail.open = false;
   detail.dataset.lesson = lesson.id;
@@ -432,7 +492,7 @@ function render() {
   const available = practice.choices.filter(action => !done.includes(action.id));
 
   for (const option of ['guided', 'recall']) el[option].setAttribute('aria-pressed', String(!demo && mode === option));
-  lessonButtons.forEach((item, i) => {
+  lessonButtons.forEach(({ item }, i) => {
     if (lessons[i].id === lesson.id) item.setAttribute('aria-current', 'step');
     else item.removeAttribute('aria-current');
   });
@@ -481,6 +541,7 @@ function render() {
   el['source-link'].href = lesson.source;
   el.hotspots.replaceChildren();
   marks.clear();
+  renderReviewOverview();
   renderHistory();
   el.instruction.setAttribute('aria-live', demo ? 'polite' : 'off');
   if (demo) {

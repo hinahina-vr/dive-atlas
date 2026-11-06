@@ -35,6 +35,10 @@
       </div>
     </section>
 
+    <div class="review-overview">
+      <p id="review-overview-status" role="status"></p>
+      <button type="button" id="review-next" class="quiet" hidden></button>
+    </div>
     <nav id="lessons" aria-label="練習メニュー"></nav>
 
     <section class="workspace" aria-label="練習">
@@ -111,7 +115,7 @@
           </label>
           <p>方法を変えると、この種目は最初からになります。</p>
         </div>
-        <div id="instruction">
+        <div id="instruction" tabindex="-1">
           <p class="step-label" id="step-label"></p>
           <p class="step-title" id="step-title"></p>
           <p class="step-description" id="step-description"></p>

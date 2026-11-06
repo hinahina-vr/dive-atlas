@@ -52,12 +52,22 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .segmented button { min-height: 40px; border: 0; border-radius: 7px; padding: 0 15px; background: transparent; color: var(--muted); font-size: .83rem; font-weight: 700; white-space: nowrap; }
 .segmented button:hover { background: #d4f2ec; color: #153e50; }
 .segmented button[aria-pressed="true"] { background: var(--mint); color: #0b322e; }
-#lessons { display: flex; gap: 7px; margin: 0 0 12px; flex-wrap: wrap; }
+.review-overview {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap;
+  min-height: 40px; margin: -7px 0 2px; color: #325963; font-size: .78rem; font-weight: 700;
+}
+.review-overview .quiet { margin: 0; padding: 0 7px; min-height: 42px; color: var(--teal); font-size: inherit; }
+#lessons { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; margin: 0 0 12px; }
 .lesson-button {
-  min-height: 45px; padding: 0 15px; display: inline-flex; gap: .7rem; align-items: center;
+  min-height: 56px; padding: 6px 10px; display: grid; align-items: center; align-content: center;
+  grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; row-gap: 2px; text-align: left;
   border: 1px solid var(--line); border-radius: 9px; background: #f7fdf9; color: var(--muted); font-size: .84rem; font-weight: 700;
 }
-.lesson-button span { color: var(--teal); font: 700 .71rem ui-monospace, monospace; }
+.lesson-number { color: var(--teal); font: 700 .69rem ui-monospace, monospace; }
+.lesson-name { line-height: 1.22; }
+.lesson-status { grid-column: 2; font-size: .69rem; line-height: 1.25; color: #4a6871; }
+.lesson-button[data-review="done"] .lesson-status { color: #21645b; }
+.lesson-button[data-review="review"] .lesson-status { color: #885517; }
 .lesson-button:hover { border-color: #439f93; background: #def6ee; }
 .lesson-button[aria-current="step"] { color: #144b53; border-color: #489f91; background: #c8f2e4; box-shadow: inset 0 -2px #64baa9; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1.72fr) minmax(325px, 1fr); gap: 12px; align-items: start; }
@@ -307,7 +317,8 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
   .mast-label { display: none; }
   main { padding-left: 11px; padding-right: 11px; }
   #lessons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-  .lesson-button { padding: 4px 7px; text-align: left; font-size: .74rem; line-height: 1.25; min-height: 44px; gap: .36rem; }
+  .lesson-button { padding: 5px 6px; font-size: .74rem; min-height: 55px; column-gap: 4px; }
+  .lesson-status { font-size: .65rem; }
   .viewport { height: clamp(280px, 39svh, 380px); }
   .panel { padding: 14px; }
   .view-title { top: 12px; left: 12px; }
