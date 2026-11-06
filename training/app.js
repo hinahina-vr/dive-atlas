@@ -274,7 +274,7 @@ function syncLessonSettings(lesson) {
 function start(lesson, mode) {
   example.stop();
   press.cancel();
-  if (lesson.id !== practice.lesson.id) immersive = ['mask', 'recovery', 'inflator'].includes(lesson.scene);
+  if (lesson.id !== practice.lesson.id) immersive = ['mask', 'recovery', 'inflator', 'fins'].includes(lesson.scene);
   syncLessonSettings(lesson);
   runId = practiceId();
   practice = newPractice(lesson, mode);
@@ -751,9 +751,11 @@ function render() {
     immersive && lesson.scene !== 'inflator' ? 'ドラッグで見回す' : 'ドラッグで回転';
   el.perspective.hidden = Boolean(demo) || !view || lesson.scene === 'gear';
   renderXREntry();
-  el.perspective.textContent = lesson.scene === 'inflator'
-    ? (immersive ? '器材台で見る' : '水中で見る')
-    : (immersive ? '模型で見る' : 'ダイバー視点');
+  const perspectiveLabels = {
+    inflator: ['水中で見る', '器材台で見る'],
+    fins: ['水面で見る', '器材台で見る']
+  };
+  el.perspective.textContent = (perspectiveLabels[lesson.scene] || ['ダイバー視点', '模型で見る'])[Number(immersive)];
   el.perspective.setAttribute('aria-pressed', String(immersive));
   const maskOverlay = el['mask-overlay'];
   maskOverlay.hidden = !useWater || lesson.scene !== 'mask';

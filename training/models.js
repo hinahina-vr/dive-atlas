@@ -543,7 +543,7 @@ function inflator(root, inWater = false) {
   };
 }
 
-function fins(root, inWater, issues) {
+function fins(root, inWater, issues, legSide = 1) {
   if (!inWater) stage(root, -.95);
   const fin = group(root, 0, -.63, .04);
   const blade = [[-.27, -.55], [-.47, -.91], [-.53, -1.19], [-.41, -1.34], [-.10, -1.39], [.15, -1.38],
@@ -567,10 +567,23 @@ function fins(root, inWater, issues) {
   const band = mesh(strap, new T.BufferGeometry(), lime);
   const lastGrip = v(Infinity, 0, 0);
   const boot = group(root);
-  sphere(boot, .171, .125, .325, rubber, 0, 0, .11);
-  sphere(boot, .168, .31, .157, gray, 0, .21, -.052);
-  cyl(boot, .141, .055, rubber, 0, .453, -.052);
-  box(boot, .075, .31, .028, teal, .068, .19, .081);
+  sphere(boot, .177, .043, .331, rubber, 0, -.085, .105);
+  sphere(boot, .171, .112, .325, cloth, 0, -.012, .11);
+  sphere(boot, .157, .275, .154, gray, 0, .20, -.052);
+  cyl(boot, .138, .054, rubber, 0, .438, -.052);
+  const zipper = box(boot, .027, .29, .021, rubber, .058, .205, .092);
+  zipper.rotation.z = -.08;
+  box(boot, .033, .058, .02, teal, .068, .343, .107);
+  const bootAtRest = inWater ? v(-.37, -.16, -.55) : v(-.56, -.16, -.43);
+  const shin = inWater ? group(root) : null;
+  const knee = v(-.33 * legSide, .02, -2.14);
+  const ankle = v(0, 0, 0);
+  const calf = v(0, 0, 0);
+  const up = v(0, 1, 0);
+  if (shin) {
+    cyl(shin, .137, 1, cloth, 0, 0, 0, 'y', .105);
+    cyl(shin, .115, .095, rubber, 0, -.40, 0, 'y', .110);
+  }
   return {
     anchors: {
       'fin-strap': [strap, v(.21, .08, -.12)], 'fin-foot': [boot, v(.04, .13, .30)],
@@ -581,6 +594,13 @@ function fins(root, inWater, issues) {
     docks: { pocket: [fin, v(0, .16, .18)], heel: [boot, v(0, .09, -.19)] },
     grabbable: { 'fin-foot': boot, 'fin-lock': strapGrip },
     sync() {
+      if (shin) {
+        root.worldToLocal(boot.localToWorld(ankle.set(0, .40, -.052)));
+        calf.subVectors(knee, ankle);
+        shin.position.copy(ankle).lerp(knee, .5);
+        shin.scale.y = calf.length();
+        shin.quaternion.setFromUnitVectors(up, calf.normalize());
+      }
       const grip = strapGrip.position;
       if (lastGrip.distanceToSquared(grip) < .000001) return;
       lastGrip.copy(grip);
@@ -592,6 +612,7 @@ function fins(root, inWater, issues) {
       band.geometry = new T.TubeGeometry(path, 20, .043, 8, false);
     },
     update(done, k, _time, interaction) {
+      if (shin) shin.visible = interaction.detail !== 'fin-check';
       const inserted = done.has('fin-foot');
       const locked = done.has('fin-lock');
       const checked = done.has('fin-check');
@@ -601,7 +622,7 @@ function fins(root, inWater, issues) {
       fin.rotation.x = T.MathUtils.lerp(fin.rotation.x, loose ? 0 : tilt, k);
       strapGrip.position.lerp(locked ? (loose ? strapLoose : strapFitted) : strapRest, k);
       const seatedBoot = v(0, -.48 + lift * (loose ? .25 : .022), -.07 - lift * (loose ? .07 : .009));
-      boot.position.lerp(inserted ? seatedBoot : v(-.56, -.16, -.43), k);
+      boot.position.lerp(inserted ? seatedBoot : bootAtRest, k);
       boot.rotation.x = T.MathUtils.lerp(boot.rotation.x, inserted ? tilt : -.24, k);
       strap.rotation.x = T.MathUtils.lerp(strap.rotation.x, locked ? .24 : done.has('fin-strap') ? -1.14 : -.31, k);
       strap.position.y = T.MathUtils.lerp(strap.position.y, locked ? .235 : .08, k);
@@ -672,7 +693,7 @@ function addReef(water) {
   water.add(rocks);
 }
 
-function waterBackdrop(root) {
+function waterBackdrop(root, fromAbove) {
   const water = group(root);
   const tide = { value: 0 };
   const floor = mesh(water, new T.PlaneGeometry(52, 52), new T.ShaderMaterial({
@@ -734,10 +755,11 @@ function waterBackdrop(root) {
   water.add(particles);
   const surface = mesh(water, new T.PlaneGeometry(40, 40), new T.ShaderMaterial({
     side: T.DoubleSide, transparent: true, depthWrite: false,
-    uniforms: { tide },
+    uniforms: { tide, surfaceOpacity: { value: fromAbove ? .58 : 1 } },
     vertexShader: waterPlaneVertex,
     fragmentShader: `
       ${waterLight}
+      uniform float surfaceOpacity;
       void main() {
         vec3 ray = waterPoint - cameraPosition;
         float distanceToEye = length(ray);
@@ -749,10 +771,10 @@ function waterBackdrop(root) {
         vec3 teal = vec3(.09, .54, .52);
         vec3 reflection = mix(vec3(.30, .80, .72), vec3(.98, .98, .67), sun);
         vec3 color = mix(teal, reflection, .19 + .77 * ripple);
-        gl_FragColor = vec4(color, (.13 + .50 * ripple + .14 * sun) * fade * (.65 + .35 * overhead));
+        gl_FragColor = vec4(color, (.13 + .50 * ripple + .14 * sun) * fade * (.65 + .35 * overhead) * surfaceOpacity);
         #include <colorspace_fragment>
       }`
-  }), 0, 1.65, 0);
+  }), 0, fromAbove ? 1.09 : 1.65, 0);
   surface.rotation.x = -Math.PI / 2;
   return time => { tide.value = time * .0007; };
 }
@@ -855,14 +877,27 @@ function immersionRegulator(root, reachRoute) {
 }
 
 export function makeDiveModel(root, lesson, scenario) {
-  const updateWater = waterBackdrop(root);
+  const updateWater = waterBackdrop(root, lesson.scene === 'fins');
   let model;
   if (lesson.scene === 'recovery') {
     model = immersionRegulator(root, lesson.route?.startsWith('reach'));
   } else if (lesson.scene === 'fins') {
-    const equipment = group(root, 0, .70, -.66);
-    equipment.rotation.y = Math.PI;
-    model = fins(equipment, true, lesson.scenarios[scenario]);
+    const companion = group(root, -.67, .54, -.84);
+    companion.rotation.y = Math.PI + .15;
+    const otherFoot = fins(companion, true, [], -1);
+    otherFoot.update(new Set(['fin-strap', 'fin-foot', 'fin-lock', 'fin-check']), 1, 0, { pressure: {} });
+    otherFoot.sync();
+
+    const equipment = group(root, .18, .70, -.66);
+    equipment.rotation.y = Math.PI - .07;
+    const foot = fins(equipment, true, lesson.scenarios[scenario]);
+    model = {
+      ...foot,
+      update(done, k, time, interaction) {
+        companion.visible = interaction.detail !== 'fin-check';
+        foot.update(done, k, time, interaction);
+      }
+    };
   } else if (lesson.scene === 'inflator') {
     const equipment = group(root);
     const line = group(root, -1.43, -.16, -.18);

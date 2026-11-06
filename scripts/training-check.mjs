@@ -351,6 +351,7 @@ try {
   await desktop.locator('#example-play').click();
   await desktop.locator('#example-next').click();
   assert.equal(await desktop.locator('#step-title').innerText(), 'BCDを取り付ける');
+  await desktop.locator('#viewport').evaluate(node => node.scrollIntoView({ block: 'center' }));
   await desktop.locator('#example-guide').waitFor({ state: 'visible' });
   assert.equal(await desktop.locator('#example-guide line').getAttribute('hidden'), null);
   await desktop.screenshot({ path: join(output, 'desktop-example.png'), fullPage: true });
@@ -834,7 +835,6 @@ try {
   for (const lesson of lessons.slice(3)) {
     await mobile.getByRole('button', { name: lesson.tab || lesson.title, exact: true }).tap();
     await mobile.locator('#hotspots .is-guide:visible').waitFor();
-    if (lesson.id === 'fins') await mobile.locator('#perspective').tap();
     assert.equal(await mobile.locator('#perspective').getAttribute('aria-pressed'), 'true');
     await mobile.locator('#hotspots .is-guide:visible').waitFor();
     if (lesson.id === 'recovery') {
@@ -1008,6 +1008,12 @@ try {
         await dock(mobile, action.attachment.dock).tap();
       }
       await mobile.screenshot({ path: join(output, 'mobile-fins.png'), fullPage: true });
+      assert.match(await mobile.locator('#view-subtitle').innerText(), /水面/);
+      await mobile.getByRole('button', { name: '器材台で見る', exact: true }).tap();
+      assert.match(await mobile.locator('#view-subtitle').innerText(), /陸上/);
+      assert.equal(await value(mobile), '3');
+      await mobile.getByRole('button', { name: '水面で見る', exact: true }).tap();
+      assert.equal(await value(mobile), '3');
       const heel = part(mobile, 'fin-wiggle');
       const heelY = () => heel.evaluate(node => Number.parseFloat(node.style.top));
       await heel.waitFor();
@@ -1023,7 +1029,7 @@ try {
       await answer(mobile, 'repair').tap();
       assert.equal(await value(mobile), '5');
       assert.match(await mobile.locator('#feedback').innerText(), /ストラップの長さを調整/);
-      checks.push('390 px fin fit: a hold lifts the boot, heel close-up exposes the loose strap, and adjustment completes');
+      checks.push('390 px fin fit: opens at the surface, switching views preserves fit, a hold reveals a loose strap, and adjustment completes');
     }
     assert.equal(await mobile.locator('#result-heading').innerText(), '練習完了');
     assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
