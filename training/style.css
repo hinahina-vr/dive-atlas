@@ -179,9 +179,10 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 #placement-menu .quiet { padding-inline: 8px; }
 .viewport.is-water {
   background:
-    radial-gradient(ellipse at 27% -14%, #fff9c9 4%, #b8f9db 26%, #93eac800 63%),
-    linear-gradient(175deg, #a1ecd9 0%, #52c7c5 49%, #4eafaf 72%, #c3d1a8 100%);
+    radial-gradient(ellipse at 27% -16%, #fdf9d9 3%, #bbf6dd 27%, #8ee6cb00 66%),
+    linear-gradient(176deg, #a0e7d6 0%, #5acbc6 47%, #6cc5bf 68%, #adcdb4 100%);
 }
+.viewport.is-water::after { content: none; }
 .viewport.is-water::before {
   content: ""; position: absolute; z-index: -1; inset: 0;
   background: conic-gradient(from 151deg at 26% -9%, transparent 0deg 7deg, #fffbc05e 11deg 17deg,

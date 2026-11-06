@@ -540,62 +540,87 @@ export function makeModel(root, lesson, scenario) {
   }
 }
 
-const seaRock = mat(0x5c918b, .95);
-const reef = mat(0x68a99a, .88);
-const sandTint = new T.Color(0xe9dbab);
+const reefRockMaterial = mat(0xffffff, .93);
+const sandTint = new T.Color(0xe7cf9b);
+const distantSand = new T.Color(0x83c8bf);
+
+const waterPlaneVertex = `
+  varying vec3 waterPoint;
+  void main() {
+    waterPoint = (modelMatrix * vec4(position, 1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }`;
+
+const waterLight = `
+  varying vec3 waterPoint;
+  uniform float tide;
+  float lightNetwork(vec2 p) {
+    p = mat2(1.08, -.43, .39, .93) * p;
+    p += .72 * vec2(sin(p.y * .71 + tide), cos(p.x * .63 - tide * .84));
+    p += vec2(.42, -.33) * tide;
+    float ridge = sin(p.x) * sin(p.y) + .33 * sin((p.x + p.y) * .76);
+    return 1.0 - smoothstep(.018, .15 + min(fwidth(ridge), .27), abs(ridge));
+  }`;
+
+function addReef(water) {
+  const geometry = new T.IcosahedronGeometry(1, 2);
+  const points = geometry.attributes.position;
+  for (let i = 0; i < points.count; i += 1) {
+    const x = points.getX(i);
+    const y = points.getY(i);
+    const z = points.getZ(i);
+    const roughness = 1 + .14 * Math.sin(x * 7 + y * 2) * Math.cos(z * 5 - y * 3);
+    points.setXYZ(i, x * roughness, y * roughness, z * roughness);
+  }
+  const rockCount = 34;
+  const rocks = new T.InstancedMesh(geometry, reefRockMaterial, rockCount);
+  const transform = new T.Object3D();
+  const colors = [0x608d81, 0x88a698, 0x8eaa90, 0xb6ba98].map(color => new T.Color(color));
+  for (let i = 0; i < rockCount; i += 1) {
+    const side = i % 2 ? -1 : 1;
+    const spread = Math.sin(i * 7.12);
+    const x = side * (2.05 + i * .12 + spread * .61);
+    const z = 2.1 - i * .31 + Math.cos(i * 4.82) * 1.35;
+    const size = .16 + (i * .377 % 1) * .62;
+    transform.position.set(x, -1.88, z);
+    transform.scale.set(size * 1.38, size * (.48 + .15 * spread), size);
+    transform.rotation.set(.14 * spread, i * 1.31, .17 * side);
+    transform.updateMatrix();
+    rocks.setMatrixAt(i, transform.matrix);
+    rocks.setColorAt(i, colors[i % colors.length]);
+  }
+  water.add(rocks);
+}
 
 function waterBackdrop(root) {
   const water = group(root);
   const tide = { value: 0 };
-  const floor = mesh(water, new T.PlaneGeometry(46, 46), new T.ShaderMaterial({
+  const floor = mesh(water, new T.PlaneGeometry(52, 52), new T.ShaderMaterial({
     transparent: true, depthWrite: false,
-    uniforms: { tide, tint: { value: sandTint } },
-    vertexShader: `
-      varying vec2 seabed;
-      varying float depth;
-      void main() {
-        vec4 view = modelViewMatrix * vec4(position, 1.0);
-        seabed = position.xy;
-        depth = length(view.xyz);
-        gl_Position = projectionMatrix * view;
-      }`,
+    uniforms: { tide, tint: { value: sandTint }, distantSand: { value: distantSand } },
+    vertexShader: waterPlaneVertex,
     fragmentShader: `
-      varying vec2 seabed;
-      varying float depth;
-      uniform float tide;
+      ${waterLight}
       uniform vec3 tint;
+      uniform vec3 distantSand;
       void main() {
-        float haze = 1.0 - smoothstep(4.0, 20.0, depth);
-        vec2 drift = seabed * vec2(2.7, 3.1);
-        float weave = sin(drift.x + cos(drift.y + tide)) + sin(drift.y - tide * .7 + sin(drift.x * 1.3));
-        float caustic = pow(clamp(1.0 - abs(weave), 0.0, 1.0), 5.0);
-        float light = .79 + .38 * caustic * haze;
-        gl_FragColor = vec4(tint * light, haze * .91);
+        vec2 bed = waterPoint.xz;
+        float distanceToEye = distance(cameraPosition, waterPoint);
+        float clear = 1.0 - smoothstep(3.5, 15.0, distanceToEye);
+        float ripples = sin(dot(bed, vec2(17.5, 5.3)) + 2.3 * sin(dot(bed, vec2(.78, 1.81))));
+        float relief = .92 + .10 * ripples * clear + .07 * sin(bed.x * .86 - bed.y * .47);
+        float dapple = lightNetwork(bed * 4.9);
+        vec3 sand = tint * relief + vec3(.41, .47, .34) * dapple * clear;
+        vec3 color = mix(distantSand, sand, .31 + .69 * clear);
+        float fade = 1.0 - smoothstep(13.0, 23.0, distanceToEye);
+        gl_FragColor = vec4(color, fade);
         #include <colorspace_fragment>
       }`
-  }), 0, -1.88, -2);
+  }), 0, -1.89, -2);
   floor.rotation.x = -Math.PI / 2;
   floor.renderOrder = -1;
-  for (let i = 0; i < 16; i += 1) {
-    const bearing = i * 2.4;
-    const radius = 2.1 + i * .40;
-    const x = Math.sin(bearing) * radius;
-    const z = Math.cos(bearing) * radius;
-    const r = .26 + (i % 5) * .18;
-    const rock = mesh(water, new T.IcosahedronGeometry(r, 0), i % 2 ? seaRock : reef, x, -1.85, z);
-    rock.rotation.y = i * .77;
-    rock.scale.set(1.52, .56 + i % 3 * .18, 1.31);
-    if (i % 3 !== 0) continue;
-    for (let leaf = 0; leaf < 4; leaf += 1) {
-      const side = (leaf - 1.5) * .21;
-      hose(water, [[x, -1.72, z], [x + side * .3, -1.55, z + .06], [x + side, -1.20 + leaf * .034, z + .16]], .021, reef);
-    }
-  }
-  for (const [x, z, size] of [[-2.2, -1.6, 1.16], [-1.6, -2.4, .98], [1.8, -2.3, 1.1], [2.3, -3.5, 1.3]]) {
-    const bank = mesh(water, new T.IcosahedronGeometry(size, 1), reef, x, -1.82, z);
-    bank.scale.set(.72, .67, .99);
-    bank.rotation.y = x * .78;
-  }
+  addReef(water);
+
   const specks = new Float32Array(116 * 3);
   for (let i = 0; i < specks.length; i += 3) {
     const seed = i / 3 + 1;
@@ -626,25 +651,25 @@ function waterBackdrop(root) {
   }));
   particles.renderOrder = 2;
   water.add(particles);
-  const surface = mesh(water, new T.PlaneGeometry(40, 40, 1, 1), new T.ShaderMaterial({
+  const surface = mesh(water, new T.PlaneGeometry(40, 40), new T.ShaderMaterial({
     side: T.DoubleSide, transparent: true, depthWrite: false,
     uniforms: { tide },
-    vertexShader: `
-      varying vec2 plane;
-      void main() {
-        plane = position.xy;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }`,
+    vertexShader: waterPlaneVertex,
     fragmentShader: `
-      varying vec2 plane;
-      uniform float tide;
+      ${waterLight}
       void main() {
-        vec2 q = plane * 1.5;
-        float a = sin(q.x * 3.5 + sin(q.y * 2.1 + tide) * 1.4);
-        float b = sin(q.y * 3.0 - cos(q.x * 2.3 - tide) * 1.4);
-        float caustic = pow(clamp(1.0 - abs(a + b), 0.0, 1.0), 5.0);
-        float distanceFade = 1.0 - smoothstep(2.0, 14.0, length(plane));
-        gl_FragColor = vec4(mix(vec3(.17,.65,.68), vec3(.95,1.0,.81), caustic), (.16 + .48 * caustic) * distanceFade);
+        vec3 ray = waterPoint - cameraPosition;
+        float distanceToEye = length(ray);
+        float overhead = abs(ray.y) / max(distanceToEye, .05);
+        vec2 plane = waterPoint.xz;
+        float ripple = lightNetwork(plane * 4.1 + vec2(1.2, -.6));
+        float sun = exp(-dot(plane - vec2(-1.5, -1.9), plane - vec2(-1.5, -1.9)) * .091);
+        float fade = 1.0 - smoothstep(5.0, 17.0, distanceToEye);
+        vec3 teal = vec3(.09, .54, .52);
+        vec3 reflection = mix(vec3(.30, .80, .72), vec3(.98, .98, .67), sun);
+        vec3 color = mix(teal, reflection, .19 + .77 * ripple);
+        gl_FragColor = vec4(color, (.13 + .50 * ripple + .14 * sun) * fade * (.65 + .35 * overhead));
+        #include <colorspace_fragment>
       }`
   }), 0, 1.65, 0);
   surface.rotation.x = -Math.PI / 2;

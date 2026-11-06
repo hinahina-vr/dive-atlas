@@ -230,6 +230,7 @@ export function createView(container, onProject) {
         if (root) {
           scene.remove(root);
           root.traverse(object => {
+            if (object.isInstancedMesh) object.dispose();
             object.geometry?.dispose();
             if (object.material?.map || object.material?.isShaderMaterial) {
               object.material.map?.dispose();

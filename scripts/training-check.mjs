@@ -315,6 +315,19 @@ try {
   assert.equal(await value(desktop), '3');
   assert.equal(await meterLevel(desktop), 0);
   checks.push('1440 px mask drill: seal, progressive water loss, interrupted press, resume and clear');
+  const waterCanvas = desktop.locator('#scene canvas');
+  const waterBounds = await waterCanvas.boundingBox();
+  const viewDrag = mouseDrag(desktop);
+  const lookPoint = { x: waterBounds.x + waterBounds.width * .72, y: waterBounds.y + waterBounds.height * .61 };
+  await viewDrag.start(lookPoint);
+  await viewDrag.move({ ...lookPoint, y: lookPoint.y - 31 });
+  await viewDrag.end();
+  await desktop.waitForTimeout(680);
+  const firstWaterFrame = await waterCanvas.screenshot();
+  await desktop.waitForTimeout(250);
+  assert(!(await waterCanvas.screenshot()).equals(firstWaterFrame), 'Water light keeps moving after the exercise settles');
+  await desktop.screenshot({ path: join(output, 'desktop-shallows.png'), fullPage: true });
+  checks.push('1440 px shallow-water view: mask clears, camera can look down and water light continues moving');
   await desktop.context().close();
 
   const mobileSize = { width: 390, height: 844 };
@@ -452,6 +465,11 @@ try {
   await mobile.evaluate(() => window.scrollTo(0, 0));
   await mobile.locator('#hotspots .is-guide:visible').waitFor();
   await mobile.screenshot({ path: join(output, 'mobile-mask.png'), fullPage: true });
+  const mobileCanvas = mobile.locator('#scene canvas');
+  const reducedMotionFrame = await mobileCanvas.screenshot();
+  await mobile.waitForTimeout(250);
+  assert((await mobileCanvas.screenshot()).equals(reducedMotionFrame), 'Reduced motion keeps the water light still');
+  checks.push('390 px shallow-water view: reduced-motion preference keeps the scene still');
   await mobile.locator('#perspective').tap();
   assert.equal(await mobile.locator('#perspective').getAttribute('aria-pressed'), 'false');
   assert(await mobile.locator('#mask-overlay').isHidden());
