@@ -283,6 +283,30 @@ try {
     await during();
     await drag.end();
   }
+  function overlapOnRelease(page, source, selector) {
+    return page.evaluate(({ source, selector }) => {
+      document.addEventListener('pointerup', event => {
+        if (event.target.dataset.part !== source) return;
+        const button = document.querySelector(selector);
+        if (!button) return;
+        const parent = button.parentElement;
+        const sibling = button.nextSibling;
+        const style = document.createElement('style');
+        style.textContent = 'body > [data-test-overlap] { position: fixed !important; z-index: 9999; ' +
+          'width: 64px; height: 64px; pointer-events: auto; transform: none; ' +
+          'left: ' + (event.clientX - 32) + 'px !important; top: ' + (event.clientY - 32) + 'px !important; }';
+        document.head.append(style);
+        button.dataset.testOverlap = '';
+        document.body.append(button);
+        window.restoreOverlaidControl = () => {
+          style.remove();
+          delete button.dataset.testOverlap;
+          parent.insertBefore(button, sibling);
+          delete window.restoreOverlaidControl;
+        };
+      }, { once: true });
+    }, { source, selector });
+  }
   const meterLevel = page => page.locator('#effect-meter').evaluate(node => Number(node.style.getPropertyValue('--level')));
   const maskLevel = page => page.locator('#mask-overlay').evaluate(node => Number.parseFloat(node.style.getPropertyValue('--mask-water')));
   async function operate(page, action, input) {
@@ -992,29 +1016,17 @@ try {
         assert(lifted.y < initial.y - 9, 'BCD rises relative to the screen while adding air');
       });
       assert.equal(await value(mobile), '1');
+      await overlapOnRelease(mobile, 'raise', '#dock-markers [data-dock="below"]');
       await part(mobile, 'raise').tap();
+      await mobile.locator('body > [data-test-overlap]').waitFor();
+      await mobile.waitForTimeout(350);
+      assert(await mobile.locator('#placement-menu').isVisible(), 'The first tap only opens the dock choices');
+      await mobile.evaluate(() => window.restoreOverlaidControl());
       await dock(mobile, 'above').tap();
+      checks.push('390 px touch: tapping a part does not activate a dock that appears beneath it');
       assert.equal(await value(mobile), '2');
       const beforeVent = await center(part(mobile, 'vent'));
-      await mobile.evaluate(() => {
-        const next = document.querySelector('#trim-add');
-        const parent = next.parentElement;
-        const sibling = next.nextSibling;
-        window.restoreTrimControl = () => {
-          parent.insertBefore(next, sibling);
-          next.removeAttribute('style');
-          delete window.restoreTrimControl;
-        };
-        document.addEventListener('pointerup', event => {
-          if (event.target.dataset.part !== 'vent') return;
-          // The next control can appear where the vent gesture ends.
-          Object.assign(next.style, {
-            position: 'fixed', zIndex: '9999', width: '54px', height: '54px',
-            left: (event.clientX - 27) + 'px', top: (event.clientY - 27) + 'px'
-          });
-          document.body.append(next);
-        }, { once: true });
-      });
+      await overlapOnRelease(mobile, 'vent', '#trim-add');
       await hold(mobile, 'vent', waterInput, 1, async () => {
         assert.equal(await meterLevel(mobile), 0);
         const lowered = await center(part(mobile, 'vent'));
@@ -1028,7 +1040,7 @@ try {
       assert.equal(await meterLevel(mobile), 0, 'Releasing the vent never activates the new inflation control');
       await overlaidTrim.tap();
       assert.equal(await meterLevel(mobile), .16, 'A separate tap still adds air at the same position');
-      await mobile.evaluate(() => window.restoreTrimControl());
+      await mobile.evaluate(() => window.restoreOverlaidControl());
       await mobile.locator('#trim-vent').tap();
       assert.equal(await mobile.locator('#buoyancy-status').innerText(), '沈み気味');
       checks.push('390 px touch: releasing a hold cannot activate a button appearing at the same point');

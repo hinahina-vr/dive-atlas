@@ -100,6 +100,8 @@ export function createPlacement({ viewport, markers, caption, menu, choices, onS
 
   function bind(marker, action, options) {
     marker.classList.add('is-grabbable');
+    // Pointer release opens the dock choices. Do not let the touch generate another click on a dock.
+    marker.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
     marker.addEventListener('pointerdown', event => {
       if (!event.isPrimary || event.button !== 0 || pointer) return;
       pointer = {
