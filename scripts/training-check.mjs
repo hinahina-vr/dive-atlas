@@ -1124,6 +1124,18 @@ try {
       assert.equal(await value(mobile), '5');
       checks.push('390 px recovery: sweep moves before completion and resumes after reload; shoulder trace, both clearing methods and review still work');
     } else if (lesson.id === 'inflator') {
+      await mobile.locator('#show-example').tap();
+      await mobile.locator('#example-next').tap();
+      const guide = mobile.locator('#example-guide circle').first();
+      await guide.waitFor();
+      const startY = Number(await guide.getAttribute('cy'));
+      await mobile.waitForFunction(y => {
+        const circle = document.querySelector('#example-guide circle');
+        return !circle.closest('svg').hasAttribute('hidden') && Number(circle.getAttribute('cy')) < y - 15;
+      }, startY);
+      await mobile.screenshot({ path: join(output, 'mobile-inflator-raise-example.png') });
+      await mobile.locator('#example-exit').tap();
+      assert.equal(await value(mobile), '0');
       const states = await mobile.evaluate(async () => {
         const { Group } = await import('../vendor/three.module.js');
         const { makeDiveModel, makeModel } = await import('./models.js');
@@ -1133,6 +1145,8 @@ try {
         const model = makeDiveModel(root, lesson);
         const cell = root.getObjectByName('bcd-air-cell');
         const bubbles = root.getObjectByName('inflator-exhaust');
+        const supply = root.getObjectByName('inflator-supply-button');
+        const exhaustButton = root.getObjectByName('inflator-vent-button');
         const pose = (done, pressure, active = '') => {
           model.update(new Set(done), 1, 130, { pressure, active });
           return { thickness: cell.scale.z, height: cell.parent.parent.position.y, bubbles: bubbles.visible };
@@ -1143,14 +1157,27 @@ try {
         const paused = pose(['add-air', 'raise'], { vent: .5 });
         const beforeRelease = pose(['add-air', 'raise'], { vent: 1 }, 'vent');
         const afterRelease = pose(['add-air', 'raise', 'vent'], {});
+        const unpressed = exhaustButton.position.z;
+        pose(['add-air', 'raise', 'vent'], { balance: 0 }, 'vent');
+        const pressed = exhaustButton.position.z;
+        const lastAirBubbles = bubbles.visible;
+        pose(['add-air', 'raise', 'vent'], {});
+        const controls = {
+          atSupply: model.anchors['add-air'][0] === supply && model.anchors['trim-add'][0] === supply,
+          atExhaust: model.anchors.vent[0] === exhaustButton && model.anchors['trim-vent'][0] === exhaustButton,
+          pressed, unpressed, lastAirBubbles, pulseEnded: !bubbles.visible,
+          hoseRibs: root.getObjectByName('inflator-hose-ribs').count
+        };
         const bench = new Group();
         makeModel(bench, lesson).update(new Set(['add-air', 'raise']), 1, 130, { pressure: { vent: .5 }, active: 'vent' });
-        return { empty, filled, venting, paused, beforeRelease, afterRelease, benchBubbles: bench.getObjectByName('inflator-exhaust').visible };
+        return { empty, filled, venting, paused, beforeRelease, afterRelease, controls, benchBubbles: bench.getObjectByName('inflator-exhaust').visible };
       });
       assert(states.filled.thickness > states.venting.thickness && states.venting.thickness > states.empty.thickness);
       assert(states.filled.height > states.venting.height && states.venting.height > states.empty.height);
       assert(states.venting.bubbles && !states.paused.bubbles && !states.benchBubbles);
       assert.deepEqual(states.afterRelease, states.beforeRelease);
+      assert(states.controls.atSupply && states.controls.atExhaust && states.controls.hoseRibs > 10);
+      assert(states.controls.pressed < states.controls.unpressed && states.controls.lastAirBubbles && states.controls.pulseEnded);
       const initial = await center(part(mobile, 'add-air'));
       await hold(mobile, 'add-air', waterInput, 1, async () => {
         assert.equal(await meterLevel(mobile), .48);
@@ -1188,6 +1215,9 @@ try {
       checks.push('390 px touch: releasing a hold cannot activate a button appearing at the same point');
       const trimMarker = part(mobile, 'trim-add');
       await trimMarker.waitFor();
+      await part(mobile, 'trim-vent').waitFor();
+      assert(await trimMarker.evaluate(node => node.classList.contains('is-physical-button') &&
+        getComputedStyle(node, '::before').backgroundColor === 'rgba(0, 0, 0, 0)'));
       const markerY = () => trimMarker.evaluate(node => Number.parseFloat(node.style.top));
       const trimStart = await markerY();
       await trimMarker.tap();
@@ -1210,6 +1240,7 @@ try {
       await getChoice(mobile, 'balance').tap();
       assert.equal(await value(mobile), '4');
       checks.push('390 px inflator: BCD chambers expand, bubbles appear only during underwater venting, releasing has no depth jump, and short pulses reach neutral');
+      checks.push('390 px inflator: the demonstration lifts the hose and both touch targets follow the actual buttons without covering their markings');
     } else {
       await operate(mobile, lesson.actions[0], 'tap');
       await mobile.evaluate(() => window.scrollTo(0, 0));

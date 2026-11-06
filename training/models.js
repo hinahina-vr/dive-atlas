@@ -46,8 +46,17 @@ function hose(parent, coordinates, radius = .036, material = rubber) {
   const path = new T.CatmullRomCurve3(coordinates.map(point => v(...point)));
   return mesh(parent, new T.TubeGeometry(path, 28, radius, 8, false), material);
 }
-function flexibleHose(parent, radius, material, route) {
+function flexibleHose(parent, radius, material, route, corrugations = 0) {
   const tube = mesh(parent, new T.BufferGeometry(), material);
+  const ribs = corrugations ? new T.InstancedMesh(new T.TorusGeometry(radius, .014, 5, 16), material, corrugations) : null;
+  const rib = new T.Object3D();
+  const axis = v(0, 0, 1);
+  if (ribs) {
+    ribs.name = 'inflator-hose-ribs';
+    ribs.instanceMatrix.setUsage(T.DynamicDrawUsage);
+    ribs.frustumCulled = false;
+    parent.add(ribs);
+  }
   const lastFrom = v(Infinity, 0, 0);
   const lastTo = v(Infinity, 0, 0);
   return (from, to) => {
@@ -57,6 +66,16 @@ function flexibleHose(parent, radius, material, route) {
     const path = new T.CatmullRomCurve3([from, ...route(from, to), to]);
     tube.geometry.dispose();
     tube.geometry = new T.TubeGeometry(path, 22, radius, 8, false);
+    if (ribs) {
+      for (let i = 0; i < corrugations; i += 1) {
+        const along = (i + 1) / (corrugations + 1);
+        path.getPointAt(along, rib.position);
+        rib.quaternion.setFromUnitVectors(axis, path.getTangentAt(along));
+        rib.updateMatrix();
+        ribs.setMatrixAt(i, rib.matrix);
+      }
+      ribs.instanceMatrix.needsUpdate = true;
+    }
   };
 }
 function plate(parent, coords, depth, round, material, ...point) {
@@ -540,9 +559,18 @@ function inflator(root, inWater = false) {
   textPlate(jacket, 'BCD', '#b6e2da', .29, 0, -.18, .045);
 
   const head = inflatorHead(root, .61, -.44, .23);
-  box(head.userData.supply, .043, .003, .009, rubber, 0, .0125, 0);
-  box(head.userData.supply, .009, .003, .043, rubber, 0, .0125, 0);
-  box(head.userData.exhaust, .043, .003, .009, white, 0, .014, 0);
+  const { supply, exhaust: ventButton } = head.userData;
+  supply.name = 'inflator-supply-button';
+  ventButton.name = 'inflator-vent-button';
+  supply.position.y = .058;
+  ventButton.position.y = -.128;
+  ring(head, .052, .005, gray, 0, supply.position.y, .078);
+  ring(head, .053, .005, gray, 0, ventButton.position.y, .073);
+  box(supply, .048, .004, .010, rubber, 0, .013, 0);
+  box(supply, .010, .004, .048, rubber, 0, .013, 0);
+  box(ventButton, .048, .004, .010, white, 0, .014, 0);
+  cyl(head, .039, .063, aluminum, -.145, .058, 0, 'x');
+  cyl(head, .045, .029, gray, -.147, .058, 0, 'x');
   cyl(head, .044, .064, rubber, 0, -.203, 0);
   cyl(head, .031, .009, gray, 0, -.238, 0);
   const exhaust = group(root);
@@ -554,16 +582,24 @@ function inflator(root, inWater = false) {
   const restPosition = head.position.clone();
   const airCellPort = v(-.30, .27, -.11);
   const handEnd = v(0, 0, 0);
+  const headPosition = v(0, 0, 0);
+  const supplyPort = v(-.62, .19, -.46);
   const updateAirway = flexibleHose(root, .074, rubber, (from, to) => [
     v(from.x + .27, Math.max(.77, to.y + .09), .05),
     v(to.x - .12, Math.max(.57, to.y + .13), to.z - .06)
+  ], 21);
+  const updateSupply = flexibleHose(root, .022, rubber, (from, to) => [
+    v(from.x + .15, Math.max(.36, to.y + .09), -.26),
+    v(to.x - .24, to.y + .15, to.z - .10)
   ]);
+  const addButton = [supply, v(0, .015, 0)];
+  const releaseButton = [ventButton, v(0, .016, 0)];
   head.scale.setScalar(1.55);
   head.rotation.z = -.13;
   return {
     anchors: {
-      'add-air': [head, v(.20, .06, .12)], raise: [head, v(-.13, .18, .10)], vent: [head, v(.20, -.135, .13)],
-      'trim-add': [head, v(.20, .112, .125)], 'trim-vent': [head, v(.20, -.185, .13)]
+      'add-air': addButton, raise: [head, v(0, .182, .071)], vent: releaseButton,
+      'trim-add': addButton, 'trim-vent': releaseButton
     },
     docks: { above: [root, v(.52, .77, .39)], below: [root, v(.52, -.62, .41)] },
     grabbable: { raise: head },
@@ -571,16 +607,19 @@ function inflator(root, inWater = false) {
       handEnd.set(0, .213, 0);
       root.worldToLocal(head.localToWorld(handEnd));
       updateAirway(airCellPort, handEnd);
+      root.worldToLocal(head.localToWorld(handEnd.set(-.175, .058, 0)));
+      updateSupply(supplyPort, handEnd);
     },
     update(done, k, time, interaction) {
-      const raised = done.has('raise');
-      const air = inflatorAir(done.has('add-air'), done.has('vent'), interaction.pressure);
+      const raised = done.has('raise') ? 1 : T.MathUtils.smoothstep(interaction.pressure.raise || 0, 0, 1);
+      const vented = done.has('vent');
+      const air = inflatorAir(done.has('add-air'), vented, interaction.pressure);
       cellScale.set(.84 + .24 * air, 1 + .05 * air, .38 + 1.37 * air);
       for (const cell of airCells) cell.scale.lerp(cellScale, k);
-      head.position.lerp(raised ? raisedPosition : restPosition, k);
-      head.userData.supply.position.z = interaction.active === 'add-air' ? .070 : .084;
-      head.userData.exhaust.position.z = interaction.active === 'vent' ? .067 : .081;
-      exhaust.visible = inWater && interaction.active === 'vent' && air > .005;
+      head.position.lerp(headPosition.lerpVectors(restPosition, raisedPosition, raised), k);
+      supply.position.z = interaction.active === 'add-air' ? .070 : .084;
+      ventButton.position.z = interaction.active === 'vent' ? .067 : .081;
+      exhaust.visible = inWater && interaction.active === 'vent' && (air > .005 || vented);
       if (exhaust.visible) {
         root.worldToLocal(head.localToWorld(ventOrigin.set(.012, -.234, .02)));
         bubbles.forEach((bubble, i) => {

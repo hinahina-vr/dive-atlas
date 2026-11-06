@@ -425,19 +425,23 @@ function spatialTargets(lesson, model, scene) {
     if (id === 'buddy-vent') point.z += .17;
     if (id === 'fin-part-boot') point.x -= .20;
     const trimming = id.startsWith('trim-');
+    const buttonHit = inflator && (trimming || action?.pressTime) ? new T.Sphere(new T.Vector3(), .086) : null;
     const phaseOnly = (fins && !dock) || trimming || id === 'trace-hose';
     const actionId = trimming ? 'balance' : id;
     const index = lesson.actions.findIndex(action => action.id === actionId);
     const sharedAnchor = gear ? lesson.actions.findIndex((step, i) => i < index && step.anchor === anchor) : -1;
-    return { id, dock, group, parent, point, mesh, index, phaseOnly, sharedAnchor };
+    return { id, dock, group, parent, point, mesh, index, phaseOnly, sharedAnchor, buttonHit };
   });
   const forward = new T.Vector3();
   const delta = new T.Vector3();
+  const labelOffset = new T.Vector3();
+  const hitPoint = new T.Vector3();
   return {
     update(state, placing, eye, orientation, inspecting, focusStep, finChoice) {
       const stepIndex = focusStep && state.steps.indexOf(focusStep);
       forward.set(0, 0, -1).applyQuaternion(orientation);
-      for (const { id, dock, group, parent, point, mesh, index, phaseOnly, sharedAnchor } of targets) {
+      labelOffset.set(.235, 0, 0).applyQuaternion(orientation);
+      for (const { id, dock, group, parent, point, mesh, index, phaseOnly, sharedAnchor, buttonHit } of targets) {
         mesh.visible = false;
         if (focusStep !== undefined) {
           if (!focusStep || group || !parent.visible || (dock ? id !== focusStep.attachment?.dock : index !== stepIndex)) continue;
@@ -454,6 +458,10 @@ function spatialTargets(lesson, model, scene) {
         }
         parent.localToWorld(mesh.position.copy(point));
         if (delta.subVectors(mesh.position, eye).normalize().dot(forward) < .70) continue;
+        if (buttonHit) {
+          buttonHit.center.copy(mesh.position);
+          mesh.position.add(labelOffset);
+        }
         mesh.quaternion.copy(orientation);
         mesh.updateMatrixWorld();
         mesh.visible = true;
@@ -461,10 +469,11 @@ function spatialTargets(lesson, model, scene) {
     },
     pick(ray) {
       let nearest;
-      for (const { id, dock, mesh } of targets) {
+      for (const { id, dock, mesh, buttonHit } of targets) {
         if (!mesh.visible) continue;
-        const hit = ray.intersectObject(mesh)[0];
-        if (hit && (!nearest || hit.distance < nearest.distance)) nearest = { id, dock, spatial: true, distance: hit.distance };
+        const physicalHit = buttonHit && ray.ray.intersectSphere(buttonHit, hitPoint);
+        const distance = physicalHit ? ray.ray.origin.distanceTo(physicalHit) : ray.intersectObject(mesh)[0]?.distance;
+        if (distance !== undefined && (!nearest || distance < nearest.distance)) nearest = { id, dock, spatial: true, distance };
       }
       return nearest;
     },
@@ -850,7 +859,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
         line.scale.z = hit?.distance || .84;
         hovered ??= hit?.id;
       }
-      if (fins || gear || focusStep) targets?.highlight(hovered, Boolean(focusStep));
+      if (fins || gear || inflator || focusStep) targets?.highlight(hovered, Boolean(focusStep));
       panel.draw(current, hovered, placing, completed, inspecting, reviewIndex, demo, finChoice, hasController);
       renderer.render(scene, camera);
     },

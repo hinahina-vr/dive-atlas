@@ -185,7 +185,9 @@ export function inflatorAir(added, vented, pressure) {
 export function adjustAir(practice, direction) {
   if (!practice.lesson.actions[practice.index]?.balance) return false;
   const current = Math.round((practice.pressure.balance ?? 0) * 100);
-  practice.pressure.balance = Math.min(96, Math.max(0, current + 16 * direction)) / 100;
+  const adjusted = Math.min(96, Math.max(0, current + 16 * direction));
+  if (adjusted === current) return false;
+  practice.pressure.balance = adjusted / 100;
   return true;
 }
 

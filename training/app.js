@@ -31,6 +31,8 @@ let view;
 let viewFailed = false;
 let immersive = false;
 let activePress = '';
+let trimPulse = '';
+let trimPulseTimer;
 let xrSupported = false;
 let xrBusy = false;
 let inspecting;
@@ -468,6 +470,12 @@ function trim(direction) {
   if (example.current() || !adjustAir(practice, direction)) return;
   feedback();
   saveCurrentDraft();
+  trimPulse = direction > 0 ? 'add-air' : 'vent';
+  clearTimeout(trimPulseTimer);
+  trimPulseTimer = setTimeout(() => {
+    trimPulse = '';
+    refreshEffect();
+  }, 220);
   refreshEffect();
   return true;
 }
@@ -723,9 +731,11 @@ function project(positions, docks) {
   const taken = [];
   for (const [anchor, marker] of marks) {
     const point = positions[anchor];
-    marker.hidden = !point || taken.some(({x, y}) => Math.hypot(point.x - x, point.y - y) < 37);
+    const onButton = marker.classList.contains('is-physical-button');
+    marker.hidden = !point || taken.some(({ x, y, onButton: otherButton }) =>
+      Math.hypot(point.x - x, point.y - y) < (onButton && otherButton ? 20 : 37));
     if (marker.hidden) continue;
-    taken.push(point);
+    taken.push({ ...point, onButton });
     marker.style.left = point.x + 'px';
     marker.style.top = point.y + 'px';
   }
@@ -733,7 +743,7 @@ function project(positions, docks) {
 
 function refreshEffect() {
   const { lesson, pressure, index } = practice;
-  renderEffects(lesson, lesson.actions.slice(0, index).map(action => action.id), pressure, activePress);
+  renderEffects(lesson, lesson.actions.slice(0, index).map(action => action.id), pressure, activePress || trimPulse);
 }
 
 function renderEffects(lesson, done, pressure, active) {
@@ -768,6 +778,8 @@ function renderEffects(lesson, done, pressure, active) {
 }
 
 function render() {
+  clearTimeout(trimPulseTimer);
+  trimPulse = '';
   closeInspection();
   press.cancel();
   placement.clear();
@@ -900,6 +912,7 @@ function render() {
         else if (action.inspection) openInspection(action, marker, false);
         else apply(action.id);
       });
+      if (lesson.scene === 'inflator' && (action.pressTime || action.direction)) marker.classList.add('is-physical-button');
       if (action.attachment) placement.bind(marker, action, { docks: lesson.docks, guided });
       if (action.pressTime) press.bind(marker, action);
       marker.dataset.part = action.id;

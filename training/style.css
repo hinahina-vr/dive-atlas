@@ -308,6 +308,10 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .hotspot::after { content: ""; position: absolute; inset: 19px; border-radius: 50%; background: #d9fff0; }
 .hotspot.is-guide::before, .hotspot:hover::before { inset: 8px; border-color: var(--amber); box-shadow: 0 0 18px #ffce7969; }
 .hotspot.is-guide::after, .hotspot:hover::after { background: var(--amber); }
+.hotspot.is-physical-button { width: 36px; height: 30px; }
+.hotspot.is-physical-button::before { inset: 1px 4px; background: transparent; }
+.hotspot.is-physical-button::after { display: none; }
+.hotspot.is-physical-button.is-pressed::before { border-color: #e6fff4; box-shadow: 0 0 0 2px #5cbbaf90; }
 .viewport.is-unavailable { height: 130px; }
 .scene-status {
   margin: auto; max-width: 30ch; position: absolute; inset: 55px 14px 9px; height: max-content;
