@@ -32,7 +32,7 @@ try {
       const fillText = CanvasRenderingContext2D.prototype.fillText;
       CanvasRenderingContext2D.prototype.fillText = function(value, x, y, ...rest) {
         if (this.canvas.width === 1024 && this.canvas.height === 346) {
-          if (y === 58) {
+          if (x === 32 && y === 58) {
             window.qaPanelText = [];
             window.qaPanelPoints = {};
           }
