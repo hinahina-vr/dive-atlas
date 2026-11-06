@@ -654,10 +654,35 @@ try {
   assert.equal(await value(portrait), '1');
   assert(await portrait.locator('#instruction').evaluate(node => document.activeElement === node));
   assert(await sceneAndActionVisible());
+  const visibleModeControls = () => portrait.locator('#practice-controls').evaluate(node => {
+    const [first, ...buttons] = [...node.querySelectorAll('button')].map(button => button.getBoundingClientRect());
+    return first.top >= 0 && first.bottom <= innerHeight && buttons.every(rect =>
+      rect.left >= first.right && rect.right <= innerWidth && Math.abs(rect.top - first.top) < 4);
+  });
+  assert(await visibleModeControls());
   await portrait.screenshot({ path: join(output, 'mobile-portrait-practice.png') });
+  await portrait.locator('#show-example').tap();
+  assert(await portrait.locator('#example-controls').isVisible());
+  assert.equal(await portrait.locator('#show-example').getAttribute('aria-pressed'), 'true');
+  await portrait.locator('#example-exit').tap();
+  assert.equal(await value(portrait), '1');
+  assert(await visibleModeControls());
+  await getChoice(portrait, 'mask-hold').tap();
+  await hold(portrait, 'mask-exhale', touchDrag(await portrait.context().newCDPSession(portrait)));
+  assert.equal(await value(portrait), '3');
+  const retry = portrait.locator('#retry-recall');
+  assert(await retry.isVisible());
+  await portrait.screenshot({ path: join(output, 'mobile-guided-to-recall.png') });
+  await retry.tap();
+  assert.equal(await portrait.locator('#recall').getAttribute('aria-pressed'), 'true');
+  assert.equal(await value(portrait), '0');
+  assert(await visibleModeControls());
+  assert(await portrait.locator('#recall').evaluate(node => document.activeElement === node));
+  checks.push('360 px practice modes stay visible after selecting a lesson and closing a demonstration; the guided result starts a fresh recall in the same lesson');
   checks.push('360 × 640 mobile portrait: lesson selection shows the 3D view and next action together, menu return and keyboard resume keep progress');
 
   await portrait.setViewportSize({ width: 320, height: 568 });
+  assert(await visibleModeControls());
   await portrait.locator('#recall').tap();
   await getChoice(portrait, 'mask-breathe').tap();
   await portrait.locator('#hint').tap();
@@ -777,6 +802,7 @@ try {
   const replayResult = mobile.locator('#review [data-review-step="mask-hold"]');
   await replayResult.tap();
   assert.equal(await mobile.locator('#step-title').innerText(), 'マスクの上側を押さえる');
+  assert.equal(await mobile.locator('#example-exit').innerText(), '見直しに戻る');
   await mobile.locator('#example-exit').tap();
   assert(await replayResult.evaluate(node => {
     const box = node.getBoundingClientRect();

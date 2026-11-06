@@ -20,10 +20,9 @@ const el = Object.fromEntries([
   'buoyancy-panel', 'buoyancy-status', 'trim-add', 'trim-vent',
   'show-example', 'example-guide', 'example-caption', 'example-controls', 'example-prev', 'example-play',
   'example-next', 'example-recall', 'example-exit', 'previous-review', 'previous-review-count', 'previous-review-list', 'practice-footer',
+  'practice-controls', 'retry-recall',
   'inspection-panel', 'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'result-summary', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
 ].map(id => [id, byId(id)]));
-const workspace = el.viewport.closest('.workspace');
-
 const practiceId = () => crypto.getRandomValues(new Uint32Array(2)).join('-');
 let runId = practiceId();
 let practice = newPractice(lessons[0], 'guided');
@@ -551,11 +550,15 @@ el['example-play'].addEventListener('click', () => example.toggle());
 el['example-exit'].addEventListener('click', closeExample);
 el['example-recall'].addEventListener('click', () => {
   const lesson = example.current()?.lesson;
-  if (!lesson) return;
+  if (lesson) beginRecall(lesson);
+});
+el['retry-recall'].addEventListener('click', () => beginRecall(practice.lesson));
+
+function beginRecall(lesson) {
   start(lesson, 'recall');
   el.recall.focus({ preventScroll: true });
   showViewport();
-});
+}
 
 function showExample(stepIndex, scenario, lesson = practice.lesson, returnFocus) {
   returnFromExample = returnFocus;
@@ -569,7 +572,7 @@ function showExample(stepIndex, scenario, lesson = practice.lesson, returnFocus)
 
 function showViewport() {
   if (portraitLayout.matches) {
-    workspace.scrollIntoView({ block: 'start' });
+    el['practice-controls'].scrollIntoView({ block: 'start' });
     return;
   }
   const bounds = el.viewport.getBoundingClientRect();
@@ -765,7 +768,7 @@ function render() {
   el.viewport.classList.toggle('is-water', useWater);
   el.viewport.classList.toggle('is-example', Boolean(demo));
   el['show-example'].setAttribute('aria-pressed', String(Boolean(demo)));
-  el['show-example'].textContent = demo ? '見本を閉じる' : '▷ 見本を見る';
+  el['show-example'].textContent = demo ? '見本を閉じる' : '見本を見る';
   el['view-help'].textContent = immersive && ['sweep', 'reach'].includes(step?.id) ? 'ドラッグで右肩側を見る' :
     step?.pressTime ? (step.id === 'add-air' ? '目印を短く押す' : '目印を押し続ける') :
     step?.attachment ? 'ドラッグ／器材→目印をタップ' :
@@ -820,6 +823,7 @@ function render() {
     el['example-prev'].disabled = !demo.complete && demo.index === demo.first;
     el['example-next'].disabled = demo.complete;
     el['example-play'].textContent = demo.complete ? 'もう一度見る' : demo.paused ? '再生する' : '一時停止';
+    el['example-exit'].textContent = returnFromExample ? '見直しに戻る' : '練習に戻る';
     drawExample(demo);
     return;
   }
@@ -877,11 +881,13 @@ function render() {
   if (!step) {
     const review = needsReview(practice);
     el['result-heading'].textContent = review.length ? '見直す手順は' + review.length + 'つ' : '練習完了';
-    el['result-summary'].hidden = Boolean(review.length);
-    el['result-summary'].textContent = mode === 'recall' ? 'ヒントなしですべての手順を思い出せました。' :
-      '次は「自力で復習」で、手順を思い出してみましょう。';
+    const guided = mode === 'guided';
+    el['result-summary'].hidden = guided || Boolean(review.length);
+    el['result-summary'].textContent = 'ヒントなしですべての手順を思い出せました。';
     el.review.hidden = !review.length;
     el.review.replaceChildren(...review.map(action => reviewRow(action, practice.scenario)));
+    el['retry-recall'].hidden = !guided;
+    el['next-lesson'].className = guided ? 'outline-control' : 'primary';
     const next = lessons[lessonIndex(lesson) + 1];
     el['next-lesson'].textContent = lesson.id === 'gear' ? 'バディの器材を確認 ›' :
       next ? next.title + 'へ ›' : '練習メニューに戻る';

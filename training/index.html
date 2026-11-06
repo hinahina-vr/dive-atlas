@@ -35,13 +35,6 @@
           <p>Android・PCは、ブラウザーのメニューから「ホーム画面に追加」またはアプリのインストールを選びます。</p>
         </div>
       </div>
-      <div class="intro-controls">
-        <button type="button" id="show-example" class="outline-control" aria-pressed="false">▷ 見本を見る</button>
-        <div class="segmented" role="group" aria-label="練習モード">
-          <button type="button" id="guided" aria-pressed="true">手順を見ながら</button>
-          <button type="button" id="recall" aria-pressed="false">自力で復習</button>
-        </div>
-      </div>
     </section>
 
     <div class="review-overview">
@@ -57,6 +50,13 @@
       <button type="button" id="resume-practice" class="outline-control" aria-describedby="draft-description">続きから</button>
     </div>
     <nav id="lessons" aria-label="練習メニュー" tabindex="-1"></nav>
+    <div id="practice-controls" role="group" aria-label="練習の進め方">
+      <button type="button" id="show-example" class="outline-control" aria-pressed="false">見本を見る</button>
+      <div class="segmented" role="group" aria-label="練習モード">
+        <button type="button" id="guided" aria-pressed="true">手順を見ながら</button>
+        <button type="button" id="recall" aria-pressed="false">自力で復習</button>
+      </div>
+    </div>
 
     <section class="workspace" aria-label="練習">
       <div class="viewer">
@@ -135,7 +135,10 @@
           <h3 id="result-heading" tabindex="-1"></h3>
           <p id="result-summary" hidden></p>
           <ul id="review" hidden></ul>
-          <button type="button" id="next-lesson" class="primary"></button>
+          <div class="result-actions">
+            <button type="button" id="retry-recall" class="primary" hidden>この種目を自力で復習 ›</button>
+            <button type="button" id="next-lesson" class="primary"></button>
+          </div>
         </section>
         <div id="mask-settings" class="lesson-settings" hidden>
           <label>練習を始めるときの水の量

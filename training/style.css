@@ -40,11 +40,16 @@ p { margin: 0; }
 .return { margin-left: auto; white-space: nowrap; color: var(--muted); font-size: .8rem; }
 .return:hover, .footnote a:hover { color: var(--teal); }
 main { width: min(1380px, 100%); margin: 0 auto; padding: 32px max(3vw, 18px) 22px; }
-.intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.intro { margin-bottom: 18px; }
 .eyebrow { color: var(--teal); font: 700 .69rem ui-monospace, monospace; letter-spacing: .18em; }
 h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7px; letter-spacing: -.035em; }
 .intro-copy { color: var(--muted); font-size: .9rem; }
-.intro-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#practice-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; scroll-margin-top: 8px; }
+#show-example { display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
+#show-example::before {
+  content: ""; border: 5px solid transparent; border-left: 8px solid var(--teal); border-right: 0;
+}
+#show-example[aria-pressed="true"]::before { width: 8px; height: 8px; border: 0; background: var(--teal); }
 .outline-control {
   min-height: 44px; padding: 0 12px; border: 1px solid #648583;
   border-radius: 8px; background: #f5fefa; color: #184854; font-size: .79rem; font-weight: 700;
@@ -348,7 +353,7 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
 #review strong, #previous-review-list strong { display: block; }
 #review li p { margin: 3px 0 0; color: #365e68; font-size: .8rem; line-height: 1.55; }
 #review .review-example { min-height: 44px; }
-#next-lesson { width: 100%; }
+.result-actions { display: grid; gap: 6px; }
 .primary { min-height: 44px; border: 1px solid; border-radius: 8px; padding: 0 15px; font-size: .84rem; font-weight: 750; }
 #offline-status {
   display: inline-flex; align-items: center; gap: 6px; margin: 3px 0 0 4px; padding: 3px 7px;
@@ -370,13 +375,17 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
 @media (max-width: 780px) {
   .masthead { min-height: 54px; }
   main { padding-top: 21px; }
-  .intro { align-items: flex-start; flex-direction: column; gap: 13px; margin-bottom: 14px; }
+  .intro { margin-bottom: 14px; }
   .workspace { grid-template-columns: minmax(0, 1fr); }
   .viewport { height: clamp(282px, 42svh, 440px); }
 }
 @media (max-width: 470px) {
   .mast-label { display: none; }
   main { padding-left: 11px; padding-right: 11px; }
+  #practice-controls { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; }
+  #show-example { padding-inline: 9px; }
+  .segmented { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); padding: 2px; }
+  .segmented button { min-height: 44px; padding-inline: 3px; font-size: .76rem; }
   #lessons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .lesson-button { padding: 5px 6px; font-size: .74rem; min-height: 55px; column-gap: 4px; }
   .lesson-status { font-size: .65rem; }
@@ -398,7 +407,7 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
 @media (orientation: landscape) and (max-height: 520px) and (min-width: 560px) {
   .masthead { min-height: 44px; padding-inline: 16px; }
   main { padding: 11px 14px 15px; }
-  .intro { align-items: end; flex-direction: row; gap: 10px; margin-bottom: 11px; }
+  .intro { margin-bottom: 11px; }
   h1 { font-size: clamp(1.4rem, 4vw, 2.1rem); }
   .intro-copy { font-size: .77rem; }
   .review-overview { margin-top: 0; }
