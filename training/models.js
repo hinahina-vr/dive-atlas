@@ -132,12 +132,12 @@ function kit(root, startAssembled, issues) {
   cyl(tank, .378, .134, rubber, 0, -1.064, 0);
   cyl(tank, .379, .1, teal, 0, .615, 0);
   textPlate(tank, 'DIVE / 01', '#163b42', .48, 0, .46, .378);
-  textPlate(tank, '検査期限', '#163b42', .36, 0, .28, .378);
+  const dateHeading = textPlate(tank, '検査期限', '#163b42', .36, 0, .28, .378);
   const validDate = textPlate(tank, '2028/05', '#163b42', .44, 0, .195, .378);
   const expiredDate = textPlate(tank, '2026/08', '#163b42', .44, 0, .195, .378);
   cyl(tank, .11, .15, metal, 0, 1.04, 0);
   box(tank, .24, .14, .18, aluminum, 0, 1.15, 0);
-  cyl(tank, .087, .062, metal, 0, 1.15, .104, 'z');
+  const valveSeat = cyl(tank, .087, .062, metal, 0, 1.15, .104, 'z');
   const seal = ring(tank, .051, .011, rubber, 0, 1.15, .139);
   const damagedSeal = mesh(tank, new T.TorusGeometry(.051, .011, 10, 32, 5), rubber, 0, 1.15, .139);
   damagedSeal.rotation.z = .42;
@@ -151,19 +151,21 @@ function kit(root, startAssembled, issues) {
   const jacket = group(root);
   plate(jacket, jacketOutline, .14, .07, cloth, 0, 0, -.12);
   const weight = group(jacket, .53, -.45, .317);
+  let weightPocket;
   for (const side of [-1, 1]) {
     const strap = [[.24, .59], [.35, .59], [.45, -.03], [.37, -.42], [.23, -.39], [.25, -.05]]
       .map(([x, y]) => [x * side, y]);
     plate(jacket, strap, .061, .034, rubber, 0, 0, .175);
-    plate(jacket, [[-.20, -.17], [-.19, .15], [.13, .19], [.20, .12], [.19, -.13], [.13, -.2]],
+    const pocket = plate(jacket, [[-.20, -.17], [-.19, .15], [.13, .19], [.20, .12], [.19, -.13], [.13, -.2]],
       .20, .045, rubber, .47 * side, -.40, .06);
+    if (side > 0) weightPocket = pocket;
     box(jacket, .30, .031, .028, teal, .48 * side, -.28, .303);
     if (side < 0) box(jacket, .13, .049, .04, amber, .53 * side, -.45, .317);
   }
   box(weight, .205, .137, .11, rubber, 0, 0, -.053);
   box(weight, .141, .053, .035, amber, 0, 0, .028);
-  box(jacket, .33, .071, .046, rubber, -.229, -.14, .244);
-  box(jacket, .097, .106, .068, aluminum, -.045, -.14, .276);
+  const chestStrap = box(jacket, .33, .071, .046, rubber, -.229, -.14, .244);
+  const chestSocket = box(jacket, .097, .106, .068, aluminum, -.045, -.14, .276);
   const buckle = group(jacket, .046, -.14, .276);
   box(buckle, .092, .084, .058, aluminum, 0, 0, 0);
   box(buckle, .287, .071, .046, rubber, .176, 0, -.032);
@@ -287,6 +289,13 @@ function kit(root, startAssembled, issues) {
       inspect: [tank, v(0, .235, .38), .92],
       'inspect-ring': [tank, v(0, 1.15, .139), .44],
       pressure: [gauge, v(0, 0, .067), .61]
+    },
+    inspectionParts: {
+      inspect: { parts: [dateHeading, validDate, expiredDate], center: v(0, .24, .378), scale: 1.45 },
+      'inspect-ring': { parts: [valveSeat, seal, damagedSeal], center: v(0, 1.15, .139), scale: 2.55 },
+      pressure: { parts: gauge.children, center: v(0, 0, .051), scale: 1.58 },
+      weights: { parts: [weightPocket, weight], center: v(.51, -.41, .31), scale: .93 },
+      releases: { parts: [chestStrap, chestSocket, buckle], center: v(0, -.16, .31), scale: .87 }
     },
     grabbable: { bcd: jacket, first: reg, connect: coupler },
     sync() {

@@ -42,7 +42,10 @@ try {
   await page.goto(url);
   await page.locator('#scene canvas').waitFor();
   const entry = page.locator('#vr-practice');
+  await entry.waitFor();
+  await page.locator('#show-example').click();
   assert(await entry.isHidden());
+  await page.locator('#example-exit').click();
   await page.getByRole('button',{name:'マスククリア',exact:true}).click();
   await page.locator('#mask-fill').selectOption('mask-full');
   await page.locator('#recall').click();
@@ -437,8 +440,168 @@ try {
   await page.waitForFunction(()=>window.qaEvents.includes('end'));
   assert.deepEqual((await finReview()).steps,[]);
   assert.equal((await finReview()).scenario,'ready');
+  const gearPanel = (x,y) => [-.96+(x/1024-.5)*.99,1.60+.35+(.5-y/346)*.3345,-1.43];
+  const leaveGear = gearPanel(892,57);
+  const normalGear = gearPanel(260,215);
+  const repairGear = gearPanel(766,215);
+  const gearPoint = (id, done, kind='gear', scenario='seal', pressure={}) =>
+    page.evaluate(async ({ id, done, kind, scenario, pressure }) => {
+      const { Group, Vector3 } = await import(new URL('../vendor/three.module.js', location));
+      const { lessons } = await import(new URL('lessons.js', location));
+      const { makeModel } = await import(new URL('models.js', location));
+      const lesson = lessons.find(item => item.id === kind);
+      window.qaKit ??= new Map();
+      const key = kind + ':' + scenario;
+      if (!window.qaKit.has(key)) {
+        const root = new Group();
+        root.position.set(0, 1.60, 0);
+        root.scale.setScalar(.70);
+        window.qaKit.set(key, makeModel(root,lesson,scenario));
+      }
+      const model = window.qaKit.get(key);
+      model.update(new Set(done),1,240,{pressure});
+      model.sync();
+      const anchor = lesson.actions.find(action => action.id === id)?.anchor || id;
+      const [part, offset] = model.anchors[anchor] || model.docks[id];
+      const point = offset.clone();
+      point.y += model.docks[id] ? .12 : .14;
+      if (id === 'buddy-vent') point.y -= .10;
+      return part.localToWorld(point).sub(new Vector3(0,.18,2.05)).toArray();
+    }, {id,done,kind,scenario,pressure});
+  const recallScenario = async sample => {
+    await page.locator('#guided').click();
+    await page.evaluate(value => {
+      const random = Math.random;
+      try {
+        Math.random = () => value;
+        document.querySelector('#recall').click();
+      } finally { Math.random = random; }
+    },sample);
+  };
+  const leaveBench = async () => {
+    await use(leaveGear);
+    await page.waitForFunction(() => window.qaEvents.includes('end'));
+  };
+  await page.reload();
+  await recallScenario(.10);
+  await start();
+  await use(await gearPoint('inspect',[],'gear','expired'));
+  await capture('gear-expired-date');
+  await use(normalGear);
+  assert.equal(await progress(),'0');
+  await use(repairGear);
+  assert.equal(await progress(),'1');
+  await leaveBench();
+
+  await page.reload();
+  await recallScenario(.42);
+  await start();
+  await capture('gear-bench');
+  await use(await gearPoint('inspect-ring',[]));
+  assert.equal(await progress(),'0');
+  assert.match(await page.locator('#feedback').innerText(),/先に別の操作/);
+  await use(await gearPoint('inspect',[]));
+  await capture('gear-valid-date');
+  await use(normalGear);
+  assert.equal(await progress(),'1');
+  const gearDone = ['inspect'];
+  await use(await gearPoint('inspect-ring',gearDone));
+  await capture('gear-damaged-ring');
+  await use(normalGear);
+  assert.equal(await progress(),'1');
+  await use(repairGear);
+  gearDone.push('inspect-ring');
+  assert.equal(await progress(),'2');
+  const jacket = await gearPoint('bcd',gearDone);
+  await grab(jacket,await gearPoint('valve',gearDone));
+  assert.equal(await progress(),'2');
+  assert.match(await page.locator('#feedback').innerText(),/位置が違います/);
+  await grab(jacket,await gearPoint('cylinder',gearDone), () => capture('gear-carrying-bcd'));
+  gearDone.push('bcd');
+  assert.equal(await progress(),'3');
+  await leaveBench();
+  await page.reload();
+  await page.locator('#resume-practice').click();
+  assert.equal(await progress(),'3');
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('dive-atlas.owd-draft.v1')).done),gearDone);
+  await start();
+  for (const id of ['lock','uncap']) {
+    await use(await gearPoint(id,gearDone));
+    gearDone.push(id);
+    assert.equal(await progress(),String(gearDone.length));
+  }
+  await grab(await gearPoint('first',gearDone),await gearPoint('valve',gearDone));
+  gearDone.push('first');
+  assert.equal(await progress(),'6');
+  await use(await gearPoint('connect',gearDone));
+  assert.equal(await progress(),'6');
+  await use(await gearPoint('inflator',gearDone));
+  gearDone.push('connect');
+  assert.equal(await progress(),'7');
+  for (const id of ['stow','gauge-away','open']) {
+    if (id === 'gauge-away') {
+      await use(await gearPoint('open',gearDone));
+      assert.equal(await progress(),'8');
+      assert.match(await page.locator('#feedback').innerText(),/先に別の操作/);
+    }
+    await use(await gearPoint(id,gearDone));
+    gearDone.push(id);
+    assert.equal(await progress(),String(gearDone.length));
+  }
+  await use(await gearPoint('pressure',gearDone));
+  await capture('gear-pressure-dial');
+  await use(normalGear);
+  assert.equal(await progress(),'11');
+  await leaveBench();
+  await page.locator('#result-heading').waitFor();
+  const gearReview = await page.evaluate(() => JSON.parse(localStorage.getItem('dive-atlas.owd-review.v1.gear')));
+  assert.equal(gearReview.scenario,'seal');
+  assert.deepEqual(gearReview.steps,['inspect','inspect-ring','bcd','gauge-away']);
+  await page.locator('#next-lesson').click();
+  assert.equal(await page.locator('#lesson-title').innerText(),'バディチェック');
+
+  await recallScenario(.35);
+  await start();
+  const buddyDone = [];
+  const buddyPoint = id => gearPoint(id,buddyDone,'buddy','buckle');
+  await use(await buddyPoint('buoyancy'),560);
+  buddyDone.push('buoyancy');
+  assert.equal(await progress(),'1');
+  await capture('buddy-inflated');
+  await use(await buddyPoint('buddy-vent'),700);
+  buddyDone.push('buddy-vent');
+  assert.equal(await progress(),'2');
+  await use(await buddyPoint('weights'));
+  await capture('buddy-weight-pocket');
+  await use(normalGear);
+  buddyDone.push('weights');
+  assert.equal(await progress(),'3');
+  await use(await buddyPoint('releases'));
+  await capture('buddy-open-buckle');
+  await use(normalGear);
+  assert.equal(await progress(),'3');
+  await use(repairGear);
+  buddyDone.push('releases');
+  assert.equal(await progress(),'4');
+  await use(await buddyPoint('buddy-valve'));
+  buddyDone.push('buddy-valve');
+  assert.equal(await progress(),'5');
+  await use(await buddyPoint('air'),1100);
+  buddyDone.push('air');
+  assert.equal(await progress(),'6');
+  await use(await buddyPoint('alternate'));
+  await use(normalGear);
+  buddyDone.push('alternate');
+  assert.equal(await progress(),'7');
+  await use(await buddyPoint('final'));
+  assert.equal(await progress(),'8');
+  await capture('buddy-checked');
+  await leaveBench();
+  const buddyReview = await page.evaluate(() => JSON.parse(localStorage.getItem('dive-atlas.owd-review.v1.buddy')));
+  assert.equal(buddyReview.scenario,'buckle');
+  assert.deepEqual(buddyReview.steps,['releases']);
   assert.deepEqual(errors,[]);
-  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button gated by lesson','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes','Surface fins accept a tracked drag or separate selections and reject the wrong dock','A partially lifted heel is saved across XR exit and reload','Loose and snug straps look different and require the matching judgement']},null,2));
+  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button available for gear and hidden during the example','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes','Surface fins accept a tracked drag or separate selections and reject the wrong dock','A partially lifted heel is saved across XR exit and reload','Loose and snug straps look different and require the matching judgement','Gear inspection reads dates and a damaged O-ring and rejects incorrect answers','Gear attaches BCD, first stage and low-pressure hose, preserves progress and requires the gauge to be turned before opening','A completed gear run leads to buddy check, which tests BCD air, finds and corrects a buckle fault and saves review']},null,2));
   console.log(folder);
 } catch(error) {
   console.log(JSON.stringify({errors, browser:await page.evaluate(()=>({iwer:!!window.xrDevice,events:window.qaEvents,session:!!window.qaSession,feedback:document.querySelector('#feedback')?.textContent}))}));

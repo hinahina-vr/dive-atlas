@@ -476,7 +476,7 @@ el.perspective.addEventListener('click', () => {
 });
 function renderXREntry() {
   const button = el['vr-practice'];
-  button.hidden = !xrSupported || !view || !['mask', 'recovery', 'inflator', 'fins'].includes(practice.lesson.scene) || Boolean(example.current()) ||
+  button.hidden = !xrSupported || !view || !['gear', 'mask', 'recovery', 'inflator', 'fins'].includes(practice.lesson.scene) || Boolean(example.current()) ||
     practice.index === practice.lesson.actions.length;
   button.disabled = xrBusy;
 }
