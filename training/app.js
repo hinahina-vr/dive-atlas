@@ -503,6 +503,7 @@ el['vr-practice'].addEventListener('click', async () => {
         const finished = run.index === run.lesson.actions.length;
         return {
           steps: run.lesson.actions,
+          choices: run.choices,
           index: run.index,
           guide: run.mode === 'guided' || hint,
           active: activePress,

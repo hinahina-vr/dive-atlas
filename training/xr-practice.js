@@ -38,6 +38,18 @@ const exampleControls = [
   { id: 'example-recall', label: '自力で復習 ›', x: 724, y: 268, w: 268, h: 60 }
 ];
 
+const finRecallGroups = {
+  'fin-part-strap': {
+    label: 'ストラップ', anchor: 'fin-strap',
+    actions: { 'fin-strap': '外側へよける', 'fin-lock': 'かかとに掛ける', 'fin-check': 'フィットを確かめる' }
+  },
+  'fin-part-boot': {
+    label: 'ブーツ', anchor: 'fin-wiggle',
+    actions: { 'fin-foot': 'ポケットに入れる', 'fin-wiggle': 'かかとを動かす（長押し）' }
+  }
+};
+const finCancel = { id: 'fin-cancel', label: 'キャンセル', x: 32, y: 268, w: 248, h: 60 };
+
 const inspectionSlots = [
   { id: 'normal', label: '足についてくる', x: 32, y: 173, w: 454, h: 85 },
   { id: 'repair', label: 'すき間がある・調整する', x: 538, y: 173, w: 454, h: 85 }
@@ -156,10 +168,10 @@ function makePanel(lesson) {
   let visibleControls = controls;
   const exit = maskControls.at(-1);
 
-  function drawControls(options, state, hovered, primary) {
+  function drawControls(options, state, hovered, primary, neutral = false) {
     visibleControls = options;
     for (const control of options) {
-      const index = state.steps.findIndex(step => step.id === control.id);
+      const index = neutral ? -1 : state.steps.findIndex(step => step.id === control.id);
       const done = index >= 0 && index < state.index;
       const guided = (state.guide && index === state.index) || control.id === primary;
       const selected = hovered === control.id;
@@ -235,16 +247,18 @@ function makePanel(lesson) {
       const x = hit.uv.x * 1024, y = (1 - hit.uv.y) * 346;
       return visibleControls.find(({ x: left, y: top, w, h }) => x >= left && x <= left + w && y >= top && y <= top + h)?.id;
     },
-    draw(state, hovered, placing, done, inspecting, reviewIndex, demo) {
+    draw(state, hovered, placing, done, inspecting, reviewIndex, demo, finChoice) {
       const air = inflator ? inflatorAir(done.has('add-air'), done.has('vent'), state.pressure) : 0;
       const amount = Math.round((inflator ? air : state.water) * 100);
       const key = demo ? ['example', demo.index, demo.paused, demo.complete, demo.motion >= 1, demo.amount, hovered].join('|') :
-        [state.index, state.guide, state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex].join('|');
+        [state.index, state.guide, state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex, finChoice].join('|');
       if (key === previous) return;
       previous = key;
       const next = state.steps[state.index];
       const inspection = inspecting && next?.inspection;
-      const compact = next ? (inflator && next.id !== 'balance') || ((fins || gear) && !inspection) :
+      const finGroup = finRecallGroups[finChoice];
+      const finInput = fins && !state.guide && (finChoice || placing);
+      const compact = next ? (inflator && next.id !== 'balance') || ((fins || gear) && !inspection && !finInput) :
         !state.review.length && lesson.id !== 'gear';
       context.clearRect(0, 0, 1024, 346);
       rect(0, 0, 1024, compact && !demo ? 246 : 346, '#f1fffd');
@@ -255,17 +269,28 @@ function makePanel(lesson) {
       text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', 530);
       const note = fins && inspection ? 'かかとを動かすと、フィンはどうなった？' :
         inspection ? inspection.prompt :
+        finGroup ? finGroup.label + 'で何をする？' :
         (fins || gear) && placing ? '照準を合わせて置く' :
         inflator && placing ? '排気口を置く高さを選ぶ' :
+        finChoice ? next.attachment.part + 'を持つ' :
         (fins || gear || inflator) && state.guide ? next?.label : '';
       text(note || state.message || '操作に照準を合わせてトリガーを押す', 32, 129, 34, '#246270');
       const options = inspection ? inspectionSlots.map(slot => fins ? slot : { ...slot, label: inspection[slot.id] }) : [];
-      drawControls(compact ? [exampleOpen, exit] : [...options, ...controls, exampleOpen], state, hovered);
+      if (finGroup) {
+        const choices = state.choices.filter(step => finGroup.actions[step.id]);
+        const width = (960 - 24 * (choices.length - 1)) / choices.length;
+        choices.forEach((step, index) => options.push({
+          id: step.id, label: finGroup.actions[step.id], x: 32 + index * (width + 24), y: 173, w: width, h: 85
+        }));
+      }
+      if (finInput) options.push(finCancel);
+      drawControls(compact ? [exampleOpen, exit] : [...options, ...controls, exampleOpen], state, hovered, undefined, Boolean(finGroup));
       if (fins || gear) {
         const hint = placing ? 'トリガーを離すか、置く場所を選ぶ' :
           state.retry ? state.message : inspection ? inspection.note || '' :
-          next.pressTime ? 'トリガーを押し続ける' : fins ? '足元にある目印を探す' : '器材の目印を選ぶ';
-        text(hint, 32, compact ? 197 : 300, 32, '#246270');
+          finGroup ? state.message : finChoice ? '足元の目印に照準を合わせる' :
+          state.guide && next.pressTime ? 'トリガーを押し続ける' : fins ? '足元の部品を選ぶ' : '器材の目印を選ぶ';
+        text(hint, finInput ? 310 : 32, compact ? 197 : 300, 32, '#246270', finInput ? 675 : 960);
       } else if (recovery) {
         const note = placing ? '正面を向いて「口元」を選ぶ' :
           !state.guide ? '次の操作を思い出し、器材かボタンを選ぶ' :
@@ -313,6 +338,7 @@ function spatialTargets(lesson, model, scene) {
   const labels = gear ? gearLabels : fins ? finLabels : inflator ? inflatorLabels : recoveryLabels;
   const entries = lesson.actions.map(action => action.id).filter(id => labels[id]);
   if (inflator) entries.push('trim-add', 'trim-vent');
+  if (fins) entries.push(...Object.keys(finRecallGroups));
   entries.push(...Object.keys(model.docks));
   const targets = entries.map(id => {
     const canvas = document.createElement('canvas');
@@ -333,7 +359,8 @@ function spatialTargets(lesson, model, scene) {
     context.fillStyle = '#e8fff9';
     context.font = '700 39px sans-serif';
     context.textBaseline = 'middle';
-    context.fillText(labels[id], 78, 51, 226);
+    const group = finRecallGroups[id];
+    context.fillText(group?.label || labels[id], 78, 51, 226);
     const texture = new T.CanvasTexture(canvas);
     texture.colorSpace = T.SRGBColorSpace;
     const mesh = new T.Mesh(new T.PlaneGeometry(fins || gear ? .40 : .31, fins || gear ? .125 : .097), new T.MeshBasicMaterial({
@@ -344,31 +371,36 @@ function spatialTargets(lesson, model, scene) {
     scene.add(mesh);
     const dock = Boolean(model.docks[id]);
     const action = lesson.actions.find(step => step.id === id);
-    const anchor = action?.anchor || id;
+    const anchor = group?.anchor || action?.anchor || id;
     const [parent, offset] = model.anchors[anchor] || model.docks[id];
     const point = offset.clone();
     if (!inflator) point.y += dock ? .12 : .14;
     if (id === 'replace') point.x += .13;
     if (id === 'buddy-vent') point.z += .17;
+    if (id === 'fin-part-boot') point.x -= .20;
     const trimming = id.startsWith('trim-');
     const phaseOnly = (fins && !dock) || trimming || id === 'trace-hose';
     const actionId = trimming ? 'balance' : id;
     const index = lesson.actions.findIndex(action => action.id === actionId);
     const sharedAnchor = gear ? lesson.actions.findIndex((step, i) => i < index && step.anchor === anchor) : -1;
-    return { id, dock, parent, point, mesh, index, phaseOnly, sharedAnchor };
+    return { id, dock, group, parent, point, mesh, index, phaseOnly, sharedAnchor };
   });
   const forward = new T.Vector3();
   const delta = new T.Vector3();
   return {
-    update(state, placing, eye, orientation, inspecting, focusStep) {
+    update(state, placing, eye, orientation, inspecting, focusStep, finChoice) {
       const stepIndex = focusStep && state.steps.indexOf(focusStep);
       forward.set(0, 0, -1).applyQuaternion(orientation);
-      for (const { id, dock, parent, point, mesh, index, phaseOnly, sharedAnchor } of targets) {
+      for (const { id, dock, group, parent, point, mesh, index, phaseOnly, sharedAnchor } of targets) {
         mesh.visible = false;
         if (focusStep !== undefined) {
-          if (!focusStep || !parent.visible || (dock ? id !== focusStep.attachment?.dock : index !== stepIndex)) continue;
+          if (!focusStep || group || !parent.visible || (dock ? id !== focusStep.attachment?.dock : index !== stepIndex)) continue;
+        } else if (fins && !state.guide) {
+          if (!state.steps[state.index] || !parent.visible || inspecting) continue;
+          const armed = finChoice && !finRecallGroups[finChoice];
+          if (placing ? !dock : armed ? id !== finChoice : !group) continue;
         } else {
-          if (placing ? !dock : dock || index < state.index || !parent.visible) continue;
+          if (group || (placing ? !dock : dock || index < state.index || !parent.visible)) continue;
           if (id === inspecting || (phaseOnly && index !== state.index)) continue;
           if (gear && placing === 'bcd' && id === 'inflator') continue;
           if (gear && !dock && (inspecting || sharedAnchor >= state.index ||
@@ -386,7 +418,7 @@ function spatialTargets(lesson, model, scene) {
       for (const { id, dock, mesh } of targets) {
         if (!mesh.visible) continue;
         const hit = ray.intersectObject(mesh)[0];
-        if (hit && (!nearest || hit.distance < nearest.distance)) nearest = { id, dock, distance: hit.distance };
+        if (hit && (!nearest || hit.distance < nearest.distance)) nearest = { id, dock, spatial: true, distance: hit.distance };
       }
       return nearest;
     },
@@ -489,6 +521,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
   let requestedRun;
   let holding;
   let inspecting;
+  let finChoice;
   let reviewIndex = -1;
   let carry;
   const carriedPosition = new T.Vector3();
@@ -529,13 +562,16 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
       selected = hit?.id;
       const step = state?.steps.find(action => action.id === selected);
       const part = (fins || gear) && presentation?.model.grabbable[selected];
-      if (part && !carry && !holding && step && step === state.steps[state.index]) {
+      if (part && hit?.spatial && !carry && !holding && step && step === state.steps[state.index]) {
+        finChoice = undefined;
         placing = selected;
         const offset = part.getWorldPosition(new T.Vector3()).sub(raycaster.ray.at(hit.distance, carriedPosition));
         carry = { controller, part, distance: hit.distance, offset };
       }
       timed = Boolean(step?.pressTime);
-      if (step?.pressTime && !holding && state.steps.indexOf(step) >= state.index && press.startHold(step, controller)) {
+      const fromFinMenu = !hit?.spatial && finRecallGroups[finChoice]?.actions[selected];
+      if (step?.pressTime && !holding && (fromFinMenu || state.steps.indexOf(step) >= state.index) &&
+        press.startHold(step, controller)) {
         holding = controller;
       }
     }
@@ -557,33 +593,43 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
       else if (selected === 'review-back') reviewIndex = -1;
       else if (selected === 'review-prev' && reviewIndex > 0) reviewIndex -= 1;
       else if (selected === 'review-next' && reviewIndex + 1 < readState()?.review.length) reviewIndex += 1;
-      else if (carry?.controller === controller) {
+      else if (selected === 'fin-cancel' && !holding && !carry) {
+        finChoice = undefined;
+        placing = null;
+      } else if (carry?.controller === controller) {
         const target = aim(controller);
         carry = null;
         if (target?.dock) place(target.id);
       } else if (timed) {
         if (holding === controller) {
           holding = null;
+          const index = readState()?.index;
           press.releaseHold(controller);
+          if (readState()?.index !== index) finChoice = undefined;
         }
       } else if (selected && !holding && !carry) {
         const state = readState();
         if (!state) return;
         const expected = state.steps[state.index];
-        if (inspecting && (selected === 'normal' || selected === 'repair')) {
+        const fromFinMenu = finRecallGroups[finChoice]?.actions[selected];
+        if (fromFinMenu) finChoice = undefined;
+        if (fins && !state.guide && finRecallGroups[selected]) {
+          finChoice = selected;
+        } else if (inspecting && (selected === 'normal' || selected === 'repair')) {
           apply(inspecting, selected);
           if (readState()?.index !== state.index) inspecting = null;
         } else if (expected?.inspection && expected.id === selected) {
           inspecting = selected;
         } else if (expected?.attachment && expected.id === selected) {
-          placing = selected;
+          if (fromFinMenu) finChoice = selected;
+          else placing = selected;
         } else if (placing && presentation?.model.docks[selected]) {
           place(selected);
         } else if (selected === 'trim-add' || selected === 'trim-vent') {
           const adding = selected === 'trim-add';
           if (trim(adding ? 1 : -1)) pulse = { action: adding ? 'add-air' : 'vent', until: performance.now() + 220 };
         } else {
-          const action = gear && state.steps.find(step => step.id === selected);
+          const action = (gear || fromFinMenu) && state.steps.find(step => step.id === selected);
           apply(selected, action?.attachment?.dock || (action?.inspection ? 'normal' : undefined));
         }
       }
@@ -621,6 +667,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
   function cancelInputs() {
     requestedRun = undefined;
     placing = null;
+    finChoice = undefined;
     pulse = null;
     previousTime = undefined;
     pointers.forEach(pointer => pointer.end());
@@ -707,7 +754,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
       const detail = gear ? (demo && !demo.complete ? demo.step.id : reviewStep?.id || inspecting) : undefined;
       model.update(completed, blend, motion, { active, pressure, detail });
       if (!fins && !gear) model.sync?.();
-      targets?.update(current, placing, visor.getWorldPosition(eye), visor.quaternion, inspecting, focusStep);
+      targets?.update(current, placing, visor.getWorldPosition(eye), visor.quaternion, inspecting, focusStep, finChoice);
       moveCarriedPart();
       if (fins || gear) model.sync();
       preview?.show(detail);
@@ -718,7 +765,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
         hovered ??= hit?.id;
       }
       if (fins || gear || focusStep) targets?.highlight(hovered, Boolean(focusStep));
-      panel.draw(current, hovered, placing, completed, inspecting, reviewIndex, demo);
+      panel.draw(current, hovered, placing, completed, inspecting, reviewIndex, demo, finChoice);
       renderer.render(scene, camera);
     },
     dispose() {

@@ -28,11 +28,16 @@ try {
       window.xrDevice.quaternion.set(0,0,0,1);
       window.xrDevice.fovy = Math.PI / 2;
       window.qaPanelText = [];
+      window.qaPanelPoints = {};
       const fillText = CanvasRenderingContext2D.prototype.fillText;
       CanvasRenderingContext2D.prototype.fillText = function(value, x, y, ...rest) {
         if (this.canvas.width === 1024 && this.canvas.height === 346) {
-          if (y === 58) window.qaPanelText = [];
+          if (y === 58) {
+            window.qaPanelText = [];
+            window.qaPanelPoints = {};
+          }
           window.qaPanelText.push(String(value));
+          window.qaPanelPoints[String(value)] = { x, y };
         }
         return fillText.call(this, value, x, y, ...rest);
       };
@@ -415,9 +420,11 @@ try {
     const model = makeDiveModel(modelRoot, lessons.find(lesson=>lesson.id==='fins'), scenario);
     model.update(new Set(done),1,240,{pressure:{'fin-wiggle':lift}});
     model.sync();
-    const [part, offset] = model.anchors[id] || model.docks[id];
+    const anchor = id === 'fin-part-boot' ? 'fin-wiggle' : id === 'fin-part-strap' ? 'fin-strap' : id;
+    const [part, offset] = model.anchors[anchor] || model.docks[id];
     const point = offset.clone();
     point.y += model.docks[id] ? .12 : .14;
+    if (id === 'fin-part-boot') point.x -= .20;
     return part.localToWorld(point).sub(new Vector3(0,1.53,1.25)).toArray();
   }, {id,done,scenario,lift});
   const bootIn = ['fin-strap','fin-foot'];
@@ -432,16 +439,53 @@ try {
     await trigger(0);
     await page.waitForTimeout(180);
   };
+  const chooseFin = async (part, label, done, scenario='loose', lift=0, ms=140) => {
+    const strap = part === 'strap';
+    await use(await finPoint(strap ? 'fin-part-strap' : 'fin-part-boot',done,scenario,lift));
+    await panelHas(strap ? 'ストラップで何をする？' : 'ブーツで何をする？',label);
+    const { x, y } = await page.evaluate(text => window.qaPanelPoints[text],label);
+    await use(finsPanel(x+22,y),ms);
+  };
+  await page.locator('#guided').click();
+  await pitch(0);
+  await start();
+  await pitch(-.65);
+  await panelHas('ストラップを外側へ');
+  await use(await finPoint('fin-strap',[],'walkthrough'));
+  assert.equal(await progress(),'1');
+  await pitch(0);
+  await use(leaveFins);
+  await page.waitForFunction(()=>window.qaEvents.includes('end'));
+
+  await page.reload();
+  await page.getByRole('button',{name:'フィンの履き方',exact:true}).click();
   await setupFins(.1);
   await pitch(-.65);
+  await panelHas('足元の部品を選ぶ');
   await capture('fins-surface');
-  await use(await finPoint('fin-strap',[]));
+  await chooseFin('boot','ポケットに入れる',[]);
+  assert.equal(await progress(),'0');
+  assert.match(await page.locator('#feedback').innerText(),/先に別の操作/);
+  const firstMiss = await page.evaluate(() => JSON.parse(localStorage.getItem('dive-atlas.owd-draft.v1')).missed);
+  assert.deepEqual(firstMiss,['fin-strap']);
+  await use(await finPoint('fin-part-strap',[]));
+  await panelHas('ストラップで何をする？','外側へよける','かかとに掛ける','フィットを確かめる');
+  await capture('fins-recall-strap-options');
+  const strapOption = await page.evaluate(() => window.qaPanelPoints['外側へよける']);
+  await use(finsPanel(strapOption.x+22,strapOption.y));
   assert.equal(await progress(),'1');
   const boot = await finPoint('fin-foot',['fin-strap']);
   const pocket = await finPoint('pocket',['fin-strap']);
+  await chooseFin('boot','ポケットに入れる',['fin-strap']);
+  await panelHas('ブーツを持つ','キャンセル');
+  await use(finsPanel(155,298));
+  await panelHas('足元の部品を選ぶ');
+  assert.equal(await progress(),'1');
+  await chooseFin('boot','ポケットに入れる',['fin-strap']);
   await grab(boot,await finPoint('heel',['fin-strap']));
   assert.equal(await progress(),'1');
   assert.match(await page.locator('#feedback').innerText(),/位置が違います/);
+  await chooseFin('boot','ポケットに入れる',['fin-strap']);
   await aimAt(boot);
   const beforeCarry = await capture('fins-before-carry');
   await grab(boot,pocket,async () => {
@@ -449,12 +493,13 @@ try {
     assert.equal(await progress(),'1');
   });
   assert.equal(await progress(),'2');
+  await chooseFin('strap','かかとに掛ける',bootIn);
   await use(await finPoint('fin-lock',bootIn));
   assert.equal(await progress(),'2');
   await use(await finPoint('heel',bootIn));
   assert.equal(await progress(),'3');
 
-  await use(await finPoint('fin-wiggle',strapped),260);
+  await chooseFin('boot','かかとを動かす（長押し）',strapped,'loose',0,260);
   await page.waitForFunction(() => document.querySelector('#feedback').textContent.includes('もう少しかかとを動かして'));
   const wiggle = await pausedSweep();
   assert(wiggle>0&&wiggle<1);
@@ -469,10 +514,9 @@ try {
   assert.equal(await pausedSweep(),wiggle);
   await start();
   await pitch(-.65);
-  const wigglePoint = await finPoint('fin-wiggle',strapped,'loose',wiggle);
-  await use(wigglePoint,1000);
+  await chooseFin('boot','かかとを動かす（長押し）',strapped,'loose',wiggle,1000);
   assert.equal(await progress(),'4');
-  await use(await finPoint('fin-check',wiggled));
+  await chooseFin('strap','フィットを確かめる',wiggled);
   await capture('fins-loose-fit');
   await use(goodFit);
   assert.equal(await progress(),'4');
@@ -483,7 +527,7 @@ try {
   await use(leaveFins);
   await page.waitForFunction(()=>window.qaEvents.includes('end'));
   const finReview = () => page.evaluate(()=>JSON.parse(localStorage.getItem('dive-atlas.owd-review.v1.fins')));
-  assert.deepEqual((await finReview()).steps,['fin-foot','fin-check']);
+  assert.deepEqual((await finReview()).steps,['fin-strap','fin-foot','fin-check']);
   assert.equal((await finReview()).scenario,'loose');
 
   await page.reload();
@@ -492,13 +536,15 @@ try {
   await setupFins(.9);
   await pitch(-.65);
   const readyPoint = (id,done) => finPoint(id,done,'ready');
-  await use(await readyPoint('fin-strap',[]));
+  await chooseFin('strap','外側へよける',[],'ready');
   assert.equal(await progress(),'1');
+  await chooseFin('boot','ポケットに入れる',['fin-strap'],'ready');
   await grab(await readyPoint('fin-foot',['fin-strap']),await readyPoint('pocket',['fin-strap']));
+  await chooseFin('strap','かかとに掛ける',bootIn,'ready');
   await grab(await readyPoint('fin-lock',bootIn),await readyPoint('heel',bootIn));
   assert.equal(await progress(),'3');
-  await use(await readyPoint('fin-wiggle',strapped),1000);
-  await use(await readyPoint('fin-check',wiggled));
+  await chooseFin('boot','かかとを動かす（長押し）',strapped,'ready',0,1000);
+  await chooseFin('strap','フィットを確かめる',wiggled,'ready');
   await capture('fins-fitted-check');
   await use(goodFit);
   assert.equal(await progress(),'5');
@@ -746,7 +792,7 @@ try {
   assert.equal(await progress(),'0');
   assert.deepEqual(await readGearReview(),gearReplayReview);
   assert.deepEqual(errors,[]);
-  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button available for gear and hidden during the example','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes','Surface fins accept a tracked drag or separate selections and reject the wrong dock','A partially lifted heel is saved across XR exit and reload','Loose and snug straps look different and require the matching judgement','Gear inspection reads dates and a damaged O-ring and rejects incorrect answers','Gear attaches BCD, first stage and low-pressure hose, preserves progress and requires the gauge to be turned before opening','Gear and buddy check share one XR session and the bench stays anchored when the viewer moves','Exiting right after handoff or mid-buddy-check restores the correct step and keeps the gear review','Buddy check exercises inflation, inspection, error correction and its own saved review','VR result shows the flagged mask step while leaving the completed run untouched','Gear review navigates missed steps with contextual equipment, then returns to the result without changing the record','VR example moves mask water, pauses and starts fresh unaided practice within the session','Opening and closing a VR example preserves an interrupted exercise and its exact saved water','Gear example shows the damaged seal and its replacement without changing the exercise']},null,2));
+  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button available for gear and hidden during the example','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes','Surface fins accept a tracked drag or separate selections and reject the wrong dock','A partially lifted heel is saved across XR exit and reload','Loose and snug straps look different and require the matching judgement','Gear inspection reads dates and a damaged O-ring and rejects incorrect answers','Gear attaches BCD, first stage and low-pressure hose, preserves progress and requires the gauge to be turned before opening','Gear and buddy check share one XR session and the bench stays anchored when the viewer moves','Exiting right after handoff or mid-buddy-check restores the correct step and keeps the gear review','Buddy check exercises inflation, inspection, error correction and its own saved review','VR result shows the flagged mask step while leaving the completed run untouched','Gear review navigates missed steps with contextual equipment, then returns to the result without changing the record','VR example moves mask water, pauses and starts fresh unaided practice within the session','Opening and closing a VR example preserves an interrupted exercise and its exact saved water','Gear example shows the damaged seal and its replacement without changing the exercise','Fin recall shows equipment and unmarked candidate actions, and records an early attempt to put on the boot','Guided fins still indicate the next action, while recalled attachments can be canceled or carried to a dock']},null,2));
   console.log(folder);
 } catch(error) {
   console.log(JSON.stringify({errors, browser:await page.evaluate(()=>({iwer:!!window.xrDevice,events:window.qaEvents,session:!!window.qaSession,feedback:document.querySelector('#feedback')?.textContent}))}));
