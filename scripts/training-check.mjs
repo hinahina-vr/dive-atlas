@@ -836,11 +836,15 @@ try {
   assert.equal(await offPc.locator('#title').getAttribute('data-update'), null);
   await writeFile(updatedStyle, validStyle);
   await offPc.evaluate(async () => { await (await navigator.serviceWorker.getRegistration()).update(); });
-  await offPc.waitForFunction(async () => Boolean((await navigator.serviceWorker.getRegistration())?.waiting));
   const waitingWorker = await observer.evaluateHandle(async scope => {
-    return (await navigator.serviceWorker.getRegistration(scope)).waiting;
+    const deadline = Date.now() + 10000;
+    do {
+      const worker = (await navigator.serviceWorker.getRegistration(scope))?.waiting;
+      if (worker?.state === 'installed') return worker;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } while (Date.now() < deadline);
+    throw new Error('The corrected offline worker did not reach the waiting state');
   }, offlineUrl);
-  assert(await waitingWorker.evaluate(worker => worker?.state === 'installed'));
   await offPc.reload();
   assert.equal(await offPc.locator('#title').getAttribute('data-update'), null);
   const oldKeys = await observer.evaluate(() => caches.keys());
