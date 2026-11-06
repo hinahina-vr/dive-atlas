@@ -3,6 +3,7 @@ import { createPlacement } from './placement.js';
 import { createPress } from './press.js';
 import { createExample } from './example.js';
 import { reviewKey, readReview, saveReview } from './reviews.js';
+import { prepareOffline } from './offline.js';
 
 const byId = id => document.getElementById(id);
 const el = Object.fromEntries([
@@ -512,6 +513,7 @@ function render() {
 }
 
 render();
+prepareOffline(byId('offline-status'));
 try {
   const { createView } = await import('./view.js');
   view = createView(el.scene, project);

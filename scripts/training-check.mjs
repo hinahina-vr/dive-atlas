@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { chromium } from 'playwright-core';
 import { lessons, newPractice, choose, reveal, needsReview } from '../training/lessons.js';
 import { readReview, reviewKey, saveReview } from '../training/reviews.js';
+import { writeTrainingWorker } from './training-offline.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
@@ -77,13 +78,15 @@ execFileSync(process.execPath, ['scripts/build-pages.mjs', dist], { cwd: root })
 const revision = JSON.parse(await readFile(join(dist, 'revision.json'), 'utf8'));
 assert.equal(revision.revision, git('rev-parse', 'HEAD'));
 
-const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css' };
+let servedPages = dist;
+const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json' };
 const preview = createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
   if (!pathname.startsWith('/dive-atlas/')) return res.writeHead(404).end();
   const relative = pathname.slice('/dive-atlas/'.length);
-  const file = resolve(dist, relative + (relative.endsWith('/') || !relative ? 'index.html' : ''));
-  if (!file.startsWith(dist + sep)) return res.writeHead(404).end();
+  const serving = servedPages;
+  const file = resolve(serving, relative + (relative.endsWith('/') || !relative ? 'index.html' : ''));
+  if (!file.startsWith(serving + sep)) return res.writeHead(404).end();
   try {
     const content = await readFile(file);
     res.writeHead(200, { 'Content-Type': mime[extname(file)] || 'application/octet-stream' }).end(content);
@@ -109,8 +112,8 @@ try {
     headless: true, args: ['--enable-unsafe-swiftshader', '--disable-gpu-shader-disk-cache', '--disk-cache-size=1048576']
   });
   const pageErrors = [];
-  const testPage = async (viewport, mobile = false) => {
-    const context = await browser.newContext({ viewport, isMobile: mobile, hasTouch: mobile, reducedMotion: mobile ? 'reduce' : 'no-preference' });
+  const testPage = async (viewport, mobile = false, serviceWorkers = 'block') => {
+    const context = await browser.newContext({ viewport, isMobile: mobile, hasTouch: mobile, serviceWorkers, reducedMotion: mobile ? 'reduce' : 'no-preference' });
     const page = await context.newPage();
     page.on('pageerror', error => pageErrors.push(error.message));
     page.on('console', message => {
@@ -479,8 +482,105 @@ try {
   await noGl.getByRole('button', { name: 'マスククリア', exact: true }).tap();
   for (const action of lessons[2].actions) await operate(noGl, action, 'tap');
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
-  assert.deepEqual(pageErrors, []);
   checks.push('360 px WebGL-unavailable fallback: gear and mask drills still complete');
+  await noGl.context().close();
+
+  const offlineUrl = previewUrl + 'training/';
+  async function preparePage(page) {
+    await page.goto(offlineUrl);
+    await ready(page);
+    await page.locator('#offline-status[data-state="ready"]').waitFor({ timeout: 45000 });
+    assert(await page.evaluate(() => navigator.serviceWorker.controller?.scriptURL.endsWith('/training/offline-worker.js')));
+  }
+
+  const offPhone = await testPage(mobileSize, true, 'allow');
+  await preparePage(offPhone);
+  await offPhone.getByRole('button', { name: 'マスククリア', exact: true }).tap();
+  await offPhone.locator('#recall').tap();
+  await getChoice(offPhone, 'mask-exhale').tap();
+  await getChoice(offPhone, 'mask-breathe').tap();
+  await getChoice(offPhone, 'mask-hold').tap();
+  await getChoice(offPhone, 'mask-exhale').press('Enter');
+  assert.match(await offPhone.locator('#review').innerText(), /口で呼吸する/);
+  const offlineContext = offPhone.context();
+  await offlineContext.setOffline(true);
+  const offlineNavigation = await offPhone.reload();
+  assert(offlineNavigation?.fromServiceWorker());
+  await ready(offPhone);
+  await offPhone.locator('#offline-status[data-state="offline"]').waitFor();
+  const savedFiles = await offPhone.evaluate(async scope => {
+    const [name] = (await caches.keys()).filter(key => key.startsWith('dive-atlas-training@' + scope + '#'));
+    const cache = await caches.open(name);
+    return (await cache.keys()).map(item => new URL(item.url).pathname).sort();
+  }, offlineUrl);
+  assert(savedFiles.includes('/dive-atlas/vendor/three.module.js'));
+  assert(savedFiles.includes('/dive-atlas/vendor/three.core.js'));
+  assert(savedFiles.every(path => /^\/dive-atlas\/(training\/|vendor\/three\.)/.test(path)));
+  assert(await offPhone.evaluate(async () => {
+    try { await fetch('../journal.json'); return false; } catch { return true; }
+  }), 'A training page must not cache the logbook');
+  await offPhone.getByRole('button', { name: 'マスククリア', exact: true }).tap();
+  await offPhone.locator('#previous-review summary').tap();
+  await offPhone.locator('#previous-review').getByRole('button', { name: '口で呼吸する手順の見本を見る', exact: true }).tap();
+  assert.equal(await offPhone.locator('#step-title').innerText(), '口で呼吸する');
+  await offPhone.locator('#example-exit').tap();
+  await offPhone.screenshot({ path: join(output, 'mobile-offline.png'), fullPage: true });
+  await offlineContext.close();
+  checks.push('390 px static build: offline reload, real WebGL, saved review and example, with no logbook assets cached');
+
+  const offPc = await testPage({ width: 1440, height: 960 }, false, 'allow');
+  await preparePage(offPc);
+  const updateContext = offPc.context();
+  const observer = await updateContext.newPage();
+  await observer.goto(previewUrl + 'revision.json');
+  assert(await observer.evaluate(() => !navigator.serviceWorker.controller));
+  await observer.evaluate(() => caches.open('test-unrelated-cache'));
+  const updated = join(output, 'next-pages');
+  await cp(dist, updated, { recursive: true });
+  const nextHtml = join(updated, 'training', 'index.html');
+  const baselineHtml = await readFile(nextHtml, 'utf8');
+  await writeFile(nextHtml, baselineHtml.replace('id="title"', 'id="title" data-update="second"'));
+  await writeTrainingWorker(updated);
+
+  servedPages = updated;
+  const updatedStyle = join(updated, 'training', 'style.css');
+  const validStyle = await readFile(updatedStyle, 'utf8');
+  await writeFile(updatedStyle, validStyle + '\n/* invalid offline bundle */\n');
+  const rejected = await offPc.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    const outcome = new Promise(resolve => registration.addEventListener('updatefound', () => {
+      const worker = registration.installing;
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'redundant' || worker.state === 'installed') resolve(worker.state);
+      });
+    }, { once: true }));
+    await registration.update();
+    return Promise.race([outcome, new Promise(resolve => setTimeout(() => resolve('timeout'), 10000))]);
+  });
+  assert.equal(rejected, 'redundant');
+  assert.equal(await offPc.locator('#title').getAttribute('data-update'), null);
+  await writeFile(updatedStyle, validStyle);
+  await offPc.evaluate(async () => { await (await navigator.serviceWorker.getRegistration()).update(); });
+  await offPc.waitForFunction(async () => Boolean((await navigator.serviceWorker.getRegistration())?.waiting));
+  await offPc.reload();
+  assert.equal(await offPc.locator('#title').getAttribute('data-update'), null);
+  const oldKeys = await observer.evaluate(() => caches.keys());
+  assert.equal(oldKeys.filter(key => key.startsWith('dive-atlas-training@')).length, 2);
+  await offPc.close();
+  await observer.waitForFunction(async scope => {
+    const registration = await navigator.serviceWorker.getRegistration(scope);
+    return registration?.active?.state === 'activated' && !registration.waiting &&
+      (await caches.keys()).filter(key => key.startsWith('dive-atlas-training@' + scope + '#')).length === 1;
+  }, offlineUrl);
+  assert((await observer.evaluate(() => caches.keys())).includes('test-unrelated-cache'));
+  await updateContext.setOffline(true);
+  const newPc = await updateContext.newPage();
+  const newNavigation = await newPc.goto(offlineUrl + 'index.html');
+  assert(newNavigation?.fromServiceWorker());
+  await ready(newPc);
+  assert.equal(await newPc.locator('#title').getAttribute('data-update'), 'second');
+  assert.deepEqual(pageErrors, []);
+  checks.push('1440 px offline update: rejects a mismatched file, retains existing tab, activates the corrected build and preserves unrelated caches');
   await writeFile(join(output, 'report.json'), JSON.stringify({ revision, checks }, null, 2));
   console.log(output);
   for (const check of checks) console.log('PASS ' + check);

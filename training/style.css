@@ -268,6 +268,15 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
 .result-heading { font-weight: 750; color: var(--teal); }
 #review { color: #365e68; padding-left: 1.2rem; font-size: .8rem; line-height: 1.55; margin: 7px 0 13px; }
 .primary { min-height: 44px; border: 1px solid; border-radius: 8px; padding: 0 15px; font-size: .84rem; font-weight: 750; }
+#offline-status {
+  display: inline-flex; align-items: center; gap: 6px; margin: 3px 0 0 4px; padding: 3px 7px;
+  border: 1px solid #a2c9c3; border-radius: 6px; background: #f4fcf7; color: #28615c;
+  font-size: .72rem; line-height: 1.4;
+}
+#offline-status[data-state="ready"]::before, #offline-status[data-state="offline"]::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; background: #258474;
+}
+#offline-status[data-state="failed"] { color: var(--gold-ink); }
 .footnote { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 14px; font-size: .72rem; line-height: 1.6; color: var(--muted); }
 .footnote a { flex-shrink: 0; text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 780px) {
