@@ -476,7 +476,7 @@ el.perspective.addEventListener('click', () => {
 });
 function renderXREntry() {
   const button = el['vr-practice'];
-  button.hidden = !xrSupported || !view || !['mask', 'recovery', 'inflator'].includes(practice.lesson.scene) || Boolean(example.current()) ||
+  button.hidden = !xrSupported || !view || !['mask', 'recovery', 'inflator', 'fins'].includes(practice.lesson.scene) || Boolean(example.current()) ||
     practice.index === practice.lesson.actions.length;
   button.disabled = xrBusy;
 }
@@ -491,6 +491,7 @@ el['vr-practice'].addEventListener('click', async () => {
     session = await navigator.xr.requestSession('immersive-vr');
     await view.enterPracticeXR(session, {
       lesson: run.lesson,
+      scenario: run.scenario,
       readState() {
         if (practice !== run || example.current()) return null;
         return {
@@ -500,6 +501,7 @@ el['vr-practice'].addEventListener('click', async () => {
           active: activePress,
           pressure: run.pressure,
           message: el.feedback.textContent,
+          retry: el.feedback.dataset.tone === 'retry',
           water: remainingMaskWater(run.lesson.maskFill, run.index === run.lesson.actions.length, run.pressure['mask-exhale'])
         };
       },

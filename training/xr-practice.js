@@ -20,6 +20,11 @@ const inflatorControls = [
   maskControls.at(-1)
 ];
 
+const finInspection = [
+  { id: 'normal', label: '足についてくる', x: 32, y: 173, w: 454, h: 85 },
+  { id: 'repair', label: 'すき間がある・調整する', x: 538, y: 173, w: 454, h: 85 }
+];
+
 function makeVisor() {
   const lens = new T.Mesh(new T.PlaneGeometry(.96, .58), new T.ShaderMaterial({
     transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
@@ -55,7 +60,8 @@ function makeVisor() {
 function makePanel(lesson) {
   const recovery = lesson.scene === 'recovery';
   const inflator = lesson.scene === 'inflator';
-  const controls = recovery ? recoveryControls : inflator ? inflatorControls : maskControls;
+  const fins = lesson.scene === 'fins';
+  const controls = fins ? [maskControls.at(-1)] : recovery ? recoveryControls : inflator ? inflatorControls : maskControls;
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
   canvas.height = 346;
@@ -66,7 +72,8 @@ function makePanel(lesson) {
     map: texture, transparent: true, depthTest: false, depthWrite: false, toneMapped: false
   }));
   mesh.renderOrder = 9;
-  mesh.position.set(recovery ? -.41 : inflator ? -.52 : 0, recovery ? -.81 : inflator ? -.94 : -.33, inflator ? -1.28 : -1.22);
+  if (fins) mesh.position.set(-.94, -.35, -1.45);
+  else mesh.position.set(recovery ? -.41 : inflator ? -.52 : 0, recovery ? -.81 : inflator ? -.94 : -.33, inflator ? -1.28 : -1.22);
 
   function rect(x, y, w, h, color) {
     context.fillStyle = color;
@@ -88,21 +95,23 @@ function makePanel(lesson) {
       const x = hit.uv.x * 1024, y = (1 - hit.uv.y) * 346;
       return visibleControls.find(({ x: left, y: top, w, h }) => x >= left && x <= left + w && y >= top && y <= top + h)?.id;
     },
-    draw(state, hovered, placing, done) {
+    draw(state, hovered, placing, done, inspecting) {
       const air = inflator ? inflatorAir(done.has('add-air'), done.has('vent'), state.pressure) : 0;
       const amount = Math.round((inflator ? air : state.water) * 100);
-      const key = [state.index, state.guide, state.message, amount, hovered, placing].join('|');
+      const key = [state.index, state.guide, state.message, state.retry, amount, hovered, placing, inspecting].join('|');
       if (key === previous) return;
       previous = key;
       const next = state.steps[state.index];
-      const compact = inflator && next?.id !== 'balance';
+      const compact = (inflator && next?.id !== 'balance') || (fins && !inspecting);
       context.clearRect(0, 0, 1024, 346);
       rect(0, 0, 1024, compact ? 246 : 346, '#f1fffd');
       text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', 700);
-      const note = inflator && placing ? '排気口を置く高さを選ぶ' :
-        inflator && state.guide ? next?.label : '';
+      const note = fins && inspecting ? 'かかとを動かすと、フィンはどうなった？' :
+        fins && placing ? '照準を合わせて置く' :
+        inflator && placing ? '排気口を置く高さを選ぶ' :
+        (fins || inflator) && state.guide ? next?.label : '';
       text(note || state.message || (!next ? '練習完了' : '操作に照準を合わせてトリガーを押す'), 32, 129, 34, '#246270');
-      visibleControls = compact ? controls.slice(-1) : controls;
+      visibleControls = inspecting ? [...finInspection, ...controls] : compact ? controls.slice(-1) : controls;
       visibleControls.forEach(control => {
         const index = state.steps.findIndex(step => step.id === control.id);
         const done = index >= 0 && index < state.index;
@@ -113,7 +122,13 @@ function makePanel(lesson) {
         text((done ? '✓ ' : '') + control.label, control.x + 18, control.y + control.h / 2, 32,
           done ? '#466b71' : '#133f49', control.w - 36);
       });
-      if (recovery) {
+      if (fins) {
+        const hint = placing ? 'トリガーを離すか、置く場所を選ぶ' :
+          state.retry ? state.message : inspecting ? '' :
+          !next ? 'VRを閉じると復習結果に戻ります' :
+          next.id === 'fin-wiggle' ? 'トリガーを押し続ける' : '足元にある目印を探す';
+        text(hint, 32, compact ? 197 : 300, 32, '#246270');
+      } else if (recovery) {
         const note = placing ? '正面を向いて「口元」を選ぶ' : !next ? 'VRを閉じると復習結果に戻ります' :
           !state.guide ? '次の操作を思い出し、器材かボタンを選ぶ' :
           ['sweep', 'reach', 'trace-hose'].includes(next.id) ? '右肩側を見て、ホースの目印を探す' : next.label;
@@ -141,9 +156,15 @@ const inflatorLabels = {
   above: 'BCDより上', below: 'BCDより下'
 };
 
+const finLabels = {
+  'fin-strap': 'ストラップ', 'fin-foot': 'ブーツ', 'fin-lock': 'ストラップ',
+  'fin-wiggle': 'かかとを動かす', 'fin-check': 'フィットを見る', pocket: 'ポケット', heel: 'かかと'
+};
+
 function spatialTargets(lesson, model, scene) {
   const inflator = lesson.scene === 'inflator';
-  const labels = inflator ? inflatorLabels : recoveryLabels;
+  const fins = lesson.scene === 'fins';
+  const labels = fins ? finLabels : inflator ? inflatorLabels : recoveryLabels;
   const entries = lesson.actions.map(action => action.id).filter(id => labels[id]);
   if (inflator) entries.push('trim-add', 'trim-vent');
   entries.push(...Object.keys(model.docks));
@@ -169,7 +190,7 @@ function spatialTargets(lesson, model, scene) {
     context.fillText(labels[id], 78, 51, 226);
     const texture = new T.CanvasTexture(canvas);
     texture.colorSpace = T.SRGBColorSpace;
-    const mesh = new T.Mesh(new T.PlaneGeometry(.31, .097), new T.MeshBasicMaterial({
+    const mesh = new T.Mesh(new T.PlaneGeometry(fins ? .40 : .31, fins ? .125 : .097), new T.MeshBasicMaterial({
       map: texture, transparent: true, depthTest: false, depthWrite: false, toneMapped: false
     }));
     mesh.renderOrder = 11;
@@ -181,7 +202,7 @@ function spatialTargets(lesson, model, scene) {
     if (!inflator) point.y += dock ? .12 : .14;
     if (id === 'replace') point.x += .13;
     const trimming = id.startsWith('trim-');
-    const phaseOnly = trimming || id === 'trace-hose';
+    const phaseOnly = (fins && !dock) || trimming || id === 'trace-hose';
     const actionId = trimming ? 'balance' : id;
     const index = lesson.actions.findIndex(action => action.id === actionId);
     return { id, dock, parent, point, mesh, index, phaseOnly };
@@ -189,12 +210,12 @@ function spatialTargets(lesson, model, scene) {
   const forward = new T.Vector3();
   const delta = new T.Vector3();
   return {
-    update(state, placing, eye, orientation) {
+    update(state, placing, eye, orientation, inspecting) {
       forward.set(0, 0, -1).applyQuaternion(orientation);
-      for (const { dock, parent, point, mesh, index, phaseOnly } of targets) {
+      for (const { id, dock, parent, point, mesh, index, phaseOnly } of targets) {
         mesh.visible = false;
         if (placing ? !dock : dock || index < state.index || !parent.visible) continue;
-        if (phaseOnly && index !== state.index) continue;
+        if (id === inspecting || (phaseOnly && index !== state.index)) continue;
         parent.localToWorld(mesh.position.copy(point));
         if (delta.subVectors(mesh.position, eye).normalize().dot(forward) < .70) continue;
         mesh.quaternion.copy(orientation);
@@ -204,12 +225,17 @@ function spatialTargets(lesson, model, scene) {
     },
     pick(ray) {
       let nearest;
-      for (const { id, mesh } of targets) {
+      for (const { id, dock, mesh } of targets) {
         if (!mesh.visible) continue;
         const hit = ray.intersectObject(mesh)[0];
-        if (hit && (!nearest || hit.distance < nearest.distance)) nearest = { id, distance: hit.distance };
+        if (hit && (!nearest || hit.distance < nearest.distance)) nearest = { id, dock, distance: hit.distance };
       }
       return nearest;
+    },
+    highlight(hovered) {
+      for (const { id, mesh } of targets) {
+        if (mesh.visible) mesh.material.color.setHex(id === hovered ? 0x9bf2df : 0xffffff);
+      }
     },
     dispose() {
       for (const { mesh } of targets) {
@@ -221,23 +247,25 @@ function spatialTargets(lesson, model, scene) {
   };
 }
 
-export function createPracticeXR(renderer, session, { lesson, lights, readState, press, trim, apply }) {
+export function createPracticeXR(renderer, session, { lesson, scenario, lights, readState, press, trim, apply }) {
   const scene = new T.Scene();
   scene.background = new T.Color(0x79cec8);
   scene.fog = new T.FogExp2(0x79cec8, .10);
   scene.add(...lights);
   const mask = lesson.scene === 'mask';
   const inflator = lesson.scene === 'inflator';
+  const fins = lesson.scene === 'fins';
   const stage = new T.Group();
   const root = new T.Group();
   stage.add(root);
-  const model = makeDiveModel(root, lesson);
+  const model = makeDiveModel(root, lesson, scenario);
   const targets = mask ? null : spatialTargets(lesson, model, scene);
   const completed = new Set();
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const rig = new T.Group();
   const camera = new T.PerspectiveCamera(45, 1, .05, 40);
-  rig.position.set(0, .17, 2.43);
+  if (fins) rig.position.set(0, 1.53, 1.25);
+  else rig.position.set(0, .17, 2.43);
   const visor = new T.Group();
   const lens = mask ? makeVisor() : null;
   const station = new T.Group();
@@ -248,7 +276,7 @@ export function createPracticeXR(renderer, session, { lesson, lights, readState,
   rig.add(camera, visor, station);
   scene.add(stage, rig);
 
-  const ray = new T.Raycaster();
+  const raycaster = new T.Raycaster();
   const origin = new T.Vector3();
   const direction = new T.Vector3();
   const yaw = new T.Euler(0, 0, 0, 'YXZ');
@@ -256,16 +284,20 @@ export function createPracticeXR(renderer, session, { lesson, lights, readState,
   let placed = false;
   let placing;
   let holding;
+  let inspecting;
+  let carry;
+  const carriedPosition = new T.Vector3();
+  const restingPosition = new T.Vector3();
   let pulse;
   let previousTime;
   const aim = controller => {
     if (!controller.visible || !placed) return null;
     controller.getWorldPosition(origin);
     direction.set(0, 0, -1).transformDirection(controller.matrixWorld);
-    ray.set(origin, direction);
-    const hit = ray.intersectObject(mesh)[0];
+    raycaster.set(origin, direction);
+    const hit = raycaster.intersectObject(mesh)[0];
     const id = hit && panel.pick(hit);
-    const target = targets?.pick(ray);
+    const target = targets?.pick(raycaster);
     if (target && (!id || target.distance < hit.distance)) return target;
     return id ? { id, distance: hit.distance } : null;
   };
@@ -286,8 +318,15 @@ export function createPracticeXR(renderer, session, { lesson, lights, readState,
     let timed;
     function start() {
       const state = readState();
-      selected = aim(controller)?.id;
+      const hit = aim(controller);
+      selected = hit?.id;
       const step = state?.steps.find(action => action.id === selected);
+      const part = fins && model.grabbable[selected];
+      if (part && !carry && !holding && step && step === state.steps[state.index]) {
+        placing = selected;
+        const offset = part.getWorldPosition(new T.Vector3()).sub(raycaster.ray.at(hit.distance, carriedPosition));
+        carry = { controller, part, distance: hit.distance, offset };
+      }
       timed = Boolean(step?.pressTime);
       if (step?.pressTime && !holding && state.steps.indexOf(step) >= state.index && press.startHold(step, controller)) {
         holding = controller;
@@ -295,21 +334,28 @@ export function createPracticeXR(renderer, session, { lesson, lights, readState,
     }
     function select() {
       if (selected === 'exit') close();
-      else if (timed) {
+      else if (carry?.controller === controller) {
+        const target = aim(controller);
+        carry = null;
+        if (target?.dock) place(target.id);
+      } else if (timed) {
         if (holding === controller) {
           holding = null;
           press.releaseHold(controller);
         }
-      } else if (selected && !holding) {
+      } else if (selected && !holding && !carry) {
         const state = readState();
         if (!state) return;
         const expected = state.steps[state.index];
-        if (expected?.attachment && expected.id === selected) {
+        if (inspecting && (selected === 'normal' || selected === 'repair')) {
+          apply(inspecting, selected);
+          if (readState()?.index !== state.index) inspecting = null;
+        } else if (expected?.inspection && expected.id === selected) {
+          inspecting = selected;
+        } else if (expected?.attachment && expected.id === selected) {
           placing = selected;
         } else if (placing && model.docks[selected]) {
-          const action = placing;
-          placing = null;
-          apply(action, selected);
+          place(selected);
         } else if (selected === 'trim-add' || selected === 'trim-vent') {
           const adding = selected === 'trim-add';
           if (trim(adding ? 1 : -1)) pulse = { action: adding ? 'add-air' : 'vent', until: performance.now() + 220 };
@@ -318,6 +364,10 @@ export function createPracticeXR(renderer, session, { lesson, lights, readState,
     }
     function end() {
       selected = null;
+      if (carry?.controller === controller) {
+        carry = null;
+        placing = null;
+      }
       if (holding === controller) {
         holding = null;
         press.cancel();
@@ -328,6 +378,20 @@ export function createPracticeXR(renderer, session, { lesson, lights, readState,
     return { controller, line, end, events };
   });
 
+  function place(dock) {
+    const action = placing;
+    placing = null;
+    apply(action, dock);
+  }
+  function moveCarriedPart() {
+    if (!carry?.controller.visible) return;
+    const { controller, part, distance, offset } = carry;
+    const target = aim(controller);
+    raycaster.ray.at(target?.dock ? target.distance : distance, carriedPosition).add(offset);
+    part.getWorldPosition(restingPosition);
+    carriedPosition.sub(restingPosition).clampLength(0, 1.1).add(restingPosition);
+    part.position.copy(part.parent.worldToLocal(carriedPosition));
+  }
   function cancelInputs() {
     placing = null;
     pulse = null;
@@ -378,15 +442,18 @@ export function createPracticeXR(renderer, session, { lesson, lights, readState,
       previousTime = time;
       const active = current.active || (pulse?.until > time ? pulse.action : '');
       model.update(completed, blend, motion, { active, pressure: current.pressure });
-      model.sync?.();
-      targets?.update(current, placing, visor.getWorldPosition(eye), visor.quaternion);
+      if (!fins) model.sync?.();
+      targets?.update(current, placing, visor.getWorldPosition(eye), visor.quaternion, inspecting);
+      moveCarriedPart();
+      if (fins) model.sync();
       let hovered;
       for (const { controller, line } of pointers) {
         const hit = aim(controller);
         line.scale.z = hit?.distance || .84;
         hovered ??= hit?.id;
       }
-      panel.draw(current, hovered, placing, completed);
+      if (fins) targets.highlight(hovered);
+      panel.draw(current, hovered, placing, completed, inspecting);
       renderer.render(scene, camera);
     },
     dispose() {
