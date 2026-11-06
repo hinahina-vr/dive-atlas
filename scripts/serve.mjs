@@ -1,12 +1,20 @@
 import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
 const root=path.resolve(fileURLToPath(new URL('../',import.meta.url))),port=Number(process.env.PORT)||4493;
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png'};
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.mp3':'audio/mpeg'};
+const journalMusicTracks = [
+ {file:'track-1.mp3',title:'New 島唄 · 1曲目'},
+ {file:'track-2.mp3',title:'New 島唄 · 2曲目'},
+];
 const json=(res,status,value)=>res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}).end(JSON.stringify(value));
 export const server=http.createServer(async(req,res)=>{
  try{
   if(!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(req.headers.host||'')){json(res,403,{error:'Local access only'});return;}
   if(req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`){json(res,403,{error:'Same-origin access only'});return;}
   const p=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+  if(p==='/journal-bgm.json'&&req.method==='GET'){
+   const available = journalMusicTracks.filter(({file})=>fs.existsSync(path.join(root,'assets','journal-bgm',file)));
+   return json(res,200,available);
+  }
   if(p==='/api/local-import'&&req.method==='GET'){
    const source=process.env.DIVE_ATLAS_IMPORT_FILE;
    if(!source){json(res,200,{enabled:false});return;}

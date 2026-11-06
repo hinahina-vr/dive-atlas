@@ -18,6 +18,7 @@ const webFiles = [
  'assets/map-style.json',
  'assets/okinawa-island-names.geojson',
  'src/app.js',
+ 'src/journal-music.js',
  'src/dive-spots.js',
  'src/map.js',
  'src/model.js',
@@ -52,5 +53,7 @@ const journal = await readFile(resolve(root, 'public-journal.json'), 'utf8').cat
 const approvedLogs = publicJournal(readPublicJournal(JSON.parse(journal)));
 await writeFile(resolve(out, 'journal.json'), JSON.stringify(approvedLogs)+'\n');
 await writeFile(resolve(out, 'revision.json'), JSON.stringify({revision,workingTreeChanges,spots:diveSpots.length})+'\n');
+// Local BGM recordings are outside the Pages publish allowlist.
+await writeFile(resolve(out, 'journal-bgm.json'), '[]\n');
 await writeFile(resolve(out, '.nojekyll'), '');
 console.log(out);

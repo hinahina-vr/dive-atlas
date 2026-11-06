@@ -1,6 +1,7 @@
 import {normalizeLog,sortLogs,summary,readBackup,readPublicJournal} from './model.js';
 import {createMap} from './map.js';
 import {diveSpots} from './dive-spots.js';
+import {createJournalMusic} from './journal-music.js';
 
 const journalSites = new Map([
  ['黒島北', diveSpots.find(spot => spot.id === 'kerama-kuroshima')?.coordinates],
@@ -36,11 +37,13 @@ const journalPanel = $('#journal');
 const workspace = $('.workspace');
 const journalBonus = $('#journal-bonus');
 const journalSound = $('#journal-sound');
+const journalMusic = createJournalMusic(toast);
 $('#journal-source').textContent = localJournal
  ? 'この端末にあるログを表示します。記録の更新はローカルで行います。'
  : 'このページでは、公開ログとダイビングスポットを閲覧できます。';
 let logs=[],demo=false,selected='',map,motionPaused=false,toastTimer=0;
 let showJournal = false;
+let journalOpening = 0;
 let journalBonusTimer;
 let publicJournalRequest;
 let selectedSpot = null;
@@ -129,27 +132,41 @@ function setJournalBonus(active) {
  if (active) journalBonusTimer = setTimeout(() => setJournalBonus(false), 2600);
 }
 journalSound.querySelector('form').onsubmit = event => {
- if (showJournal && event.submitter?.value === 'play') toast('BGMは準備中です。');
+ event.preventDefault();
+ journalSound.close();
+ setJournalOpen(true);
+ if (event.submitter?.value === 'play') journalMusic.start();
 };
-journalToggle.onclick = async () => {
- showJournal = !showJournal;
- journalPanel.hidden = !showJournal;
- workspace.classList.toggle('workspace--journal-open', showJournal);
- map?.setJournalMode(showJournal);
- journalToggle.setAttribute('aria-checked', String(showJournal));
- setJournalBonus(showJournal && Math.random() < 1 / 12);
- // Preview the confirmation locally while the soundtrack is being prepared.
- if (showJournal && localJournal) journalSound.showModal();
- else if (journalSound.open) journalSound.close();
- if (!showJournal) {
+
+async function setJournalOpen(open) {
+ showJournal = open;
+ journalPanel.hidden = !open;
+ workspace.classList.toggle('workspace--journal-open', open);
+ map?.setJournalMode(open);
+ journalToggle.setAttribute('aria-checked', String(open));
+ setJournalBonus(open && Math.random() < 1 / 12);
+ if (!open) {
+  journalMusic.stop();
   demo = false;
   selected = '';
   $('#search').value = '';
  }
  render();
- if (!showJournal) return;
+ if (!open) return;
  if (!localJournal) await loadPublicJournal();
  if (showJournal && !demo && !selected && !selectedSpot && logs.some(log => log.lat !== null)) map?.fit();
+}
+
+journalToggle.onclick = async () => {
+ if (showJournal) {
+  setJournalOpen(false);
+  return;
+ }
+ const opening = ++journalOpening;
+ const available = await journalMusic.ready;
+ if (opening !== journalOpening) return;
+ if (available) journalSound.showModal();
+ else setJournalOpen(true);
 };
 $('#demo-toggle').onclick=toggleDemo;
 $('#search').oninput=render;

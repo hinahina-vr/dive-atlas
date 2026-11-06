@@ -55,6 +55,9 @@ const report = { revision, checks:[], errors };
 const updateControls = '#import-open,#backup,#new-log,#edit-log,#delete-log,#editor,#importer,input[type=file]';
 try {
  const localBase = 'http://127.0.0.1:4494/';
+ const localMusic = await (await fetch(localBase+'journal-bgm.json')).json();
+ assert.deepEqual(JSON.parse(fs.readFileSync(path.join(pages, 'journal-bgm.json'), 'utf8')), []);
+ assert(!contents.some(file => file.endsWith('.mp3')));
  assert.equal((await fetch(localBase+'api/import-tusa',{method:'POST'})).status,405);
  assert.equal((await fetch(localBase+'api/local-import',{headers:{Origin:'https://example.test'}})).status,403);
  assert.equal((await fetch(localBase+'artifacts/private-import/tusa-import.json')).status,404);
@@ -64,7 +67,7 @@ try {
   await context.addInitScript(() => {
    window.__qaBonusRoll = .99;
    window.addEventListener('click', event => {
-    if (!(event.target instanceof Element) || !event.target.closest('#public-journal-toggle')) return;
+    if (!(event.target instanceof Element) || !event.target.closest('#public-journal-toggle,#journal-sound [value=silent]')) return;
     const originalRandom = Math.random;
     Math.random = () => window.__qaBonusRoll;
     setTimeout(() => { Math.random = originalRandom; }, 0);
@@ -100,18 +103,23 @@ try {
   const spotToggle = page.getByRole('switch',{name:'ダイブスポット',exact:true});
   const soundDialog = page.getByRole('dialog',{name:'音が鳴るけどいい？',exact:true});
   async function toggleJournal(action = 'click') {
+   const wasOpen = (await journalToggle.getAttribute('aria-checked')) === 'true';
    if (action === 'Space') await journalToggle.press('Space');
    else await journalToggle[action]();
-   if (!page.url().startsWith(localBase) || (await journalToggle.getAttribute('aria-checked')) === 'false') {
-    assert(await soundDialog.isHidden());
-    return;
+   if (!wasOpen && localMusic.length && page.url().startsWith(localBase)) {
+    await soundDialog.waitFor();
+    assert.equal(await journalToggle.getAttribute('aria-checked'),'false');
+    assert(await journal.isHidden());
+    await checkOceanPalette(false);
+    const silent = soundDialog.getByRole('button',{name:'鳴らさない',exact:true});
+    assert(await silent.evaluate(button => document.activeElement === button));
+    await silent.click();
    }
-   assert(await soundDialog.isVisible());
-   const silent = soundDialog.getByRole('button',{name:'鳴らさない',exact:true});
-   assert(await silent.evaluate(button => document.activeElement === button));
-   await silent.click();
+   await page.waitForFunction(open=>document.querySelector('#public-journal-toggle').getAttribute('aria-checked')===String(open),!wasOpen);
    assert(await soundDialog.isHidden());
+   assert.equal(await page.locator('iframe[src*="youtube"],.journal-music').count(),0);
   }
+
   async function checkSwitch(toggle, on) {
    assert.equal(await toggle.getAttribute('aria-checked'), String(on));
    assert((await toggle.boundingBox()).height >= 44);
@@ -138,7 +146,7 @@ try {
    const instrumented=source.replace("canvas.dataset.mapState='loading'", "window.__verifiedDiveMap=map; canvas.dataset.mapState='loading'");
    await route.fulfill({response,body:instrumented});
   });
-  await page.goto(localBase);
+  await page.goto(localBase,{waitUntil:'domcontentloaded',timeout:60000});
   await mapReady();
   assert(await journalToggle.isVisible());
   await checkSwitch(journalToggle, false);
@@ -166,7 +174,7 @@ try {
   assert.equal(await page.locator(updateControls).count(),0);
   await page.getByRole('searchbox').fill('---no result---');
   assert.equal(await page.locator('.log-card').count(),0);
-  await page.reload();
+  await page.reload({waitUntil:'domcontentloaded',timeout:60000});
   await mapReady();
   assert(await journal.isHidden());
   await checkLampsOff();
@@ -174,7 +182,7 @@ try {
   await mapReady();
   assert.equal(await page.locator('.log-card').count(),privateLogs.length);
   assert(!await page.evaluate(async()=> (await indexedDB.databases()).some(db=>db.name==='dive-atlas')));
-  report.checks.push(width+'px: local JSON, search, reload, sound prompt on each opening, no edit controls, no new journal DB');
+  report.checks.push(width+'px: local JSON, search, reload, consent before mode change when audio is configured, no edit controls, no new journal DB');
 
   if (!mobile) {
    const localRecord = {...privateLogs[0], id:'qa-prior-journal', site:'QA prior journal edit'};
@@ -194,14 +202,14 @@ try {
    },localRecord);
    const {digest} = await (await fetch(localBase+'api/local-import')).json();
    await page.evaluate(digest=>localStorage.setItem('dive-atlas:imported:'+digest,'done'),digest);
-   await page.reload();
+   await page.reload({waitUntil:'domcontentloaded',timeout:60000});
    await mapReady();
    await toggleJournal();
    await mapReady();
    assert.equal(await page.locator('.log-card').count(),1);
    assert.match(await page.locator('.log-card').textContent(),/QA prior journal edit/);
    fs.writeFileSync(fixture,JSON.stringify(backup(privateLogs))+'\n');
-   await page.reload();
+   await page.reload({waitUntil:'domcontentloaded',timeout:60000});
    await mapReady();
    await toggleJournal();
    await mapReady();
@@ -211,7 +219,7 @@ try {
 
   const publicRequests = [];
   page.on('request', request=>publicRequests.push(request.url()));
-  await page.goto('http://127.0.0.1:4495'+prefix);
+  await page.goto('http://127.0.0.1:4495'+prefix,{waitUntil:'domcontentloaded',timeout:60000});
   await mapReady();
   assert.equal(await page.locator(updateControls).count(),0);
   const spotPins = page.locator('.spot-pin');
@@ -313,7 +321,7 @@ try {
   else await spotToggle.press('Space');
   await checkSwitch(spotToggle, false);
   assert(await page.locator('#spot-pins').isHidden());
-  await page.reload();
+  await page.reload({waitUntil:'domcontentloaded',timeout:60000});
   await mapReady();
   await checkSwitch(spotToggle, false);
   assert(await page.locator('#spot-pins').isHidden());
@@ -400,7 +408,7 @@ try {
   assert(await page.locator('#spot-pins').isVisible());
   await mapReady();
   await page.screenshot({path:path.join(folder,'pages-'+width+'.png')});
-  await page.reload();
+  await page.reload({waitUntil:'domcontentloaded',timeout:60000});
   await mapReady();
   assert(await journal.isHidden());
   assert.equal(await journalToggle.getAttribute('aria-checked'),'false');
