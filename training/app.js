@@ -7,6 +7,7 @@ import { draftKey, readDraft, saveDraft, clearDraft } from './drafts.js';
 import { prepareOffline } from './offline.js';
 
 const byId = id => document.getElementById(id);
+const portraitLayout = matchMedia('(orientation: portrait) and (max-width: 780px)');
 const landscapeLayout = matchMedia('(orientation: landscape) and (max-height: 520px) and (min-width: 560px)');
 const el = Object.fromEntries([
   'viewport', 'scene', 'scene-status', 'hotspots', 'mask-overlay', 'perspective', 'vr-mask', 'lessons', 'guided', 'recall',
@@ -21,6 +22,7 @@ const el = Object.fromEntries([
   'example-next', 'example-recall', 'example-exit', 'previous-review', 'previous-review-count', 'previous-review-list', 'practice-footer',
   'inspection-panel', 'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
 ].map(id => [id, byId(id)]));
+const workspace = el.viewport.closest('.workspace');
 
 const practiceId = () => crypto.getRandomValues(new Uint32Array(2)).join('-');
 let runId = practiceId();
@@ -279,9 +281,12 @@ for (const control of ['mask-fill', 'recovery-search', 'recovery-clear']) {
 
 const lessonIndex = lesson => lessons.findIndex(item => item.id === lesson.id);
 const lessonButtons = lessons.map((lesson, i) => {
-  const item = button('', 'lesson-button', () => {
+  const item = button('', 'lesson-button', event => {
     if (practice.lesson.id !== lesson.id) openLesson(lesson);
-    if (landscapeLayout.matches) showViewport();
+    if (portraitLayout.matches && event.detail === 0 && !el.instruction.hidden) {
+      el.instruction.focus({ preventScroll: true });
+    }
+    if (portraitLayout.matches || landscapeLayout.matches) showViewport();
   });
   const number = document.createElement('span');
   number.className = 'lesson-number';
@@ -377,13 +382,14 @@ el['review-next'].addEventListener('click', () => {
   }
   if (!next) return;
   if (practice.lesson.id !== next.id || practice.mode !== 'recall') openLesson(next, 'recall');
-  el.instruction.focus();
+  el.instruction.focus({ preventScroll: portraitLayout.matches });
+  if (portraitLayout.matches) showViewport();
 });
 
 for (const mode of ['guided', 'recall']) {
   el[mode].addEventListener('click', () => {
     if (mode !== practice.mode || example.current()) start(practice.lesson, mode);
-    if (landscapeLayout.matches) showViewport();
+    if (portraitLayout.matches || landscapeLayout.matches) showViewport();
   });
 }
 el.hint.addEventListener('click', () => {
@@ -418,7 +424,11 @@ el['resume-practice'].addEventListener('click', () => {
   el.instruction.focus({ preventScroll: true });
   showViewport();
 });
-el['next-lesson'].addEventListener('click', () => openLesson(lessons[lessonIndex(practice.lesson) + 1]));
+el['next-lesson'].addEventListener('click', event => {
+  openLesson(lessons[lessonIndex(practice.lesson) + 1]);
+  if (portraitLayout.matches && event.detail === 0) el.instruction.focus({ preventScroll: true });
+  if (portraitLayout.matches || landscapeLayout.matches) showViewport();
+});
 const balanceLabels = { sink: '沈み気味', steady: '高さが安定', rise: '浮き気味' };
 const trimControls = [
   { id: 'trim-add', anchor: 'trim-add', label: '少し給気', direction: 1 },
@@ -511,7 +521,12 @@ function showExample(stepIndex, scenario, lesson = practice.lesson, returnFocus)
 }
 
 function showViewport() {
-  if (el.viewport.getBoundingClientRect().top < 0 || el.viewport.getBoundingClientRect().bottom > innerHeight) {
+  if (portraitLayout.matches) {
+    workspace.scrollIntoView({ block: 'start' });
+    return;
+  }
+  const bounds = el.viewport.getBoundingClientRect();
+  if (bounds.top < 0 || bounds.bottom > innerHeight) {
     el.viewport.scrollIntoView({ block: 'start' });
   }
 }
@@ -651,6 +666,10 @@ function renderEffects(lesson, done, pressure, active) {
   maskOverlay.classList.toggle('is-clear', clear);
   maskOverlay.classList.toggle('is-flooded', water >= .98);
   maskOverlay.style.setProperty('--mask-water', (100 * water) + '%');
+  if (!maskOverlay.hidden && lesson.scene === 'mask') {
+    const subtitle = clear ? 'マスク内の水が抜けた' : water < lesson.maskFill ? 'マスク内に水が残っている' : lesson.subtitle;
+    if (el['view-subtitle'].textContent !== subtitle) el['view-subtitle'].textContent = subtitle;
+  }
   const meter = el['effect-meter'];
   meter.hidden = !view || (lesson.scene !== 'mask' && lesson.scene !== 'inflator');
   const meterLabel = lesson.scene === 'mask' ? 'マスク内の水' : balanceLabels[balance] || 'BCDのふくらみ';
@@ -680,7 +699,7 @@ function render() {
   });
   el['view-label'].textContent = lesson.label;
   const waterLabels = {
-    mask: done.includes('mask-exhale') ? 'マスク内の水が抜けた' : lesson.subtitle,
+    mask: lesson.subtitle,
     recovery: lesson.subtitle,
     inflator: '水中 · 目盛りを目安に浮き沈みを見る',
     fins: '水面 · 足元を見る'

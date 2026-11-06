@@ -567,7 +567,7 @@ try {
   await mobileDrag.setViewportSize(mobileSize);
   await mobileDrag.evaluate(() => window.scrollTo(0, 0));
   assert.equal(await value(mobileDrag), '6');
-  assert(await mobileDrag.locator('.back-to-lessons').isHidden());
+  assert(await mobileDrag.locator('.back-to-lessons').isVisible());
   await mobileDrag.waitForFunction(() =>
     document.querySelector('.panel').getBoundingClientRect().top >= document.querySelector('#viewport').getBoundingClientRect().bottom);
   checks.push('844 × 390 mobile landscape: visible model and instructions, touch placement, menu and example, then back to portrait with progress');
@@ -585,6 +585,34 @@ try {
   checks.push('568 × 320 mobile landscape: mask scene and next action remain visible before settings');
   // Raw DevTools drag input and Playwright tap input use separate touch sessions.
   await mobileDrag.context().close();
+
+  const portrait = await testPage({ width: 360, height: 640 }, true);
+  await portrait.goto(previewUrl + 'training/');
+  await ready(portrait);
+  const maskLesson = portrait.getByRole('button', { name: 'マスククリア', exact: true });
+  await maskLesson.tap();
+  const sceneAndActionVisible = () => portrait.evaluate(() => {
+    const scene = document.querySelector('#viewport').getBoundingClientRect();
+    const action = document.querySelector('#choices .is-guide').getBoundingClientRect();
+    return scene.top >= 0 && scene.bottom <= action.top && action.bottom <= innerHeight;
+  });
+  assert(await sceneAndActionVisible());
+  await getChoice(portrait, 'mask-breathe').tap();
+  assert.equal(await value(portrait), '1');
+  assert(await sceneAndActionVisible());
+  await portrait.getByRole('link', { name: '種目一覧', exact: true }).tap();
+  assert(await portrait.locator('#lessons').evaluate(node => {
+    const rect = node.getBoundingClientRect();
+    return rect.top >= 0 && rect.bottom <= innerHeight;
+  }));
+  await maskLesson.press('Enter');
+  assert.equal(await value(portrait), '1');
+  assert(await portrait.locator('#instruction').evaluate(node => document.activeElement === node));
+  assert(await sceneAndActionVisible());
+  await portrait.screenshot({ path: join(output, 'mobile-portrait-practice.png') });
+  await portrait.context().close();
+  checks.push('360 × 640 mobile portrait: lesson selection shows the 3D view and next action together, menu return and keyboard resume keep progress');
+
   const mobile = await testPage(mobileSize, true);
   let loadScene;
   const sceneGate = new Promise(resolve => { loadScene = resolve; });
@@ -766,11 +794,13 @@ try {
   await hold(mobile, 'mask-exhale', waterInput, .25);
   const fullRemaining = await maskLevel(mobile);
   assert(fullRemaining > 0 && fullRemaining < 90);
+  assert.equal(await mobile.locator('#view-subtitle').innerText(), 'マスク内に水が残っている');
   assert.equal(await value(mobile), '2');
   await mobile.screenshot({ path: join(output, 'mobile-mask-full-partly-clear.png'), fullPage: true });
   assert.equal(await maskLevel(mobile), fullRemaining);
   await hold(mobile, 'mask-exhale', waterInput);
   assert.equal(await maskLevel(mobile), 0);
+  assert.equal(await mobile.locator('#view-subtitle').innerText(), 'マスク内の水が抜けた');
   assert.equal(await value(mobile), '3');
   const savedFull = await mobile.evaluate(key => JSON.parse(localStorage.getItem(key)), maskReviewKey);
   assert.deepEqual(savedFull.steps, ['mask-breathe']);
