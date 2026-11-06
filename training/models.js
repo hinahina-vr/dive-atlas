@@ -651,8 +651,8 @@ export function makeModel(root, lesson, scenario) {
 }
 
 const reefRockMaterial = mat(0xffffff, .93);
-const sandTint = new T.Color(0xece0c3);
-const distantSand = new T.Color(0x80c9c5);
+const sandTint = new T.Color(0xe9dabb);
+const distantSand = new T.Color(0x72b9b9);
 
 const waterPlaneVertex = `
   varying vec3 waterPoint;
@@ -666,10 +666,10 @@ const waterLight = `
   uniform float tide;
   float lightNetwork(vec2 p) {
     p = mat2(1.08, -.43, .39, .93) * p;
-    p += .72 * vec2(sin(p.y * .71 + tide), cos(p.x * .63 - tide * .84));
-    p += vec2(.42, -.33) * tide;
-    float ridge = sin(p.x) * sin(p.y) + .33 * sin((p.x + p.y) * .76);
-    return 1.0 - smoothstep(.018, .15 + min(fwidth(ridge), .27), abs(ridge));
+    p += vec2(.40, -.27) * tide;
+    p += vec2(sin(p.y * .68 + tide), cos(p.x * .54 - tide * .76));
+    float ridge = sin(p.x) * sin(p.y) + .36 * sin((p.x + p.y) * .72);
+    return 1.0 - smoothstep(.016, .102 + min(.72 * fwidth(ridge), .22), abs(ridge));
   }`;
 
 function addReef(water) {
@@ -685,7 +685,7 @@ function addReef(water) {
   const rockCount = 34;
   const rocks = new T.InstancedMesh(geometry, reefRockMaterial, rockCount);
   const transform = new T.Object3D();
-  const colors = [0x608d81, 0x88a698, 0x8eaa90, 0xb6ba98].map(color => new T.Color(color));
+  const colors = [0x6b8270, 0x869887, 0xa3a387, 0xb7ae91].map(color => new T.Color(color));
   for (let i = 0; i < rockCount; i += 1) {
     const side = i % 2 ? -1 : 1;
     const spread = Math.sin(i * 7.12);
@@ -705,6 +705,22 @@ function addReef(water) {
 function waterBackdrop(root, fromAbove) {
   const water = group(root);
   const tide = { value: 0 };
+  mesh(water, new T.SphereGeometry(27, 24, 12), new T.ShaderMaterial({
+    side: T.BackSide, depthWrite: false,
+    vertexShader: waterPlaneVertex,
+    fragmentShader: `
+      varying vec3 waterPoint;
+      void main() {
+        vec3 look = normalize(waterPoint - cameraPosition);
+        float up = smoothstep(-.41, .81, look.y);
+        float towardLight = max(0.0, dot(look, vec3(-.36, .77, -.53)));
+        float sunGlow = (pow(towardLight, 9.0) + .25 * pow(towardLight, 3.0)) * up;
+        vec3 color = mix(vec3(.069, .39, .45), vec3(.25, .67, .72), up);
+        color += vec3(.48, .32, .14) * sunGlow;
+        gl_FragColor = vec4(color, 1.0);
+        #include <colorspace_fragment>
+      }`
+  }));
   const floor = mesh(water, new T.PlaneGeometry(52, 52), new T.ShaderMaterial({
     transparent: true, depthWrite: false,
     uniforms: { tide, tint: { value: sandTint }, distantSand: { value: distantSand } },
@@ -716,14 +732,19 @@ function waterBackdrop(root, fromAbove) {
       void main() {
         vec2 bed = waterPoint.xz;
         float distanceToEye = distance(cameraPosition, waterPoint);
-        float clear = 1.0 - smoothstep(3.5, 15.0, distanceToEye);
-        float ripples = sin(dot(bed, vec2(17.5, 5.3)) + 2.3 * sin(dot(bed, vec2(.78, 1.81))));
-        float swell = sin(bed.x * .86 - bed.y * .47);
-        float relief = .92 + (.08 * ripples + .06 * swell) * clear;
-        float dapple = lightNetwork(bed * 5.9) * (.74 + .26 * swell);
-        vec3 sand = tint * relief + vec3(.30, .42, .36) * dapple * clear;
-        vec3 color = mix(distantSand, sand, .31 + .69 * clear);
-        float fade = 1.0 - smoothstep(13.0, 23.0, distanceToEye);
+        float clear = 1.0 - smoothstep(3.0, 15.0, distanceToEye);
+        float sandWave = dot(bed, vec2(19.0, 5.3)) + 2.5 * sin(dot(bed, vec2(.89, 1.25)));
+        float ripple = sin(sandWave) + .28 * sin(2.0 * sandWave + 1.2);
+        float rippleDetail = 1.0 - smoothstep(.45, 2.7, fwidth(sandWave));
+        float swell = .5 + .5 * sin(bed.x * .91 - bed.y * .55 + .85 * sin(bed.y));
+        float relief = .87 + (.096 * ripple * rippleDetail * (.55 + .45 * swell) + .09 * swell) * clear;
+        float primary = lightNetwork(bed * 5.4);
+        float secondary = lightNetwork(bed.yx * 7.4 + vec2(6.3, -3.1));
+        vec3 dapple = (vec3(.21, .29, .24) * primary + vec3(.07, .12, .10) * secondary)
+          * (.30 + .70 * swell) * clear;
+        vec3 sand = tint * relief + dapple;
+        vec3 color = mix(distantSand, sand, .20 + .80 * clear);
+        float fade = 1.0 - smoothstep(12.0, 24.0, distanceToEye);
         gl_FragColor = vec4(color, fade);
         #include <colorspace_fragment>
       }`
@@ -774,13 +795,20 @@ function waterBackdrop(root, fromAbove) {
         float distanceToEye = length(ray);
         float overhead = abs(ray.y) / max(distanceToEye, .05);
         vec2 plane = waterPoint.xz;
-        float ripple = lightNetwork(plane * 4.1 + vec2(1.2, -.6));
-        float sun = exp(-dot(plane - vec2(-1.5, -1.9), plane - vec2(-1.5, -1.9)) * .091);
-        float fade = 1.0 - smoothstep(5.0, 17.0, distanceToEye);
-        vec3 teal = vec3(.09, .54, .52);
-        vec3 reflection = mix(vec3(.30, .80, .72), vec3(.98, .98, .67), sun);
-        vec3 color = mix(teal, reflection, .19 + .77 * ripple);
-        gl_FragColor = vec4(color, (.13 + .50 * ripple + .14 * sun) * fade * (.65 + .35 * overhead) * surfaceOpacity);
+        float chop = .065 * sin(plane.x * 4.2 + plane.y * 2.0 + tide)
+          + .046 * sin(plane.y * 5.8 - plane.x * 2.9 - tide * 1.45);
+        float skyWindow = smoothstep(.55, .73, overhead + chop);
+        float ripple = lightNetwork(plane * 4.3 + vec2(1.2, -.6));
+        float fade = 1.0 - smoothstep(6.0, 17.0, distanceToEye);
+        vec3 lightDirection = vec3(-.36, .77, -.53);
+        float glint = pow(max(0.0, dot(ray / max(distanceToEye, .05), lightDirection)), 11.0);
+        bool below = ray.y > 0.0;
+        vec3 reflection = mix(vec3(.046, .33, .40), vec3(.39, .77, .81), below ? skyWindow : .58);
+        float fleck = smoothstep(.058, .106, chop) * (.34 + .66 * glint);
+        vec3 color = reflection + (vec3(.21, .26, .23) + vec3(.30, .18, .07) * glint) * ripple
+          + vec3(.28, .28, .22) * fleck;
+        float opacity = (below ? .22 + .17 * (1.0 - skyWindow) : .10) + .35 * ripple + .13 * fleck;
+        gl_FragColor = vec4(color, opacity * fade * surfaceOpacity);
         #include <colorspace_fragment>
       }`
   }), 0, fromAbove ? 1.09 : 1.65, 0);
