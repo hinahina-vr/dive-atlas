@@ -24,6 +24,7 @@ const inflatorControls = [
 
 const nextLessonControl = { id: 'next-lesson', x: 538, y: 173, w: 454, h: 85 };
 const reviewControl = { id: 'review-open', label: '見直す手順を見る', x: 32, y: 173, w: 454, h: 85 };
+const retryRecallControl = { id: 'retry-recall', x: 32, y: 268, w: 960, h: 60 };
 const reviewControls = [
   { id: 'review-prev', label: '‹ 前の手順', x: 32, y: 268, w: 284, h: 60 },
   { id: 'review-back', label: '結果に戻る', x: 370, y: 268, w: 284, h: 60 },
@@ -273,7 +274,10 @@ function makePanel(lesson, following) {
     if (following) {
       options.push({ ...nextLessonControl, ...(count ? {} : { x: 32, w: 960 }), label: (following.tab || following.title) + 'へ ›' });
     }
-    drawControls([...options, exit], state, hovered, count ? 'review-open' : 'next-lesson');
+    if (count || state.mode === 'guided') {
+      options.push({ ...retryRecallControl, label: state.mode === 'guided' ? 'この種目を自力で復習 ›' : 'この種目をもう一度 ›' });
+    }
+    drawControls([...options, exit], state, hovered, count ? 'review-open' : state.mode === 'guided' ? 'retry-recall' : 'next-lesson');
   }
   return {
     mesh,
@@ -294,7 +298,7 @@ function makePanel(lesson, following) {
       const finGroup = finRecallGroups[finChoice];
       const finInput = fins && !state.guide && (finChoice || placing);
       const compact = next ? (inflator && next.id !== 'balance') || ((fins || gear) && !inspection && !finInput) :
-        !state.review.length && !following;
+        !state.review.length && !following && state.mode !== 'guided';
       context.clearRect(0, 0, 1024, 346);
       rect(0, 0, 1024, !hasController || (compact && !demo) ? 246 : 346, '#f1fffd');
       texture.needsUpdate = true;
@@ -480,7 +484,7 @@ function spatialTargets(lesson, model, scene) {
   };
 }
 
-export function createPracticeXR(renderer, session, { lesson, scenario, following, lights, readState, advanceToNext, recallAfterExample, press, trim, apply }) {
+export function createPracticeXR(renderer, session, { lesson, scenario, following, lights, readState, advanceToNext, recallAfterExample, retryFromResult, press, trim, apply }) {
   const scene = new T.Scene();
   scene.background = new T.Color();
   scene.fog = new T.FogExp2();
@@ -642,6 +646,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
       }
       if (selected === 'exit') close();
       else if (selected === 'next-lesson') requestedRun = advanceToNext;
+      else if (selected === 'retry-recall') requestedRun = retryFromResult;
       else if ((selected === 'example-open' || selected === 'review-example') && !holding && !carry) {
         const state = readState();
         const step = selected === 'review-example' ? state?.review[reviewIndex] : undefined;

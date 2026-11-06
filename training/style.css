@@ -143,6 +143,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .example-timer { height: 4px; background: #cce3de; border-radius: 4px; margin-bottom: 10px; }
 .example-timer i { display: block; height: 100%; background: #b47727; border-radius: inherit; transform: scaleX(var(--time, 0)); transform-origin: left; }
 .example-transport { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 7px; margin-bottom: 8px; }
+.example-transport:has(#example-prev[hidden]) { grid-template-columns: 1fr; }
 #example-recall { margin-right: 8px; }
 .lesson-settings {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 9px;

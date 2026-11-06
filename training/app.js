@@ -270,16 +270,19 @@ function syncLessonSettings(lesson) {
   }
 }
 
-function start(lesson, mode) {
+function start(lesson, mode, { repeatScenario, resumeAtStart = false } = {}) {
   example.stop();
+  returnFromExample = null;
+  practiceCamera = null;
   press.cancel();
   if (lesson.id !== practice.lesson.id) immersive = ['mask', 'recovery', 'inflator', 'fins'].includes(lesson.scene);
   syncLessonSettings(lesson);
   runId = practiceId();
-  practice = newPractice(lesson, mode);
+  practice = newPractice(lesson, mode, Math.random, repeatScenario);
   hint = false;
   feedback();
   render();
+  if (resumeAtStart) saveCurrentDraft({ resumeAtStart });
 }
 
 function configuredLesson(lesson) {
@@ -398,7 +401,8 @@ el['review-next'].addEventListener('click', () => {
     return;
   }
   if (!next) return;
-  if (practice.lesson.id !== next.id || practice.mode !== 'recall') openLesson(next, 'recall');
+  if (practice.lesson.id !== next.id || practice.mode !== 'recall') start(configuredLesson(next), 'recall', { resumeAtStart: true });
+  else saveCurrentDraft({ resumeAtStart: true });
   el.instruction.focus({ preventScroll: portraitLayout.matches });
   if (portraitLayout.matches) showViewport();
 });
@@ -451,7 +455,7 @@ el['next-lesson'].addEventListener('click', event => {
     el.lessons.scrollIntoView({ block: 'nearest' });
     return;
   }
-  openLesson(next);
+  start(configuredLesson(next), practice.mode, { resumeAtStart: true });
   const compact = portraitLayout.matches || landscapeLayout.matches;
   if (event.detail === 0) el.instruction.focus({ preventScroll: compact });
   if (compact) showViewport();
@@ -491,10 +495,9 @@ el['vr-practice'].addEventListener('click', async () => {
   let run = practice;
   const followingLesson = () => lessons[lessonIndex(run.lesson) + 1];
   const currentRun = () => ({ lesson: run.lesson, scenario: run.scenario, following: followingLesson() });
-  function switchRun(lesson, mode = run.mode) {
-    start(lesson, mode);
+  function switchRun(lesson, mode = run.mode, repeatScenario) {
+    start(lesson, mode, { repeatScenario, resumeAtStart: true });
     run = practice;
-    saveCurrentDraft({ resumeAtStart: true });
     return currentRun();
   }
   let session;
@@ -509,6 +512,7 @@ el['vr-practice'].addEventListener('click', async () => {
           steps: run.lesson.actions,
           choices: run.choices,
           index: run.index,
+          mode: run.mode,
           guide: run.mode === 'guided' || hint,
           active: activePress,
           pressure: run.pressure,
@@ -528,6 +532,10 @@ el['vr-practice'].addEventListener('click', async () => {
       recallAfterExample() {
         if (practice !== run || example.current()) return;
         return switchRun(run.lesson, 'recall');
+      },
+      retryFromResult() {
+        if (practice !== run || run.index !== run.lesson.actions.length) return;
+        return switchRun(run.lesson, 'recall', run.mode === 'recall' ? run.scenario : undefined);
       },
       press,
       trim,
@@ -556,13 +564,14 @@ el['example-next'].addEventListener('click', () => example.move(1));
 el['example-play'].addEventListener('click', () => example.toggle());
 el['example-exit'].addEventListener('click', closeExample);
 el['example-recall'].addEventListener('click', () => {
-  const lesson = example.current()?.lesson;
-  if (lesson) beginRecall(lesson);
+  const demo = example.current();
+  if (demo) beginRecall(demo.lesson, returnFromExample ? demo.scenario : undefined);
 });
-el['retry-recall'].addEventListener('click', () => beginRecall(practice.lesson));
+el['retry-recall'].addEventListener('click', () => beginRecall(practice.lesson,
+  practice.mode === 'recall' ? practice.scenario : undefined));
 
-function beginRecall(lesson) {
-  start(lesson, 'recall');
+function beginRecall(lesson, repeatScenario) {
+  start(lesson, 'recall', { repeatScenario, resumeAtStart: true });
   el.recall.focus({ preventScroll: true });
   showViewport();
 }
@@ -831,19 +840,25 @@ function render() {
   renderHistory();
   el.instruction.setAttribute('aria-live', demo ? 'polite' : 'off');
   if (demo) {
+    const reviewing = Boolean(returnFromExample);
+    const completedLesson = demo.complete && !reviewing;
     el.result.hidden = true;
     el.instruction.hidden = false;
-    el['step-label'].textContent = demo.complete ? '見本はここまで' : '見本 · ' + (demo.index + 1) + ' / ' + lesson.actions.length;
-    el['step-title'].textContent = demo.complete ? '今度は自分で試す' : step.label;
-    el['step-description'].textContent = demo.complete
+    el['step-label'].textContent = reviewing ? '見直しの見本' :
+      completedLesson ? '見本はここまで' : '見本 · ' + (demo.index + 1) + ' / ' + lesson.actions.length;
+    el['step-title'].textContent = completedLesson ? '今度は自分で試す' : step.label;
+    el['step-description'].textContent = completedLesson
       ? '同じ種目をヒントなしで練習できます。'
       : step.detail + exampleInspection(step, lesson, demo.scenario);
     el['example-caption'].firstElementChild.textContent = demo.complete ? '✓' : String(demo.index + 1).padStart(2, '0');
-    el['example-caption'].lastElementChild.textContent = demo.complete ? '見本はここまで' : step.label;
+    el['example-caption'].lastElementChild.textContent = completedLesson ? '見本はここまで' : step.label;
+    el['example-prev'].hidden = reviewing;
+    el['example-next'].hidden = reviewing;
     el['example-prev'].disabled = !demo.complete && demo.index === demo.first;
     el['example-next'].disabled = demo.complete;
     el['example-play'].textContent = demo.complete ? 'もう一度見る' : demo.paused ? '再生する' : '一時停止';
-    el['example-exit'].textContent = returnFromExample ? '見直しに戻る' : '練習に戻る';
+    el['example-recall'].textContent = reviewing ? 'この種目を自力でやり直す ›' : 'ヒントなしで試す ›';
+    el['example-exit'].textContent = reviewing ? '見直しに戻る' : '練習に戻る';
     drawExample(demo);
     return;
   }
@@ -907,8 +922,9 @@ function render() {
     el.review.hidden = !review.length;
     el.review.replaceChildren(...review.map(action =>
       reviewRow(action, { scenario: practice.scenario, reason: reviewReason(practice, action.id) })));
-    el['retry-recall'].hidden = !guided;
-    el['next-lesson'].className = guided ? 'outline-control' : 'primary';
+    el['retry-recall'].hidden = !guided && !review.length;
+    el['retry-recall'].textContent = guided ? 'この種目を自力で復習 ›' : 'この種目をもう一度 ›';
+    el['next-lesson'].className = el['retry-recall'].hidden ? 'primary' : 'outline-control';
     const next = lessons[lessonIndex(lesson) + 1];
     el['next-lesson'].textContent = lesson.id === 'gear' ? 'バディの器材を確認 ›' :
       next ? next.title + 'へ ›' : '練習メニューに戻る';

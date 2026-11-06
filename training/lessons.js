@@ -218,7 +218,7 @@ export function lessonRoute(lesson, key) {
   return lesson;
 }
 
-export function newPractice(lesson, mode, random = Math.random) {
+export function newPractice(lesson, mode, random = Math.random, repeatScenario) {
   const choices = [...lesson.actions];
   if (mode === 'recall') {
     for (let i = choices.length - 1; i > 0; i -= 1) {
@@ -227,7 +227,11 @@ export function newPractice(lesson, mode, random = Math.random) {
     }
   }
   const scenarios = lesson.scenarios ? Object.keys(lesson.scenarios).slice(1) : [];
-  const scenario = scenarios.length ? (mode === 'guided' ? 'walkthrough' : scenarios[Math.floor(random() * scenarios.length)]) : undefined;
+  let scenario;
+  if (scenarios.length) {
+    if (mode === 'guided') scenario = 'walkthrough';
+    else scenario = scenarios.includes(repeatScenario) ? repeatScenario : scenarios[Math.floor(random() * scenarios.length)];
+  }
   return { lesson, mode, choices, index: 0, missed: new Set(), assisted: new Set(), pressure: {}, scenario };
 }
 
