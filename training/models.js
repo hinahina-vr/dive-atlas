@@ -490,7 +490,7 @@ function inflator(root, inWater = false) {
   };
 }
 
-function fins(root, inWater = false) {
+function fins(root, inWater, issues) {
   if (!inWater) stage(root, -.95);
   const fin = group(root, 0, -.63, .04);
   const blade = [[-.27, -.55], [-.47, -.91], [-.53, -1.19], [-.41, -1.34], [-.10, -1.39], [.15, -1.38],
@@ -506,7 +506,11 @@ function fins(root, inWater = false) {
   sphere(fin, .235, .123, .23, rubber, 0, .096, .435);
   const strap = group(fin, 0, .08, -.15);
   const strapRest = v(0, .05, -.26);
+  const strapFitted = v(0, .05, -.20);
+  const strapLoose = v(0, .05, -.52);
   const strapGrip = group(strap, ...strapRest);
+  const heelView = group(fin, 0, .32, -.36);
+  heelView.rotation.set(-.27, 1.90, 0, 'YXZ');
   const band = mesh(strap, new T.BufferGeometry(), lime);
   const lastGrip = v(Infinity, 0, 0);
   const boot = group(root);
@@ -517,8 +521,10 @@ function fins(root, inWater = false) {
   return {
     anchors: {
       'fin-strap': [strap, v(.21, .08, -.12)], 'fin-foot': [boot, v(.04, .13, .30)],
-      'fin-lock': [strapGrip, v(0, .035, 0)], 'fin-check': [boot, v(-.18, .29, -.04)]
+      'fin-lock': [strapGrip, v(0, .035, 0)], 'fin-wiggle': [boot, v(-.18, .29, -.04)],
+      'fin-check': [strapGrip, v(.12, .065, .025)]
     },
+    details: { 'fin-check': [heelView, v(0, 0, 0), 1.23] },
     docks: { pocket: [fin, v(0, .16, .18)], heel: [boot, v(0, .09, -.19)] },
     grabbable: { 'fin-foot': boot, 'fin-lock': strapGrip },
     sync() {
@@ -532,13 +538,20 @@ function fins(root, inWater = false) {
       band.geometry.dispose();
       band.geometry = new T.TubeGeometry(path, 20, .043, 8, false);
     },
-    update(done, k) {
-      strapGrip.position.lerp(strapRest, k);
+    update(done, k, _time, interaction) {
       const inserted = done.has('fin-foot');
-      boot.position.lerp(inserted ? v(0, -.48, -.07) : v(-.56, -.16, -.43), k);
-      boot.rotation.x = T.MathUtils.lerp(boot.rotation.x, inserted ? 0 : -.24, k);
-      strap.rotation.x = T.MathUtils.lerp(strap.rotation.x, done.has('fin-lock') ? .24 : done.has('fin-strap') ? -1.14 : -.31, k);
-      strap.position.y = T.MathUtils.lerp(strap.position.y, done.has('fin-lock') ? .235 : .08, k);
+      const locked = done.has('fin-lock');
+      const checked = done.has('fin-check');
+      const loose = locked && issues.includes('fin-check') && !checked;
+      const lift = locked && !checked ? (done.has('fin-wiggle') ? 1 : interaction.pressure['fin-wiggle'] || 0) : 0;
+      const tilt = lift * (loose ? .36 : .09);
+      fin.rotation.x = T.MathUtils.lerp(fin.rotation.x, loose ? 0 : tilt, k);
+      strapGrip.position.lerp(locked ? (loose ? strapLoose : strapFitted) : strapRest, k);
+      const seatedBoot = v(0, -.48 + lift * (loose ? .25 : .022), -.07 - lift * (loose ? .07 : .009));
+      boot.position.lerp(inserted ? seatedBoot : v(-.56, -.16, -.43), k);
+      boot.rotation.x = T.MathUtils.lerp(boot.rotation.x, inserted ? tilt : -.24, k);
+      strap.rotation.x = T.MathUtils.lerp(strap.rotation.x, locked ? .24 : done.has('fin-strap') ? -1.14 : -.31, k);
+      strap.position.y = T.MathUtils.lerp(strap.position.y, locked ? .235 : .08, k);
     }
   };
 }
@@ -549,7 +562,7 @@ export function makeModel(root, lesson, scenario) {
     case 'mask':
     case 'recovery': return diver(root, lesson);
     case 'inflator': return inflator(root);
-    case 'fins': return fins(root);
+    case 'fins': return fins(root, false, lesson.scenarios[scenario]);
     default: throw new Error('Unknown practice model');
   }
 }
@@ -774,7 +787,7 @@ function immersionRegulator(root, reachRoute) {
   };
 }
 
-export function makeDiveModel(root, lesson) {
+export function makeDiveModel(root, lesson, scenario) {
   const updateWater = waterBackdrop(root);
   let model;
   if (lesson.scene === 'recovery') {
@@ -782,7 +795,7 @@ export function makeDiveModel(root, lesson) {
   } else if (lesson.scene === 'fins') {
     const equipment = group(root, 0, .70, -.66);
     equipment.rotation.y = Math.PI;
-    model = fins(equipment, true);
+    model = fins(equipment, true, lesson.scenarios[scenario]);
   } else if (lesson.scene === 'inflator') {
     const equipment = group(root);
     const line = group(root, -1.43, -.16, -.18);

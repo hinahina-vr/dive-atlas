@@ -10,9 +10,11 @@ export function readDraft(storage) {
     const lesson = lessonRoute(base, raw.route);
     if (lesson.route !== raw.route || typeof raw.immersive !== 'boolean') return null;
     const { actions, scenarios } = lesson;
+    let scenario = raw.scenario;
+    if (scenario === undefined && lesson.id === 'fins') scenario = raw.mode === 'guided' ? 'walkthrough' : 'ready';
     if (scenarios) {
-      if (!Object.hasOwn(scenarios, raw.scenario) || (raw.mode === 'guided') !== (raw.scenario === 'walkthrough')) return null;
-    } else if (raw.scenario !== undefined) return null;
+      if (!Object.hasOwn(scenarios, scenario) || (raw.mode === 'guided') !== (scenario === 'walkthrough')) return null;
+    } else if (scenario !== undefined) return null;
     if (!Array.isArray(raw.done) || raw.done.length >= actions.length ||
         !raw.done.every((id, i) => actions[i].id === id)) return null;
     const index = raw.done.length;
@@ -31,7 +33,7 @@ export function readDraft(storage) {
       ? raw.progress : 0;
     if (!index && !missed.size && !assisted.size && !progress) return null;
     const pressure = progress ? { [step.id]: progress } : {};
-    const practice = { lesson, mode: raw.mode, choices, index, missed, assisted, pressure, scenario: raw.scenario };
+    const practice = { lesson, mode: raw.mode, choices, index, missed, assisted, pressure, scenario };
     return { id: raw.id, practice, immersive: raw.immersive };
   } catch {
     return null;

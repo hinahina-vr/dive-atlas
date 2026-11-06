@@ -46,7 +46,8 @@ assert.deepEqual(needsReview(gear).map(action => action.id), ['bcd']);
 assert.equal(choose(gear, 'bcd', 'cylinder').ok, true);
 checks.push('All drill states: wrong order, wrong destination, hints, full run, completion and review');
 const buddy = lessons[1];
-for (const lesson of [gear.lesson, buddy]) {
+const finLesson = lessons.find(lesson => lesson.id === 'fins');
+for (const lesson of [gear.lesson, buddy, finLesson]) {
   const scenarios = Object.keys(lesson.scenarios).slice(1);
   for (const [index, scenario] of scenarios.entries()) {
     const run = newPractice(lesson, 'recall', () => (index + .25) / scenarios.length);
@@ -64,7 +65,7 @@ for (const lesson of [gear.lesson, buddy]) {
     assert.equal(run.index, lesson.actions.length);
   }
 }
-checks.push('Gear and buddy diagnosis: all recall scenarios, false positives and missed faults, correction before proceeding');
+checks.push('Gear, buddy and fin diagnosis: all recall scenarios, false positives and missed faults, correction before proceeding');
 const reviewData = new Map();
 const storage = { getItem: key => reviewData.get(key), setItem: (key, raw) => reviewData.set(key, raw) };
 assert.equal(saveReview(storage, gear, 123), null);
@@ -168,6 +169,18 @@ assert.equal(saveDraft(draftStorage, 'air-draft', airRun, true), true);
 assert.equal(readDraft(draftStorage).practice.pressure.balance, neutralAir);
 assert.equal(choose(airRun, 'balance').ok, true);
 checks.push('Inflator adjustment: refuses false balance, supports overshoot and correction, saves air and upgrades an existing draft');
+const legacyFin = newPractice(finLesson, 'recall', () => .9);
+for (const action of finLesson.actions.slice(0, 3)) assert.equal(attempt(legacyFin, action).ok, true);
+assert.equal(saveDraft(draftStorage, 'fin-draft', legacyFin, true), true);
+const oldFinDraft = JSON.parse(draftData.get(draftKey));
+delete oldFinDraft.scenario;
+oldFinDraft.choices = oldFinDraft.choices.filter(id => id !== 'fin-wiggle');
+draftData.set(draftKey, JSON.stringify(oldFinDraft));
+const upgradedFin = readDraft(draftStorage).practice;
+assert.equal(upgradedFin.scenario, 'ready');
+assert.equal(upgradedFin.lesson.actions[upgradedFin.index].id, 'fin-wiggle');
+assert.equal(upgradedFin.choices.at(-1).id, 'fin-wiggle');
+checks.push('Legacy fin draft: keeps the three fitted steps and resumes at the newly added movement check');
 
 const artifactBase = join(root, 'artifacts');
 await mkdir(artifactBase, { recursive: true });
@@ -272,7 +285,7 @@ try {
   async function operate(page, action, input) {
     await getChoice(page, action.id)[input]();
     if (action.attachment) await dockChoice(page, action.attachment.dock)[input]();
-    if (action.inspection) await answer(page, action.id === 'inspect-ring' ? 'repair' : 'normal')[input]();
+    if (action.inspection) await answer(page, ['inspect-ring', 'fin-check'].includes(action.id) ? 'repair' : 'normal')[input]();
   }
   const position = locator => locator.evaluate(item => [item.style.left, item.style.top].join('/'));
   async function ready(page) {
@@ -475,6 +488,27 @@ try {
   await getChoice(desktop, 'reg-breathe').press('Enter');
   assert.equal(await desktop.locator('#result-heading').innerText(), '練習完了');
   checks.push('1440 px recovery: reach demonstration aims toward the shoulder and the drill completes by keyboard');
+  await desktop.getByRole('button', { name: 'フィンの履き方', exact: true }).click();
+  await desktop.evaluate(() => { window.__originalRandom = Math.random; Math.random = () => .9; });
+  await desktop.locator('#recall').click();
+  await desktop.evaluate(() => { Math.random = window.__originalRandom; delete window.__originalRandom; });
+  await getChoice(desktop, 'fin-strap').press('Enter');
+  await getChoice(desktop, 'fin-foot').press('Enter');
+  await dockChoice(desktop, 'pocket').press('Enter');
+  await getChoice(desktop, 'fin-lock').press('Enter');
+  await dockChoice(desktop, 'heel').press('Enter');
+  await getChoice(desktop, 'fin-wiggle').press('Enter');
+  await getChoice(desktop, 'fin-check').press('Enter');
+  assert(await desktop.locator('#viewport.has-detail').isVisible());
+  await desktop.screenshot({ path: join(output, 'desktop-fin-fit.png'), fullPage: true });
+  await answer(desktop, 'repair').press('Enter');
+  assert.equal(await value(desktop), '4');
+  await answer(desktop, 'normal').press('Enter');
+  assert.equal(await value(desktop), '5');
+  const storedFin = await desktop.evaluate(key => JSON.parse(localStorage.getItem(key)), reviewKey(finLesson));
+  assert.deepEqual(storedFin.steps, ['fin-check']);
+  assert.equal(storedFin.scenario, 'ready');
+  checks.push('1440 px fin fit: keyboard movement and close-up, rejects a false adjustment and records the ready case');
   await desktop.context().close();
 
   const mobileSize = { width: 390, height: 844 };
@@ -859,7 +893,22 @@ try {
         await dock(mobile, action.attachment.dock).tap();
       }
       await mobile.screenshot({ path: join(output, 'mobile-fins.png'), fullPage: true });
-      await operate(mobile, lesson.actions[3], 'tap');
+      const heel = part(mobile, 'fin-wiggle');
+      const heelY = () => heel.evaluate(node => Number.parseFloat(node.style.top));
+      await heel.waitFor();
+      const initialHeel = await heelY();
+      await hold(mobile, 'fin-wiggle', waterInput, 1, async () => {
+        await mobile.waitForFunction(initial =>
+          Math.abs(Number.parseFloat(document.querySelector('[data-part="fin-wiggle"]').style.top) - initial) > 10, initialHeel);
+      });
+      assert.equal(await value(mobile), '4');
+      await part(mobile, 'fin-check').tap();
+      assert(await mobile.locator('#viewport.has-detail').isVisible());
+      await mobile.screenshot({ path: join(output, 'mobile-fin-loose.png'), fullPage: true });
+      await answer(mobile, 'repair').tap();
+      assert.equal(await value(mobile), '5');
+      assert.match(await mobile.locator('#feedback').innerText(), /ストラップの長さを調整/);
+      checks.push('390 px fin fit: a hold lifts the boot, heel close-up exposes the loose strap, and adjustment completes');
     }
     assert.equal(await mobile.locator('#result-heading').innerText(), '練習完了');
     assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -981,7 +1030,13 @@ try {
   assert.equal(await noGl.locator('#buoyancy-status').innerText(), '高さが安定');
   await getChoice(noGl, 'balance').press('Enter');
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
-  checks.push('360 px WebGL-unavailable fallback: gear, mask, alternate recovery and inflator adjustment still complete');
+  await noGl.getByRole('button', { name: 'フィンの履き方', exact: true }).tap();
+  for (const action of finLesson.actions.slice(0, -1)) await operate(noGl, action, 'tap');
+  await getChoice(noGl, 'fin-check').tap();
+  assert.match(await noGl.locator('#inspection-panel').innerText(), /間にすき間ができました/);
+  await answer(noGl, 'repair').tap();
+  assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
+  checks.push('360 px WebGL-unavailable fallback: gear, mask, alternate recovery, inflator and loose fin fit still complete');
   await noGl.context().close();
 
   const offlineUrl = previewUrl + 'training/';

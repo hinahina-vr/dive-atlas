@@ -262,7 +262,7 @@ export function createView(container, onProject, onAvailabilityChange) {
         alternateView = immersive;
         firstPerson = immersive && lesson.scene !== 'inflator';
         scene.fog = immersive ? fog : null;
-        model = immersive ? makeDiveModel(root, lesson) : makeModel(root, lesson, scenario);
+        model = immersive ? makeDiveModel(root, lesson, scenario) : makeModel(root, lesson, scenario);
         scene.add(root);
         previous = lesson;
         previousScenario = scenario;
