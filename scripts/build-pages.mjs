@@ -21,7 +21,13 @@ const webFiles = [
  'src/dive-spots.js',
  'src/map.js',
  'src/model.js',
- 'src/ocean.js'
+ 'src/ocean.js',
+ 'training/index.html',
+ 'training/style.css',
+ 'training/app.js',
+ 'training/lessons.js',
+ 'training/view.js',
+ 'training/models.js'
 ];
 for (const file of webFiles) {
  await mkdir(resolve(out, file, '..'), { recursive: true });
@@ -45,6 +51,10 @@ for (const file of ['maplibre-gl.mjs', 'maplibre-gl-worker.mjs', 'maplibre-gl-sh
  await cp(resolve(root, 'node_modules/maplibre-gl/dist', file), resolve(out, 'vendor', file));
 }
 await cp(resolve(root, 'node_modules/maplibre-gl/LICENSE.txt'), resolve(out, 'vendor/maplibre-LICENSE.txt'));
+for (const file of ['three.module.js', 'three.core.js']) {
+ await cp(resolve(root, 'node_modules/three/build', file), resolve(out, 'vendor', file));
+}
+await cp(resolve(root, 'node_modules/three/LICENSE'), resolve(out, 'vendor/three-LICENSE.txt'));
 const journal = await readFile(resolve(root, 'public-journal.json'), 'utf8').catch(error => {
  if (error.code === 'ENOENT') return '[]';
  throw error;

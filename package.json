@@ -6,12 +6,14 @@
     "dev": "node scripts/serve.mjs",
     "build:pages": "node scripts/build-pages.mjs",
     "check": "node --test scripts/model.test.mjs scripts/dive-spots.test.mjs && python -B scripts/import-tusa.test.py",
-    "check:browser": "node scripts/browser-check.mjs"
+    "check:browser": "node scripts/browser-check.mjs",
+    "check:training": "node scripts/training-check.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.62.1"
   },
   "dependencies": {
-    "maplibre-gl": "6.16.0"
+    "maplibre-gl": "6.16.0",
+    "three": "0.187.0"
   }
 }

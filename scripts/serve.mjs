@@ -15,12 +15,17 @@ export const server=http.createServer(async(req,res)=>{
    const bytes=fs.readFileSync(file);json(res,200,{enabled:true,digest:createHash('sha256').update(bytes).digest('hex'),backup:JSON.parse(bytes.toString('utf8'))});return;
   }
   if(p.startsWith('/vendor/')&&['GET','HEAD'].includes(req.method)){
-   const name=p.slice(8);if(!['maplibre-gl.mjs','maplibre-gl-worker.mjs','maplibre-gl-shared.mjs','maplibre-gl.css'].includes(name)){res.writeHead(404).end();return;}
-   const body=fs.readFileSync(path.join(root,'node_modules/maplibre-gl/dist',name));res.writeHead(200,{'Content-Type':mime[path.extname(name)],'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}).end(req.method==='HEAD'?undefined:body);return;
+   const name=p.slice(8);
+   const dist=['three.module.js','three.core.js'].includes(name)?'node_modules/three/build':
+    ['maplibre-gl.mjs','maplibre-gl-worker.mjs','maplibre-gl-shared.mjs','maplibre-gl.css'].includes(name)?'node_modules/maplibre-gl/dist':null;
+   if(!dist){res.writeHead(404).end();return;}
+   const body=fs.readFileSync(path.join(root,dist,name));res.writeHead(200,{'Content-Type':mime[path.extname(name)],'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}).end(req.method==='HEAD'?undefined:body);return;
   }
   if(!['GET','HEAD'].includes(req.method)){res.writeHead(405).end();return;}
-  if(!(p==='/'||p==='/index.html'||p==='/style.css'||p.startsWith('/assets/')||p.startsWith('/src/'))){res.writeHead(404).end();return;}
-  const file=path.resolve(root,'.'+(p==='/'?'/index.html':p));if(!file.startsWith(root+path.sep)||p.includes('..')){res.writeHead(403).end();return;}
+  if(p==='/training'){res.writeHead(308,{Location:'/training/'}).end();return;}
+  if(!(p==='/'||p==='/index.html'||p==='/style.css'||p.startsWith('/assets/')||p.startsWith('/src/')||p.startsWith('/training/'))){res.writeHead(404).end();return;}
+  const page=p==='/'?'/index.html':p==='/training/'?'/training/index.html':p;
+  const file=path.resolve(root,'.'+page);if(!file.startsWith(root+path.sep)||p.includes('..')){res.writeHead(403).end();return;}
   const body=fs.readFileSync(file);res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}).end(req.method==='HEAD'?undefined:body);
  }catch(e){if(req.url?.startsWith('/api/'))json(res,400,{error:e.message});else res.writeHead(404).end('Not found');}
 });

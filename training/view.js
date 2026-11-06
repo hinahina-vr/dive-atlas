@@ -1,0 +1,163 @@
+import * as T from '../vendor/three.module.js';
+import { makeModel, makeDiveModel } from './models.js';
+
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+export function createView(container, onProject) {
+  const renderer = new T.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.6));
+  renderer.toneMapping = T.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.32;
+  const canvas = renderer.domElement;
+  canvas.setAttribute('aria-hidden', 'true');
+  container.append(canvas);
+
+  const scene = new T.Scene();
+  const camera = new T.PerspectiveCamera(37, 1, .05, 40);
+  const sky = new T.HemisphereLight(0xc2fff5, 0x2e5360, 2.5);
+  const key = new T.DirectionalLight(0xe7f9f8, 3.05);
+  const rim = new T.DirectionalLight(0x56dacc, 2.1);
+  const fill = new T.DirectionalLight(0xffc58a, .8);
+  key.position.set(4, 6, 5);
+  rim.position.set(-4, 2.5, -4);
+  fill.position.set(-4, 1, 3);
+  scene.add(sky, key, rim, fill);
+
+  const point = new T.Vector3();
+  const orbit = new T.Spherical(5.9, 1.28, .42);
+  const look = new T.Vector3(0, -.06, 0);
+  const fog = new T.FogExp2(0x276772, .125);
+  const direction = new T.Vector3();
+  let alternateView = false;
+  let firstPerson = false;
+  let model;
+  let root;
+  let done = new Set();
+  let frame = 0;
+  let width = 1;
+  let height = 1;
+  let changed = 0;
+  let last = 0;
+  let visible = true;
+  let activePointer;
+
+  function queue() {
+    if (visible && !frame && !document.hidden) frame = requestAnimationFrame(draw);
+  }
+
+  function draw(time) {
+    frame = 0;
+    if (!model || document.hidden) return;
+    const delta = last ? Math.min(time - last, 50) : 17;
+    last = time;
+    const settling = time - changed < 620;
+    model.update(done, reducedMotion.matches || !settling ? 1 : 1 - Math.exp(-delta / 79), reducedMotion.matches ? 240 : time);
+    if (firstPerson) {
+      camera.position.copy(look);
+      direction.set(Math.sin(orbit.theta) * Math.sin(orbit.phi), Math.cos(orbit.phi), -Math.cos(orbit.theta) * Math.sin(orbit.phi));
+      camera.lookAt(direction.add(look));
+    } else {
+      camera.position.setFromSpherical(orbit).add(look);
+      camera.lookAt(look);
+    }
+    renderer.render(scene, camera);
+    const targets = {};
+    for (const [id, [x, y]] of Object.entries(model.fixedTargets || {})) {
+      targets[id] = { x: x * width, y: y * height };
+    }
+    for (const [id, [parent, position]] of Object.entries(model.anchors)) {
+      point.copy(position);
+      parent.localToWorld(point);
+      point.project(camera);
+      const x = (point.x * .5 + .5) * width;
+      const y = (.5 - point.y * .5) * height;
+      if (point.z < 1 && x > 21 && x < width - 21 && y > 24 && y < height - 58) targets[id] = { x, y };
+    }
+    onProject(targets);
+    const bubbling = model.animated && (done.has('mask-exhale') || (done.has('bubbles') && !done.has('replace')));
+    if (!reducedMotion.matches && (settling || bubbling || model.inWater)) queue();
+  }
+
+  const resize = new ResizeObserver(() => {
+    width = container.clientWidth;
+    height = container.clientHeight;
+    if (!width || !height) return;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height, false);
+    queue();
+  });
+  resize.observe(container);
+  const observer = new IntersectionObserver(([entry]) => {
+    visible = entry.isIntersecting;
+    if (visible) queue();
+  });
+  observer.observe(container);
+  document.addEventListener('visibilitychange', queue);
+  reducedMotion.addEventListener('change', queue);
+  canvas.addEventListener('webglcontextrestored', queue);
+
+  function rotate(amount, tilt = 0) {
+    orbit.theta = firstPerson ? T.MathUtils.clamp(orbit.theta + amount, -1.42, 1.42) : orbit.theta + amount;
+    orbit.phi = T.MathUtils.clamp(orbit.phi + tilt, .40, firstPerson ? 2.64 : 1.76);
+    queue();
+  }
+
+  canvas.addEventListener('pointerdown', event => {
+    if (!event.isPrimary || event.button !== 0) return;
+    activePointer = [event.pointerId, event.clientX, event.clientY];
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener('pointermove', event => {
+    if (activePointer?.[0] !== event.pointerId) return;
+    rotate((activePointer[1] - event.clientX) * .010, (activePointer[2] - event.clientY) * .007);
+    activePointer = [event.pointerId, event.clientX, event.clientY];
+  });
+  canvas.addEventListener('lostpointercapture', () => { activePointer = null; });
+
+  function resetCamera(lesson) {
+    if (firstPerson) {
+      orbit.theta = 0;
+      orbit.phi = lesson.scene === 'fins' ? 2.22 : lesson.scene === 'recovery' ? 1.90 : 1.64;
+      if (lesson.scene === 'fins') look.set(0, 1.53, 1.46);
+      else look.set(0, .17, 2.43);
+    } else {
+      orbit.theta = lesson?.scene === 'gear' ? .46 : .29;
+      orbit.phi = lesson?.scene === 'fins' ? 1.04 : 1.29;
+      orbit.radius = lesson?.scene === 'gear' ? 6.35 : 5.2;
+      look.set(0, lesson?.scene === 'fins' ? -.37 : -.03, 0);
+    }
+    queue();
+  }
+  let previous;
+  return {
+    rotate,
+    resetCamera: () => resetCamera(previous),
+    show(lesson, finished, immersive) {
+      if (previous !== lesson || immersive !== alternateView) {
+        if (root) {
+          scene.remove(root);
+          root.traverse(object => {
+            object.geometry?.dispose();
+            if (object.material?.map || object.material?.isShaderMaterial) {
+              object.material.map?.dispose();
+              object.material.dispose();
+            }
+          });
+        }
+        root = new T.Group();
+        alternateView = immersive;
+        firstPerson = immersive && lesson.scene !== 'inflator';
+        scene.fog = immersive ? fog : null;
+        model = immersive ? makeDiveModel(root, lesson) : makeModel(root, lesson);
+        scene.add(root);
+        previous = lesson;
+        resetCamera(lesson);
+        model.update(new Set(finished), 1, 0);
+      }
+      done = new Set(finished);
+      changed = performance.now();
+      queue();
+    }
+  };
+}
