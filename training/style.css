@@ -262,7 +262,11 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .hotspot::after { content: ""; position: absolute; inset: 19px; border-radius: 50%; background: #d9fff0; }
 .hotspot.is-guide::before, .hotspot:hover::before { inset: 8px; border-color: var(--amber); box-shadow: 0 0 18px #ffce7969; }
 .hotspot.is-guide::after, .hotspot:hover::after { background: var(--amber); }
-.scene-error { margin: auto; max-width: 250px; position: absolute; inset: 0; height: max-content; text-align: center; color: #144859; }
+.viewport.is-unavailable { height: 130px; }
+.scene-error {
+  margin: auto; max-width: 30ch; position: absolute; inset: 55px 14px 9px; height: max-content;
+  text-align: center; color: #144859; font-size: .86rem; line-height: 1.55;
+}
 .panel { padding: 20px; background: var(--card); }
 .panel-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 #step-count { color: #315d64; font: 700 .78rem ui-monospace, monospace; white-space: nowrap; }

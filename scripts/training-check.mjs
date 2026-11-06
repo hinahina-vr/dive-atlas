@@ -743,6 +743,7 @@ try {
     assert.match(await sceneStatus.innerText(), /一時的に中断/);
     assert(await graphicsCanvas.isHidden());
     assert(await graphics.locator('#view-controls').isHidden());
+    assert(await graphics.locator('#viewport').evaluate(node => node.clientHeight < 160));
   }
   async function restoreGraphics() {
     await graphicsCanvas.evaluate(node => node.testContextLoss.restoreContext());
@@ -750,6 +751,7 @@ try {
     await sceneStatus.waitFor({ state: 'hidden' });
     assert.equal(await graphicsCanvas.count(), 1);
     assert(await graphicsCanvas.evaluate(node => !node.getContext('webgl2').isContextLost()));
+    assert(await graphics.locator('#viewport').evaluate(node => node.clientHeight > 240));
   }
   await part(graphics, 'inspect').tap();
   await answer(graphics, 'normal').focus();

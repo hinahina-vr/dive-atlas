@@ -638,6 +638,7 @@ function setSceneView(next, message = '') {
   viewFailed = !view;
   el['scene-status'].textContent = message;
   el['scene-status'].hidden = Boolean(view);
+  el.viewport.classList.toggle('is-unavailable', !view);
   el['view-help'].hidden = !view;
   el['view-controls'].hidden = !view;
   if (!view) placement.project({});
