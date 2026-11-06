@@ -324,14 +324,15 @@ function kit(root, startAssembled, issues) {
       gaugeEnd.y += .13;
       updateGauge(gaugeOrigin, gaugeEnd);
     },
-    update(done, k, _time, interaction) {
+    update(done, blend, _time, interaction) {
+      const { bcd: jacketMotion, first: regulatorMotion, connect: couplerMotion } = interaction.pressure;
+      // A seek establishes the earlier steps before showing the current attachment.
+      const k = jacketMotion !== undefined || regulatorMotion !== undefined || couplerMotion !== undefined ? 1 : blend;
       const fault = id => issues.includes(id) && !done.has(id);
       const bcd = startAssembled || done.has('bcd');
       const first = startAssembled || done.has('first');
       const stow = startAssembled || done.has('stow');
       const open = startAssembled || done.has('open');
-      const jacketMotion = interaction.pressure.bcd;
-      const jacketBlend = jacketMotion === undefined ? k : 1;
       if (!bcd && jacketMotion !== undefined) {
         const raise = ease(jacketMotion, 0, .33);
         const slide = ease(jacketMotion, .33, .64);
@@ -340,8 +341,8 @@ function kit(root, startAssembled, issues) {
         jacket.position.y = mix(mix(jacketRest.y, 1.38, raise), jacketMounted.y, lower);
         jacket.rotation.y = mix(.35, -.10, slide);
       } else {
-        jacket.position.lerp(bcd ? jacketMounted : jacketRest, jacketBlend);
-        jacket.rotation.y = mix(jacket.rotation.y, bcd ? -.10 : .35, jacketBlend);
+        jacket.position.lerp(bcd ? jacketMounted : jacketRest, k);
+        jacket.rotation.y = mix(jacket.rotation.y, bcd ? -.10 : .35, k);
       }
       const air = done.has('buddy-vent') ? 0 :
         done.has('buoyancy') ? 1 - (interaction.pressure['buddy-vent'] || 0) : interaction.pressure.buoyancy || 0;
@@ -354,16 +355,14 @@ function kit(root, startAssembled, issues) {
       const openBuckle = fault('releases');
       buckle.position.lerp(openBuckle ? v(.215, -.22, .385) : v(.046, -.14, .276), k);
       buckle.rotation.z = T.MathUtils.lerp(buckle.rotation.z, openBuckle ? .40 : 0, k);
-      const regulatorMotion = interaction.pressure.first;
-      const regulatorBlend = regulatorMotion === undefined ? k : 1;
       if (!first && regulatorMotion !== undefined) {
         const align = ease(regulatorMotion, 0, .70);
         const seat = ease(regulatorMotion, .70, 1);
         reg.position.lerpVectors(regulatorRest, regulatorAligned, align).lerp(regulatorMounted, seat);
         reg.rotation.z = mix(-.19, 0, align);
       } else {
-        reg.position.lerp(first ? regulatorMounted : regulatorRest, regulatorBlend);
-        reg.rotation.z = mix(reg.rotation.z, first ? 0 : -.19, regulatorBlend);
+        reg.position.lerp(first ? regulatorMounted : regulatorRest, k);
+        reg.rotation.z = mix(reg.rotation.z, first ? 0 : -.19, k);
       }
       loose.rotation.y = T.MathUtils.lerp(loose.rotation.y, stow ? .63 : -.12, k);
       const looseSpare = fault('alternate');
@@ -386,7 +385,6 @@ function kit(root, startAssembled, issues) {
       const connected = startAssembled || done.has('connect');
       const host = connected ? inflator : loose;
       root.worldToLocal(host.localToWorld(couplerRest.copy(connected ? inlet : freeEnd)));
-      const couplerMotion = interaction.pressure.connect;
       sleeve.position.x = 0;
       if (!connected && couplerMotion !== undefined) {
         const align = ease(couplerMotion, 0, .69);
@@ -396,7 +394,7 @@ function kit(root, startAssembled, issues) {
         couplerRest.x -= .14 * align * (1 - seat);
         sleeve.position.x = -.042 * ease(couplerMotion, .49, .69) * (1 - ease(couplerMotion, .91, 1));
       }
-      coupler.position.lerp(couplerRest, couplerMotion === undefined ? k : 1);
+      coupler.position.lerp(couplerRest, k);
     }
   };
 }
