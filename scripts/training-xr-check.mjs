@@ -749,6 +749,11 @@ try {
   await capture('gear-bench');
   await aimAt(await gearPoint('inspect-ring',[]));
   await onlyGearLabel('inspect-ring');
+  assert(await page.evaluate(() => {
+    const gear = window.qaGearCallouts;
+    return gear.get('gear-label:inspect-ring').position.x < gear.get('gear-marker:inspect-ring').position.x &&
+      gear.get('gear-marker:open').position.x > gear.get('gear-marker:inspect-ring').position.x;
+  }), 'The O-ring label opens away from the valve marker');
   await capture('gear-ring-label-front');
   await aimAt(await gearPoint('open',[]));
   await onlyGearLabel('open');

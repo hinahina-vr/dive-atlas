@@ -471,14 +471,46 @@ function spatialTargets(lesson, model, scene) {
   const forward = new T.Vector3();
   const delta = new T.Vector3();
   const right = new T.Vector3();
+  const up = new T.Vector3();
+  const viewer = new T.Vector3();
+  const facing = new T.Quaternion();
+  const viewOffset = new T.Vector3();
   const hitPoint = new T.Vector3();
+
+  function placeGearLabel({ mesh, marker }) {
+    viewOffset.subVectors(marker.position, viewer);
+    const depth = viewOffset.dot(forward);
+    let leftSpace = .55;
+    let rightSpace = .55;
+    for (const other of targets) {
+      if (!other.marker.visible || other.marker === marker) continue;
+      delta.subVectors(other.marker.position, viewer);
+      // Compare neighbors at the label's depth to account for perspective.
+      delta.multiplyScalar(depth / delta.dot(forward)).sub(viewOffset);
+      if (Math.abs(delta.dot(up)) >= .13) continue;
+      const across = delta.dot(right);
+      if (across < 0) leftSpace = Math.min(leftSpace, -across);
+      else rightSpace = Math.min(rightSpace, across);
+    }
+    const towardLeft = leftSpace === rightSpace ? viewOffset.dot(right) > .43 * viewOffset.length() : leftSpace > rightSpace;
+    mesh.position.copy(marker.position).addScaledVector(right, towardLeft ? -.26 : .26);
+    mesh.quaternion.copy(facing);
+    mesh.updateMatrixWorld();
+  }
+
   return {
     update(state, placing, eye, orientation, inspecting, focusStep, finChoice) {
       const stepIndex = focusStep && state.steps.indexOf(focusStep);
       forward.set(0, 0, -1).applyQuaternion(orientation);
       right.set(1, 0, 0).applyQuaternion(orientation);
+      if (gear) {
+        viewer.copy(eye);
+        facing.copy(orientation);
+        up.set(0, 1, 0).applyQuaternion(orientation);
+      }
       for (const { id, dock, group, parent, point, mesh, marker, index, phaseOnly, sharedAnchor, hitArea } of targets) {
-        (marker || mesh).visible = false;
+        const target = marker || mesh;
+        target.visible = false;
         if (focusStep !== undefined) {
           if (!focusStep || group || !parent.visible || (dock ? id !== focusStep.attachment?.dock : index !== stepIndex)) continue;
         } else if (fins && !state.guide) {
@@ -492,20 +524,13 @@ function spatialTargets(lesson, model, scene) {
           if (gear && !dock && (inspecting || sharedAnchor >= state.index ||
             (state.guide && index !== state.index))) continue;
         }
-        parent.localToWorld(mesh.position.copy(point));
-        if (delta.subVectors(mesh.position, eye).normalize().dot(forward) < .70) continue;
-        if (hitArea) hitArea.center.copy(mesh.position);
-        if (marker) {
-          marker.position.copy(mesh.position);
-          marker.quaternion.copy(orientation);
-          marker.visible = true;
-          mesh.position.addScaledVector(right, delta.dot(right) > .43 ? -.26 : .26);
-        } else {
-          if (hitArea) mesh.position.addScaledVector(right, .235);
-          mesh.visible = true;
-        }
-        mesh.quaternion.copy(orientation);
-        mesh.updateMatrixWorld();
+        parent.localToWorld(target.position.copy(point));
+        if (delta.subVectors(target.position, eye).normalize().dot(forward) < .70) continue;
+        if (hitArea) hitArea.center.copy(target.position);
+        if (!marker && hitArea) mesh.position.addScaledVector(right, .235);
+        target.quaternion.copy(orientation);
+        target.updateMatrixWorld();
+        target.visible = true;
       }
     },
     pick(ray) {
@@ -533,6 +558,7 @@ function spatialTargets(lesson, model, scene) {
     highlight(hovered, focus, guided) {
       const label = gear && (targets.find(target => target.marker.visible && target.id === hovered) ||
         targets.find(target => target.marker.visible && target.id === (focus || guided)));
+      if (label) placeGearLabel(label);
       for (const { id, mesh, marker } of targets) {
         const emphasized = id === hovered || id === guided || (marker ? id === focus : Boolean(focus));
         if (marker) {
