@@ -286,12 +286,12 @@ function makePanel(lesson, following) {
       const x = hit.uv.x * 1024, y = (1 - hit.uv.y) * 346;
       return visibleControls.find(({ x: left, y: top, w, h }) => x >= left && x <= left + w && y >= top && y <= top + h)?.id;
     },
-    draw(state, hovered, placing, done, inspecting, reviewIndex, demo, finChoice, hasController) {
+    draw(state, hovered, placing, done, inspecting, reviewIndex, demo, finChoice, hasController, carrying) {
       const air = inflator ? inflatorAir(done.has('add-air'), done.has('vent'), state.pressure) : 0;
       const amount = Math.round((inflator ? air : state.water) * 100);
       const key = !hasController ? 'tracking:' + state.index : demo ?
         ['example', reviewIndex, demo.index, demo.paused, demo.complete, demo.motion >= 1, demo.amount, hovered].join('|') :
-        [state.index, state.guide, Boolean(state.active), state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex, finChoice].join('|');
+        [state.index, state.guide, Boolean(state.active), state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex, finChoice, carrying].join('|');
       if (key === previous) return;
       previous = key;
       const next = state.steps[state.index];
@@ -319,7 +319,7 @@ function makePanel(lesson, following) {
         inspection ? inspection.prompt :
         finGroup ? finGroup.label + 'で何をする？' :
         (fins || gear) && placing ? '照準を合わせて置く' :
-        inflator && placing ? '排気口を置く高さを選ぶ' :
+        inflator && placing ? (carrying ? '高さを選び、トリガーを離す' : '排気口を置く高さを選ぶ') :
         finChoice ? next.attachment.part + 'を持つ' :
         state.guide ? next.label : '';
       const instruction = note || state.message || '操作に照準を合わせてトリガーを押す';
@@ -342,7 +342,8 @@ function makePanel(lesson, following) {
           state.guide && next.pressTime ? 'トリガーを押し続ける' : fins ? '足元の部品を選ぶ' : '器材の目印を選ぶ';
         if (hint && hint !== instruction) text(hint, finInput ? 310 : 32, compact ? 197 : 300, 32, '#246270', finInput ? 675 : 960);
       } else if (recovery) {
-        const note = placing ? (state.guide ? '正面を向いて「口元」を選ぶ' : '取り付け先に照準を合わせる') :
+        const note = carrying ? '取り付け先に合わせてトリガーを離す' :
+          placing ? (state.guide ? '正面を向いて「口元」を選ぶ' : '取り付け先に照準を合わせる') :
           !state.guide ? '次の操作を思い出し、器材かボタンを選ぶ' :
           ['sweep', 'reach', 'trace-hose'].includes(next.id) ? '右肩側を見て、ホースの目印を探す' : '';
         if (note) text(note, 32, 303, 32, '#246270');
@@ -678,7 +679,6 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
   let reviewIndex = -1;
   let carry;
   const carriedPosition = new T.Vector3();
-  const restingPosition = new T.Vector3();
   let pulse;
   let previousTime;
   let canUseMaskRim = false;
@@ -725,12 +725,13 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
       const hit = aim(controller);
       selected = hit?.id;
       const step = state?.steps.find(action => action.id === selected);
-      const part = (presentation?.fins || presentation?.gear) && presentation.model.grabbable[selected];
+      const part = presentation?.model.grabbable?.[selected];
       if (part && hit?.spatial && !carry && !holding && step && step === state.steps[state.index]) {
         finChoice = undefined;
         placing = selected;
-        const offset = part.getWorldPosition(new T.Vector3()).sub(raycaster.ray.at(hit.distance, carriedPosition));
-        carry = { controller, part, distance: hit.distance, offset };
+        const rest = part.getWorldPosition(new T.Vector3());
+        const offset = rest.clone().sub(raycaster.ray.at(hit.distance, carriedPosition));
+        carry = { controller, part, distance: hit.distance, offset, rest };
       }
       timed = Boolean(step?.pressTime);
       const fromFinMenu = !hit?.spatial && finRecallGroups[finChoice]?.actions[selected];
@@ -830,11 +831,10 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
   }
   function moveCarriedPart() {
     if (!carry?.controller.visible) return;
-    const { controller, part, distance, offset } = carry;
+    const { controller, part, distance, offset, rest } = carry;
     const target = aim(controller);
     raycaster.ray.at(target?.dock ? target.distance : distance, carriedPosition).add(offset);
-    part.getWorldPosition(restingPosition);
-    carriedPosition.sub(restingPosition).clampLength(0, 1.1).add(restingPosition);
+    carriedPosition.sub(rest).clampLength(0, 1.1).add(rest);
     part.position.copy(part.parent.worldToLocal(carriedPosition));
   }
   function cancelInputs() {
@@ -940,10 +940,9 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
       const active = effects?.active ?? (current.active || (pulse?.until > time ? pulse.action : ''));
       const detail = gear ? (demo && !demo.complete ? demo.step.id : reviewStep?.id || inspecting) : undefined;
       model.update(completed, blend, motion, { active, pressure, detail });
-      if (!fins && !gear) model.sync?.();
       targets?.update(current, placing, visor.getWorldPosition(eye), visor.quaternion, inspecting, focusStep, finChoice);
       moveCarriedPart();
-      if (fins || gear) model.sync();
+      model.sync?.();
       preview?.show(detail);
       let hovered;
       for (const { controller, line } of pointers) {
@@ -953,7 +952,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
       }
       const guidedTarget = current.guide ? (placing ? next?.attachment?.dock : next?.id) : undefined;
       targets?.highlight(hovered, focusStep?.id, guidedTarget);
-      panel.draw(current, hovered, placing, completed, inspecting, reviewIndex, demo, finChoice, hasController);
+      panel.draw(current, hovered, placing, completed, inspecting, reviewIndex, demo, finChoice, hasController, Boolean(carry));
       renderer.render(scene, camera);
     },
     dispose() {

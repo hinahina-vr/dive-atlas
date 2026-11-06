@@ -900,6 +900,7 @@ function waterBackdrop(root, fromAbove) {
 
 function immersionRegulator(root, reachRoute) {
   const regulator = octo(root, teal, 1.56, -.37, 1.70);
+  regulator.name = 'recovery-regulator';
   const replaceTarget = group(regulator);
   const clearTarget = group(regulator);
   regulator.rotation.y = -.48;

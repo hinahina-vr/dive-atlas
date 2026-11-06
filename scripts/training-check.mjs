@@ -1088,8 +1088,9 @@ try {
       await hold(mobile, 'sweep', waterInput);
       assert.equal(await value(mobile), '2');
       await mobile.locator('#reset-view').tap();
-      await part(mobile, 'replace').tap();
-      await dock(mobile, 'mouth').tap();
+      await movePart(mobile, 'replace', dock(mobile, 'mouth'), waterInput, async () => {
+        await mobile.screenshot({ path: join(output, 'mobile-carry-regulator.png') });
+      });
       assert.equal(await value(mobile), '3');
       await hold(mobile, 'purge', waterInput, 1, async () => {
         await mobile.screenshot({ path: join(output, 'mobile-purge.png'), fullPage: true });
@@ -1149,7 +1150,7 @@ try {
       await getChoice(mobile, 'reg-exhale').press('Enter');
       await getChoice(mobile, 'reg-breathe').tap();
       assert.equal(await value(mobile), '5');
-      checks.push('390 px recovery: sweep moves before completion and resumes after reload; shoulder trace, both clearing methods and review still work');
+      checks.push('390 px recovery: interrupted sweep resumes; a touch drag docks the regulator at the mouth; shoulder trace, both clearing methods and review still work');
     } else if (lesson.id === 'inflator') {
       await mobile.locator('#show-example').tap();
       await mobile.locator('#example-next').tap();
