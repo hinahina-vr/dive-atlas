@@ -120,6 +120,9 @@ function inflatorHead(parent, ...point) {
   return item;
 }
 
+const jacketOutline = [[-.68, -.68], [-.76, -.38], [-.57, .08], [-.44, .55], [-.24, .66], [-.15, .38],
+  [.15, .38], [.24, .66], [.44, .55], [.57, .08], [.76, -.38], [.68, -.68], [.39, -.78], [-.39, -.78]];
+
 function kit(root, startAssembled, issues) {
   stage(root);
   const tank = group(root, .28, -.11, -.41);
@@ -146,9 +149,7 @@ function kit(root, startAssembled, issues) {
     grip.rotation.x = -a;
   }
   const jacket = group(root);
-  const shell = [[-.68, -.68], [-.76, -.38], [-.57, .08], [-.44, .55], [-.24, .66], [-.15, .38],
-    [.15, .38], [.24, .66], [.44, .55], [.57, .08], [.76, -.38], [.68, -.68], [.39, -.78], [-.39, -.78]];
-  plate(jacket, shell, .14, .07, cloth, 0, 0, -.12);
+  plate(jacket, jacketOutline, .14, .07, cloth, 0, 0, -.12);
   const weight = group(jacket, .53, -.45, .317);
   for (const side of [-1, 1]) {
     const strap = [[.24, .59], [.35, .59], [.45, -.03], [.37, -.42], [.23, -.39], [.25, -.05]]
@@ -457,14 +458,49 @@ function diver(root, lesson) {
 
 function inflator(root, inWater = false) {
   if (!inWater) stage(root);
-  const bladder = group(root, -.61, -.21, -.30);
-  const bladderOutline = [[-.48, -.65], [-.57, -.48], [-.51, .32], [-.3, .62], [.16, .68], [.43, .44], [.47, -.36], [.33, -.62]];
-  plate(bladder, bladderOutline, .26, .085, cloth);
-  plate(bladder, [[-.32, -.44], [-.29, .32], [-.15, .43], [.11, .46], [.26, .30], [.25, -.41], [.04, -.51]],
-    .12, .052, teal, 0, 0, .29);
-  textPlate(bladder, 'BCD', '#0b3b42', .43, -.012, -.043, .47);
+  const jacket = group(root, -.62, -.16, -.27);
+  jacket.scale.setScalar(.82);
+  plate(jacket, jacketOutline, .12, .06, rubber, 0, 0, -.14);
+  const airCells = [-1, 1].map(side => {
+    const cell = group(jacket, side * .43, -.21, -.04);
+    cell.name = 'bcd-air-cell';
+    const outline = [[-.11, .67], [.07, .65], [.15, .36], [.24, -.07], [.28, -.27],
+      [.21, -.46], [.06, -.53], [-.19, -.48], [-.28, -.33], [-.25, -.13], [-.16, .25]]
+      .map(([x, y]) => [side * x, y]);
+    plate(cell, outline, .34, .095, cloth);
+    plate(cell, [[-.16, -.15], [-.15, .08], [.11, .12], [.19, .035], [.15, -.17], [0, -.21]],
+      .042, .026, gray, side * .014, -.23, .405);
+    box(cell, .23, .027, .018, teal, side * .02, -.16, .48);
+    box(cell, .05, .047, .022, aluminum, side * .11, -.172, .491);
+    return cell;
+  });
+  for (const side of [-1, 1]) {
+    const strap = [[.26, .57], [.36, .58], [.43, .03], [.39, -.28], [.28, -.28], [.30, .04]]
+      .map(([x, y]) => [side * x, y]);
+    plate(jacket, strap, .028, .017, rubber, 0, 0, .42);
+    box(jacket, .10, .07, .045, aluminum, side * .34, .04, .47);
+  }
+  box(jacket, .69, .06, .044, rubber, 0, .04, .48);
+  box(jacket, .15, .09, .067, gray, 0, .04, .49);
+  box(jacket, .07, .04, .008, teal, 0, .04, .527);
+  box(jacket, .68, .09, .045, rubber, 0, -.47, .36);
+  box(jacket, .16, .13, .055, gray, 0, -.47, .40);
+  textPlate(jacket, 'BCD', '#b6e2da', .29, 0, -.18, .045);
+
   const head = inflatorHead(root, .61, -.44, .23);
-  const airCellPort = v(-.34, .39, .03);
+  box(head.userData.supply, .043, .003, .009, rubber, 0, .0125, 0);
+  box(head.userData.supply, .009, .003, .043, rubber, 0, .0125, 0);
+  box(head.userData.exhaust, .043, .003, .009, white, 0, .014, 0);
+  cyl(head, .044, .064, rubber, 0, -.203, 0);
+  cyl(head, .031, .009, gray, 0, -.238, 0);
+  const exhaust = group(root);
+  exhaust.name = 'inflator-exhaust';
+  const bubbles = inWater ? Array.from({ length: 8 }, () => sphere(exhaust, 1, 1, 1, lens)) : [];
+  const ventOrigin = v(0, 0, 0);
+  const cellScale = v(1, 1, 1);
+  const raisedPosition = v(.61, .68, .23);
+  const restPosition = head.position.clone();
+  const airCellPort = v(-.30, .27, -.11);
   const handEnd = v(0, 0, 0);
   const updateAirway = flexibleHose(root, .074, rubber, (from, to) => [
     v(from.x + .27, Math.max(.77, to.y + .09), .05),
@@ -474,23 +510,35 @@ function inflator(root, inWater = false) {
   head.rotation.z = -.13;
   return {
     anchors: {
-      'add-air': [head, v(.055, .02, .12)], raise: [head, v(-.13, .18, .10)], vent: [head, v(.05, -.11, .13)],
-      'trim-add': [head, v(.115, .087, .125)], 'trim-vent': [head, v(.022, -.19, .13)]
+      'add-air': [head, v(.20, .06, .12)], raise: [head, v(-.13, .18, .10)], vent: [head, v(.20, -.135, .13)],
+      'trim-add': [head, v(.20, .112, .125)], 'trim-vent': [head, v(.20, -.185, .13)]
     },
     docks: { above: [root, v(.52, .77, .39)], below: [root, v(.52, -.62, .41)] },
     grabbable: { raise: head },
     sync() {
-      handEnd.set(0, .25, 0);
+      handEnd.set(0, .213, 0);
       root.worldToLocal(head.localToWorld(handEnd));
       updateAirway(airCellPort, handEnd);
     },
-    update(done, k, _time, interaction) {
+    update(done, k, time, interaction) {
       const raised = done.has('raise');
       const air = inflatorAir(done.has('add-air'), done.has('vent'), interaction.pressure);
-      bladder.scale.lerp(v(1 + .16 * air, 1 + .16 * air, 1 + .58 * air), k);
-      head.position.lerp(raised ? v(.61, .54, .23) : v(.61, -.44, .23), k);
+      cellScale.set(.84 + .24 * air, 1 + .05 * air, .38 + 1.37 * air);
+      for (const cell of airCells) cell.scale.lerp(cellScale, k);
+      head.position.lerp(raised ? raisedPosition : restPosition, k);
       head.userData.supply.position.z = interaction.active === 'add-air' ? .070 : .084;
       head.userData.exhaust.position.z = interaction.active === 'vent' ? .067 : .081;
+      exhaust.visible = inWater && interaction.active === 'vent' && air > .005;
+      if (exhaust.visible) {
+        root.worldToLocal(head.localToWorld(ventOrigin.set(.012, -.234, .02)));
+        bubbles.forEach((bubble, i) => {
+          const travel = (time * .0018 + i / bubbles.length) % 1;
+          const radius = (.019 + .023 * (i % 3) / 2) * (1 + travel * .42);
+          bubble.scale.set(radius, radius * 1.16, radius);
+          bubble.position.set(ventOrigin.x + travel * (.12 + Math.sin(i * 2.6 + travel * 4) * .06),
+            ventOrigin.y + travel * .89, ventOrigin.z + .09 + travel * .10);
+        });
+      }
     }
   };
 }
@@ -825,7 +873,7 @@ export function makeDiveModel(root, lesson, scenario) {
       ...parts,
       update(done, k, time, interaction) {
         const air = inflatorAir(done.has('add-air'), done.has('vent'), interaction.pressure);
-        const height = done.has('vent') ? 1.10 * (air - neutralAir) : .94 * air;
+        const height = .20 + 1.08 * (air - neutralAir);
         equipment.position.y = T.MathUtils.lerp(equipment.position.y, height, k < 1 ? k * .47 : 1);
         parts.update(done, k, time, interaction);
       }

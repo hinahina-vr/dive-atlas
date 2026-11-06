@@ -930,6 +930,33 @@ try {
       assert.equal(await value(mobile), '5');
       checks.push('390 px recovery: sweep moves before completion and resumes after reload; shoulder trace, both clearing methods and review still work');
     } else if (lesson.id === 'inflator') {
+      const states = await mobile.evaluate(async () => {
+        const { Group } = await import('../vendor/three.module.js');
+        const { makeDiveModel, makeModel } = await import('./models.js');
+        const { lessons } = await import('./lessons.js');
+        const lesson = lessons.find(item => item.id === 'inflator');
+        const root = new Group();
+        const model = makeDiveModel(root, lesson);
+        const cell = root.getObjectByName('bcd-air-cell');
+        const bubbles = root.getObjectByName('inflator-exhaust');
+        const pose = (done, pressure, active = '') => {
+          model.update(new Set(done), 1, 130, { pressure, active });
+          return { thickness: cell.scale.z, height: cell.parent.parent.position.y, bubbles: bubbles.visible };
+        };
+        const empty = pose([], {});
+        const filled = pose(['add-air', 'raise'], {});
+        const venting = pose(['add-air', 'raise'], { vent: .5 }, 'vent');
+        const paused = pose(['add-air', 'raise'], { vent: .5 });
+        const beforeRelease = pose(['add-air', 'raise'], { vent: 1 }, 'vent');
+        const afterRelease = pose(['add-air', 'raise', 'vent'], {});
+        const bench = new Group();
+        makeModel(bench, lesson).update(new Set(['add-air', 'raise']), 1, 130, { pressure: { vent: .5 }, active: 'vent' });
+        return { empty, filled, venting, paused, beforeRelease, afterRelease, benchBubbles: bench.getObjectByName('inflator-exhaust').visible };
+      });
+      assert(states.filled.thickness > states.venting.thickness && states.venting.thickness > states.empty.thickness);
+      assert(states.filled.height > states.venting.height && states.venting.height > states.empty.height);
+      assert(states.venting.bubbles && !states.paused.bubbles && !states.benchBubbles);
+      assert.deepEqual(states.afterRelease, states.beforeRelease);
       const initial = await center(part(mobile, 'add-air'));
       await hold(mobile, 'add-air', waterInput, 1, async () => {
         assert.equal(await meterLevel(mobile), .48);
@@ -972,7 +999,7 @@ try {
       await mobile.screenshot({ path: join(output, 'mobile-inflator-balance.png'), fullPage: true });
       await getChoice(mobile, 'balance').tap();
       assert.equal(await value(mobile), '4');
-      checks.push('390 px inflator: short pulses on 3D and touch controls raise the BCD, venting returns it to steady height');
+      checks.push('390 px inflator: BCD chambers expand, bubbles appear only during underwater venting, releasing has no depth jump, and short pulses reach neutral');
     } else {
       await operate(mobile, lesson.actions[0], 'tap');
       await mobile.evaluate(() => window.scrollTo(0, 0));
