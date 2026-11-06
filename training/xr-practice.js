@@ -1,6 +1,7 @@
 import * as T from '../vendor/three.module.js';
 import { makeDiveModel, makeModel } from './models.js';
-import { balanceLabels, balanceStatus, inflatorAir } from './lessons.js';
+import { balanceLabels, balanceStatus, inflatorAir, remainingMaskWater } from './lessons.js';
+import { createExample, exampleEffects } from './example.js';
 
 const maskControls = [
   { id: 'mask-breathe', label: '口で呼吸する', x: 32, y: 173, w: 304, h: 85 },
@@ -28,6 +29,15 @@ const reviewControls = [
   { id: 'review-next', label: '次の手順 ›', x: 708, y: 268, w: 284, h: 60 }
 ];
 
+const exampleOpen = { id: 'example-open', label: '見本を見る', x: 585, y: 25, w: 183, h: 65 };
+const exampleBack = { ...exampleOpen, id: 'example-back', label: '練習に戻る' };
+const exampleControls = [
+  { id: 'example-prev', label: '‹ 前の手順', x: 32, y: 268, w: 206, h: 60 },
+  { id: 'example-play', label: '一時停止', x: 256, y: 268, w: 226, h: 60 },
+  { id: 'example-next', label: '次の手順 ›', x: 500, y: 268, w: 206, h: 60 },
+  { id: 'example-recall', label: '自力で復習 ›', x: 724, y: 268, w: 268, h: 60 }
+];
+
 const inspectionSlots = [
   { id: 'normal', label: '足についてくる', x: 32, y: 173, w: 454, h: 85 },
   { id: 'repair', label: 'すき間がある・調整する', x: 538, y: 173, w: 454, h: 85 }
@@ -45,20 +55,28 @@ function makeInspectionPreview(model, station) {
   const replicas = new T.Group();
   view.add(replicas);
   let displayed;
+  let copies = [];
   return {
     show(id) {
-      if (id === displayed) return;
-      displayed = id;
       const detail = model.inspectionParts[id];
-      replicas.clear();
-      view.visible = Boolean(detail);
+      if (id !== displayed) {
+        displayed = id;
+        replicas.clear();
+        view.visible = Boolean(detail);
+        copies = detail ? detail.parts.map(part => {
+          const copy = part.clone();
+          replicas.add(copy);
+          return copy;
+        }) : [];
+        if (detail) replicas.scale.setScalar(detail.scale);
+      }
       if (!detail) return;
-      replicas.scale.setScalar(detail.scale);
-      for (const part of detail.parts) {
-        if (!part.visible) continue;
-        const copy = part.clone();
-        copy.position.sub(detail.center);
-        replicas.add(copy);
+      for (const [index, part] of detail.parts.entries()) {
+        const copy = copies[index];
+        copy.position.copy(part.position).sub(detail.center);
+        copy.quaternion.copy(part.quaternion);
+        copy.scale.copy(part.scale);
+        copy.visible = part.visible;
       }
     },
     dispose() {
@@ -152,15 +170,12 @@ function makePanel(lesson) {
     }
   }
 
-  function drawReview(state, hovered, reviewIndex) {
-    const step = state.review[reviewIndex];
-    text('見直し  ' + (reviewIndex + 1) + ' / ' + state.review.length, 32, 58, 46, '#103b49', 700);
-    text(step.label, 32, 115, 43, '#103b49');
+  function drawDescription(detail) {
     let line = '';
     let y = 165;
     const bodySize = 36;
     context.font = '700 ' + bodySize + 'px sans-serif';
-    for (const character of step.detail) {
+    for (const character of detail) {
       if (context.measureText(line + character).width > 960) {
         text(line, 32, y, bodySize, '#246270');
         y += 38;
@@ -169,6 +184,36 @@ function makePanel(lesson) {
       line += character;
     }
     if (line) text(line, 32, y, bodySize, '#246270');
+  }
+
+  function drawExample(demo, state, hovered) {
+    const { step, index, complete, paused, first, lesson: source, scenario, motion, amount } = demo;
+    text(complete ? '見本はここまで' : '見本  ' + (index + 1) + ' / ' + source.actions.length, 32, 58, 46, '#103b49', 520);
+    if (complete) {
+      text('今度は自分で試す', 32, 115, 43, '#103b49');
+      drawDescription('自力復習では、次の手順を自分で選びます。');
+    } else {
+      text(step.label, 32, 115, 43, '#103b49');
+      const inspection = step.inspection;
+      const fault = Boolean(source.scenarios?.[scenario]?.includes(step.id));
+      const evidence = inspection && (fault && motion >= 1 ? inspection.corrected : inspection.evidence[Number(fault)]);
+      drawDescription(evidence ? [inspection.note, evidence].filter(Boolean).join('。') : step.detail);
+      if (source.scene === 'mask' || source.scene === 'inflator') {
+        text((source.scene === 'mask' ? 'マスク内の水 ' : 'BCDの空気 ') + amount + '%', 32, 242, 29, '#246270', 400);
+      }
+    }
+    const options = exampleControls.filter(control =>
+      (control.id !== 'example-prev' || index > first || complete) &&
+      (control.id !== 'example-next' || !complete)).map(control => control.id === 'example-play' ?
+        { ...control, label: complete ? 'もう一度見る' : paused ? '再生' : '一時停止' } : control);
+    drawControls([...options, exampleBack, exit], state, hovered, complete ? 'example-recall' : undefined);
+  }
+
+  function drawReview(state, hovered, reviewIndex) {
+    const step = state.review[reviewIndex];
+    text('見直し  ' + (reviewIndex + 1) + ' / ' + state.review.length, 32, 58, 46, '#103b49', 700);
+    text(step.label, 32, 115, 43, '#103b49');
+    drawDescription(step.detail);
     const options = reviewControls.filter(control =>
       (control.id !== 'review-prev' || reviewIndex > 0) &&
       (control.id !== 'review-next' || reviewIndex + 1 < state.review.length));
@@ -190,10 +235,11 @@ function makePanel(lesson) {
       const x = hit.uv.x * 1024, y = (1 - hit.uv.y) * 346;
       return visibleControls.find(({ x: left, y: top, w, h }) => x >= left && x <= left + w && y >= top && y <= top + h)?.id;
     },
-    draw(state, hovered, placing, done, inspecting, reviewIndex) {
+    draw(state, hovered, placing, done, inspecting, reviewIndex, demo) {
       const air = inflator ? inflatorAir(done.has('add-air'), done.has('vent'), state.pressure) : 0;
       const amount = Math.round((inflator ? air : state.water) * 100);
-      const key = [state.index, state.guide, state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex].join('|');
+      const key = demo ? ['example', demo.index, demo.paused, demo.complete, demo.motion >= 1, demo.amount, hovered].join('|') :
+        [state.index, state.guide, state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex].join('|');
       if (key === previous) return;
       previous = key;
       const next = state.steps[state.index];
@@ -201,11 +247,12 @@ function makePanel(lesson) {
       const compact = next ? (inflator && next.id !== 'balance') || ((fins || gear) && !inspection) :
         !state.review.length && lesson.id !== 'gear';
       context.clearRect(0, 0, 1024, 346);
-      rect(0, 0, 1024, compact ? 246 : 346, '#f1fffd');
+      rect(0, 0, 1024, compact && !demo ? 246 : 346, '#f1fffd');
       texture.needsUpdate = true;
+      if (demo) { drawExample(demo, state, hovered); return; }
       if (state.review[reviewIndex]) { drawReview(state, hovered, reviewIndex); return; }
       if (!next) { drawResult(state, hovered); return; }
-      text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', 700);
+      text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', 530);
       const note = fins && inspection ? 'かかとを動かすと、フィンはどうなった？' :
         inspection ? inspection.prompt :
         (fins || gear) && placing ? '照準を合わせて置く' :
@@ -213,7 +260,7 @@ function makePanel(lesson) {
         (fins || gear || inflator) && state.guide ? next?.label : '';
       text(note || state.message || '操作に照準を合わせてトリガーを押す', 32, 129, 34, '#246270');
       const options = inspection ? inspectionSlots.map(slot => fins ? slot : { ...slot, label: inspection[slot.id] }) : [];
-      drawControls(compact ? [exit] : [...options, ...controls], state, hovered);
+      drawControls(compact ? [exampleOpen, exit] : [...options, ...controls, exampleOpen], state, hovered);
       if (fins || gear) {
         const hint = placing ? 'トリガーを離すか、置く場所を選ぶ' :
           state.retry ? state.message : inspection ? inspection.note || '' :
@@ -313,13 +360,13 @@ function spatialTargets(lesson, model, scene) {
   const forward = new T.Vector3();
   const delta = new T.Vector3();
   return {
-    update(state, placing, eye, orientation, inspecting, reviewStep) {
-      const stepIndex = reviewStep && state.steps.indexOf(reviewStep);
+    update(state, placing, eye, orientation, inspecting, focusStep) {
+      const stepIndex = focusStep && state.steps.indexOf(focusStep);
       forward.set(0, 0, -1).applyQuaternion(orientation);
       for (const { id, dock, parent, point, mesh, index, phaseOnly, sharedAnchor } of targets) {
         mesh.visible = false;
-        if (reviewStep) {
-          if (!parent.visible || (dock ? id !== reviewStep.attachment?.dock : index !== stepIndex)) continue;
+        if (focusStep !== undefined) {
+          if (!focusStep || !parent.visible || (dock ? id !== focusStep.attachment?.dock : index !== stepIndex)) continue;
         } else {
           if (placing ? !dock : dock || index < state.index || !parent.visible) continue;
           if (id === inspecting || (phaseOnly && index !== state.index)) continue;
@@ -359,7 +406,7 @@ function spatialTargets(lesson, model, scene) {
   };
 }
 
-export function createPracticeXR(renderer, session, { lesson, scenario, lights, readState, advanceToBuddy, press, trim, apply }) {
+export function createPracticeXR(renderer, session, { lesson, scenario, lights, readState, advanceToBuddy, recallAfterExample, press, trim, apply }) {
   const scene = new T.Scene();
   const gear = lesson.scene === 'gear';
   const atmosphere = gear ? 0xd6ede6 : 0x79cec8;
@@ -383,6 +430,10 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
   }
   const completed = new Set();
   const reviewPressure = {};
+  const example = createExample({
+    requestFrame: callback => session.requestAnimationFrame(callback),
+    cancelFrame: id => session.cancelAnimationFrame(id)
+  });
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const rig = new T.Group();
   const camera = new T.PerspectiveCamera(45, 1, .05, 40);
@@ -402,7 +453,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     const panel = makePanel(nextLesson);
     const preview = gear ? makeInspectionPreview(model, station) : null;
     station.add(panel.mesh);
-    return { model, targets, panel, preview };
+    return { model, targets, panel, preview, lesson: nextLesson, scenario: nextScenario };
   }
   let presentation = mount(lesson, scenario);
 
@@ -435,7 +486,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
   const eye = new T.Vector3();
   let placed = false;
   let placing;
-  let continueRequested = false;
+  let requestedRun;
   let holding;
   let inspecting;
   let reviewIndex = -1;
@@ -453,7 +504,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     raycaster.set(origin, direction);
     const hit = raycaster.intersectObject(mesh)[0];
     const id = hit && panel.pick(hit);
-    const target = reviewIndex < 0 && targets?.pick(raycaster);
+    const target = reviewIndex < 0 && !example.active() && targets?.pick(raycaster);
     if (target && (!id || target.distance < hit.distance)) return target;
     return id ? { id, distance: hit.distance } : null;
   };
@@ -490,7 +541,18 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     }
     function select() {
       if (selected === 'exit') close();
-      else if (selected === 'next-buddy') continueRequested = true;
+      else if (selected === 'next-buddy') requestedRun = advanceToBuddy;
+      else if (selected === 'example-open' && !holding && !carry) {
+        cancelInputs();
+        inspecting = null;
+        example.start(presentation.lesson, undefined, presentation.scenario);
+      } else if (selected === 'example-back') {
+        example.stop();
+        previousTime = undefined;
+      } else if (selected === 'example-prev') example.move(-1);
+      else if (selected === 'example-next') example.move(1);
+      else if (selected === 'example-play') example.toggle();
+      else if (selected === 'example-recall' && example.active()) requestedRun = recallAfterExample;
       else if (selected === 'review-open' && readState()?.review.length) reviewIndex = 0;
       else if (selected === 'review-back') reviewIndex = -1;
       else if (selected === 'review-prev' && reviewIndex > 0) reviewIndex -= 1;
@@ -557,13 +619,17 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     part.position.copy(part.parent.worldToLocal(carriedPosition));
   }
   function cancelInputs() {
-    continueRequested = false;
+    requestedRun = undefined;
     placing = null;
     pulse = null;
     previousTime = undefined;
     pointers.forEach(pointer => pointer.end());
   }
-  session.addEventListener('visibilitychange', cancelInputs);
+  function visibilityChanged() {
+    cancelInputs();
+    if (session.visibilityState !== 'visible') example.pause();
+  }
+  session.addEventListener('visibilitychange', visibilityChanged);
   function reset() { placed = false; cancelInputs(); }
   let space;
 
@@ -579,11 +645,13 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
       }
       const pose = frame.getViewerPose(space);
       if (!pose) { cancelInputs(); return; }
-      if (continueRequested) {
-        continueRequested = false;
+      if (requestedRun) {
+        const startRun = requestedRun;
+        requestedRun = undefined;
         try {
-          const next = advanceToBuddy();
+          const next = startRun();
           if (next) {
+            example.stop();
             cancelInputs();
             inspecting = null;
             reviewIndex = -1;
@@ -614,40 +682,49 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
       rig.updateMatrixWorld(true);
       if (holding) press.tickHold(holding, time);
       const current = holding ? readState() : state;
+      const demo = example.current();
       const reviewStep = current.review[reviewIndex];
-      const shownIndex = reviewStep ? current.steps.indexOf(reviewStep) : current.index;
+      const applied = demo && demo.motion >= 1;
+      const shownIndex = demo ? demo.index + Number(applied) : reviewStep ? current.steps.indexOf(reviewStep) : current.index;
       const motion = reduceMotion.matches ? 240 : time;
-      if (lens) {
-        lens.material.uniforms.water.value = reviewStep ? lesson.maskFill : current.water;
-        lens.material.uniforms.time.value = motion * .0012;
-      }
       completed.clear();
       for (let index = 0; index < shownIndex; index += 1) completed.add(current.steps[index].id);
-      const blending = inflator && previousTime !== undefined && !reduceMotion.matches;
+      const effects = demo ? exampleEffects(demo) : null;
+      const pressure = effects?.pressure ?? (reviewStep ? reviewPressure : current.pressure);
+      if (lens) {
+        const water = demo ? remainingMaskWater(lesson.maskFill, completed.has('mask-exhale'), pressure['mask-exhale']) :
+          reviewStep ? lesson.maskFill : current.water;
+        lens.material.uniforms.water.value = water;
+        lens.material.uniforms.time.value = motion * .0012;
+        if (demo) demo.amount = Math.round(water * 20) * 5;
+      }
+      if (demo && inflator) demo.amount = Math.round(inflatorAir(completed.has('add-air'), completed.has('vent'), pressure) * 20) * 5;
+      const blending = (inflator || demo) && previousTime !== undefined && !reduceMotion.matches;
       const blend = blending ? 1 - Math.exp(-Math.min(time - previousTime, 100) / 75) : 1;
       previousTime = time;
-      const active = current.active || (pulse?.until > time ? pulse.action : '');
-      model.update(completed, blend, motion, {
-        active, pressure: reviewStep ? reviewPressure : current.pressure, detail: gear ? reviewStep?.id || inspecting : undefined
-      });
+      const active = effects?.active ?? (current.active || (pulse?.until > time ? pulse.action : ''));
+      const focusStep = demo ? (applied ? null : demo.step) : reviewStep;
+      const detail = gear ? (demo && !demo.complete ? demo.step.id : reviewStep?.id || inspecting) : undefined;
+      model.update(completed, blend, motion, { active, pressure, detail });
       if (!fins && !gear) model.sync?.();
-      targets?.update(current, placing, visor.getWorldPosition(eye), visor.quaternion, inspecting, reviewStep);
+      targets?.update(current, placing, visor.getWorldPosition(eye), visor.quaternion, inspecting, focusStep);
       moveCarriedPart();
       if (fins || gear) model.sync();
-      preview?.show(reviewStep?.id || inspecting);
+      preview?.show(detail);
       let hovered;
       for (const { controller, line } of pointers) {
         const hit = aim(controller);
         line.scale.z = hit?.distance || .84;
         hovered ??= hit?.id;
       }
-      if (fins || gear || reviewStep) targets?.highlight(hovered, Boolean(reviewStep));
-      panel.draw(current, hovered, placing, completed, inspecting, reviewIndex);
+      if (fins || gear || focusStep) targets?.highlight(hovered, Boolean(focusStep));
+      panel.draw(current, hovered, placing, completed, inspecting, reviewIndex, demo);
       renderer.render(scene, camera);
     },
     dispose() {
       cancelInputs();
-      session.removeEventListener('visibilitychange', cancelInputs);
+      example.stop();
+      session.removeEventListener('visibilitychange', visibilityChanged);
       space?.removeEventListener('reset', reset);
       for (const { controller, line, events } of pointers) {
         for (const [name, listener] of Object.entries(events)) controller.removeEventListener(name, listener);

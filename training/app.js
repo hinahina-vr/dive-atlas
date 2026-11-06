@@ -1,7 +1,7 @@
-import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater, inflatorAir, neutralAir, balanceLabels, balanceStatus, adjustAir } from './lessons.js';
+import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater, inflatorAir, balanceLabels, balanceStatus, adjustAir } from './lessons.js';
 import { createPlacement } from './placement.js';
 import { createPress } from './press.js';
-import { createExample } from './example.js';
+import { createExample, exampleEffects } from './example.js';
 import { reviewKey, readReview, saveReview } from './reviews.js';
 import { draftKey, readDraft, saveDraft, clearDraft } from './drafts.js';
 import { prepareOffline } from './offline.js';
@@ -486,6 +486,12 @@ el['vr-practice'].addEventListener('click', async () => {
   xrBusy = true;
   renderXREntry();
   let run = practice;
+  function switchRun(lesson, mode = run.mode) {
+    start(lesson, mode);
+    run = practice;
+    saveCurrentDraft({ resumeAtStart: true });
+    return { lesson: run.lesson, scenario: run.scenario };
+  }
   let session;
   try {
     session = await navigator.xr.requestSession('immersive-vr');
@@ -510,10 +516,11 @@ el['vr-practice'].addEventListener('click', async () => {
       advanceToBuddy() {
         if (practice !== run || example.current() || run.lesson.id !== 'gear' ||
           run.index !== run.lesson.actions.length) return;
-        openLesson(lessons[lessonIndex(run.lesson) + 1]);
-        run = practice;
-        saveCurrentDraft({ resumeAtStart: true });
-        return { lesson: run.lesson, scenario: run.scenario };
+        return switchRun(lessons[lessonIndex(run.lesson) + 1]);
+      },
+      recallAfterExample() {
+        if (practice !== run || example.current()) return;
+        return switchRun(run.lesson, 'recall');
       },
       press,
       trim,
@@ -602,11 +609,9 @@ function drawExample(state) {
     if (changedStep) view?.focusExample(step.id);
     stagedExample = { lesson, index, applied, view, done, scenario };
   }
-  const moving = !complete && motion > 0 && motion < 1;
   if (step.pressTime || step.balance || changedPose) {
-    const pressure = step.balance ? { balance: neutralAir * Math.floor(motion * 3) / 3 } :
-      step.pressTime ? { [step.id]: motion } : {};
-    renderEffects(lesson, stagedExample.done, pressure, moving ? step.id : '');
+    const { pressure, active } = exampleEffects(state);
+    renderEffects(lesson, stagedExample.done, pressure, active);
   }
 }
 

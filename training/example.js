@@ -1,4 +1,16 @@
-export function createExample({ render, frame }) {
+import { neutralAir } from './lessons.js';
+
+const emptyPressure = Object.freeze({});
+
+export function exampleEffects({ step, motion, complete }) {
+  const pressure = step.balance ? { balance: neutralAir * Math.floor(motion * 3) / 3 } :
+    step.pressTime ? { [step.id]: motion } : emptyPressure;
+  return { pressure, active: !complete && motion > 0 && motion < 1 ? step.id : '' };
+}
+
+export function createExample({
+  render, frame, requestFrame = requestAnimationFrame, cancelFrame = cancelAnimationFrame
+}) {
   let state = null;
   let request = 0;
   let last = null;
@@ -19,13 +31,13 @@ export function createExample({ render, frame }) {
   }
 
   function stopFrames() {
-    cancelAnimationFrame(request);
+    if (request) cancelFrame(request);
     request = 0;
     last = null;
   }
 
   function queue() {
-    if (state && !state.paused && !state.complete && !request) request = requestAnimationFrame(tick);
+    if (state && !state.paused && !state.complete && !request) request = requestFrame(tick);
   }
 
   function tick(now) {
@@ -37,7 +49,7 @@ export function createExample({ render, frame }) {
       move(1);
       return;
     }
-    frame(current());
+    frame?.(current());
     queue();
   }
 
@@ -51,17 +63,18 @@ export function createExample({ render, frame }) {
       else state.index = Math.max(state.first, Math.min(state.end, state.index + delta));
       state.elapsed = 0;
     }
-    render();
+    render?.();
     queue();
   }
 
   return {
     current,
+    active: () => Boolean(state),
     start(lesson, singleStep, scenario) {
       stopFrames();
       const first = singleStep === undefined ? 0 : singleStep;
       state = { lesson, first, index: first, end: singleStep ?? lesson.actions.length - 1, paused: false, complete: false, elapsed: 0, scenario };
-      render();
+      render?.();
       queue();
     },
     stop() {
@@ -80,14 +93,14 @@ export function createExample({ render, frame }) {
         state.paused = !state.paused;
       }
       stopFrames();
-      render();
+      render?.();
       queue();
     },
     pause() {
       if (state && !state.paused && !state.complete) {
         state.paused = true;
         stopFrames();
-        render();
+        render?.();
       }
     }
   };
