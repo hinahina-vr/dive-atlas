@@ -350,7 +350,12 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
 #result-summary { margin: 0 0 11px; color: #365e68; font-size: .82rem; line-height: 1.55; }
 #review { display: grid; gap: 6px; margin: 0 0 11px; padding: 0; list-style: none; }
 #review li { padding: 8px 10px 2px; border: 1px solid var(--line); border-radius: 8px; background: #fafffe; }
-#review strong, #previous-review-list strong { display: block; }
+.review-item-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 9px; }
+.review-reason {
+  display: inline-block; padding: 1px 6px; border-radius: 5px; white-space: nowrap;
+  background: #fff1d6; color: #75430b; font-size: .71rem; font-weight: 700; line-height: 1.5;
+}
+.review-reason[data-reason="hint"] { background: #d9f0f2; color: #205b64; }
 #review li p { margin: 3px 0 0; color: #365e68; font-size: .8rem; line-height: 1.55; }
 #review .review-example { min-height: 44px; }
 .result-actions { display: grid; gap: 6px; }

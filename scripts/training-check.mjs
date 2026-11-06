@@ -43,6 +43,7 @@ for (const action of gear.lesson.actions.slice(0, 2)) assert.equal(attempt(gear,
 assert.equal(choose(gear, 'bcd', 'valve').wrongDock, true);
 assert.equal(gear.index, 2);
 assert.deepEqual(needsReview(gear).map(action => action.id), ['bcd']);
+assert.equal(reveal(gear)?.id, 'bcd');
 assert.equal(choose(gear, 'bcd', 'cylinder').ok, true);
 checks.push('All drill states: wrong order, wrong destination, hints, full run, completion and review');
 const buddy = lessons[1];
@@ -71,16 +72,23 @@ const storage = { getItem: key => reviewData.get(key), setItem: (key, raw) => re
 assert.equal(saveReview(storage, gear, 123), null);
 for (const action of lessons[0].actions.slice(gear.index)) assert.equal(attempt(gear, action).ok, true);
 const record = saveReview(storage, gear, 123);
-assert.deepEqual(record, { completedAt: 123, steps: ['bcd'], scenario: 'ready' });
+assert.deepEqual(record, { completedAt: 123, steps: ['bcd'], reasons: { bcd: 'retry-and-hint' }, scenario: 'ready' });
 assert.deepEqual(readReview(storage, lessons[0]), record);
 assert.equal(readReview(storage, lessons[1]), null);
 const legacyGearReview = { completedAt: 123, steps: ['inspect'] };
 reviewData.set(reviewKey(lessons[0]), JSON.stringify(legacyGearReview));
 assert.deepEqual(readReview(storage, lessons[0]), legacyGearReview);
+reviewData.set(reviewKey(lessons[0]), JSON.stringify({
+  completedAt: 125, steps: ['bcd', 'inspect'],
+  reasons: { inspect: ['hint'], bcd: 'hint', first: 'retry' }
+}));
+assert.deepEqual(readReview(storage, lessons[0]), {
+  completedAt: 125, steps: ['inspect', 'bcd'], reasons: { bcd: 'hint' }
+});
 reviewData.set(reviewKey(lessons[0]), '{broken');
 assert.equal(readReview(storage, lessons[0]), null);
 assert.deepEqual(saveReview({ setItem() { throw new Error('storage is blocked'); } }, gear, 123), record);
-checks.push('Review storage: separate drills, invalid records and unavailable storage');
+checks.push('Review storage: keeps valid reasons, tolerates legacy records, and handles blocked storage');
 const mask = lessons.find(lesson => lesson.id === 'mask');
 const fullMask = lessonRoute(mask, 'mask-full');
 assert.equal(remainingMaskWater(mask.maskFill, false), .46);
@@ -91,7 +99,7 @@ const fullRun = newPractice(fullMask, 'recall');
 assert.equal(choose(fullRun, 'mask-exhale').ok, false);
 for (const action of fullMask.actions) assert.equal(attempt(fullRun, action).ok, true);
 const fullReview = saveReview(storage, fullRun, 235);
-assert.deepEqual(fullReview, { completedAt: 235, steps: ['mask-breathe'], route: 'mask-full' });
+assert.deepEqual(fullReview, { completedAt: 235, steps: ['mask-breathe'], reasons: { 'mask-breathe': 'retry' }, route: 'mask-full' });
 assert.deepEqual(readReview(storage, mask), fullReview);
 checks.push('Mask water: starts at the selected level and keeps the original full-water scene in review');
 const recovery = recoveryRoute('sweep-purge');
@@ -829,6 +837,7 @@ try {
   const waterInput = touchDrag(await mobile.context().newCDPSession(mobile));
   await hold(mobile, 'mask-exhale', waterInput);
   assert.equal(await mobile.locator('#review li').count(), 2);
+  assert.deepEqual(await mobile.locator('#review .review-reason').allTextContents(), ['やり直し', 'ヒントを見た']);
   await mobile.waitForFunction(() => {
     const heading = document.querySelector('#result-heading');
     const box = heading.getBoundingClientRect();
@@ -849,6 +858,7 @@ try {
   const maskReviewKey = reviewKey(lessons[2]);
   const saved = await mobile.evaluate(key => localStorage.getItem(key), maskReviewKey);
   assert.deepEqual(JSON.parse(saved).steps, ['mask-breathe', 'mask-hold']);
+  assert.deepEqual(JSON.parse(saved).reasons, { 'mask-breathe': 'retry', 'mask-hold': 'hint' });
   await mobile.reload();
   await ready(mobile);
   const overview = mobile.locator('#review-overview-status');
@@ -867,6 +877,7 @@ try {
   assert.equal(await mobile.locator('#lesson-title').innerText(), '機材セッティング');
   assert.deepEqual(await queue.locator('h3:visible').allTextContents(), ['バディチェック', 'マスククリア']);
   assert.equal(await queue.getByRole('button').count(), 3);
+  assert.deepEqual(await queue.locator('.review-reason').allTextContents(), ['やり直し', 'やり直し', 'ヒントを見た']);
   const replayBuckle = queue.getByRole('button', { name: 'バックル類を確認手順の見本を見る', exact: true });
   const replayMask = queue.getByRole('button', { name: 'マスクの上側を押さえる手順の見本を見る', exact: true });
   await replayBuckle.focus();
@@ -876,6 +887,17 @@ try {
   await anotherTab.evaluate(key => localStorage.setItem(key, JSON.stringify({ completedAt: Date.now(), steps: [] })), finReview);
   await mobile.waitForFunction(() => document.querySelector('#review-state-fins').textContent === '復習済み');
   assert.match(await overview.innerText(), /3 \/ 6種目.*見直し 2種目/);
+  await anotherTab.evaluate(key => localStorage.setItem(key, JSON.stringify({ completedAt: Date.now(), steps: ['fin-check'] })), finReview);
+  const legacyReplay = mobile.locator('[data-review-step="fin-check"]');
+  const oldItem = queue.locator('li').filter({ has: legacyReplay });
+  await oldItem.waitFor();
+  assert.equal(await oldItem.locator('.review-reason').count(), 0);
+  assert(await replayBuckle.evaluate(node => document.activeElement === node));
+  await legacyReplay.tap();
+  assert.equal(await mobile.locator('#step-title').innerText(), 'フィットを確かめる');
+  assert(await mobile.locator('#example-controls').isVisible());
+  await mobile.locator('#example-exit').tap();
+  await replayBuckle.focus();
   await anotherTab.evaluate(key => localStorage.removeItem(key), finReview);
   await mobile.waitForFunction(() => document.querySelector('#review-state-fins').textContent === '未復習');
   await anotherTab.close();
@@ -904,6 +926,8 @@ try {
   const previous = mobile.locator('#previous-review');
   await previous.locator('summary').tap();
   assert.match(await previous.innerText(), /見直し 2項目/);
+  assert.deepEqual(await previous.locator('.review-reason').allTextContents(), ['やり直し', 'ヒントを見た']);
+  checks.push('390 px review reasons persist after reload, while an older step remains replayable without a reason');
   await mobile.screenshot({ path: join(output, 'mobile-review.png'), fullPage: true });
   await previous.getByRole('button', { name: 'マスクの上側を押さえる手順の見本を見る', exact: true }).tap();
   assert.equal(await mobile.locator('#step-title').innerText(), 'マスクの上側を押さえる');

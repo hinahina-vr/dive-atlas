@@ -2,6 +2,7 @@ import * as T from '../vendor/three.module.js';
 import { makeDiveModel, makeModel } from './models.js';
 import { balanceLabels, balanceStatus, inflatorAir, remainingMaskWater } from './lessons.js';
 import { createExample, exampleEffects } from './example.js';
+import { reviewReason, reviewReasonLabels } from './reviews.js';
 
 const maskControls = [
   { id: 'mask-breathe', label: '口で呼吸する', x: 32, y: 173, w: 304, h: 85 },
@@ -228,7 +229,13 @@ function makePanel(lesson) {
 
   function drawReview(state, hovered, reviewIndex) {
     const step = state.review[reviewIndex];
-    text('見直し  ' + (reviewIndex + 1) + ' / ' + state.review.length, 32, 58, 46, '#103b49', 520);
+    text('見直し  ' + (reviewIndex + 1) + ' / ' + state.review.length, 32, 58, 46, '#103b49', 298);
+    const reason = reviewReason(state, step.id);
+    if (reason) {
+      const hint = reason === 'hint';
+      rect(342, 34, 217, 48, hint ? '#d9f0f2' : '#fff1d6');
+      text(reviewReasonLabels[reason], 355, 58, 30, hint ? '#205b64' : '#75430b', 191);
+    }
     text(step.label, 32, 115, 43, '#103b49');
     drawDescription(step.detail);
     const options = reviewControls.filter(control =>

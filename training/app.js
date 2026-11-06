@@ -2,7 +2,7 @@ import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remaini
 import { createPlacement } from './placement.js';
 import { createPress } from './press.js';
 import { createExample, exampleEffects } from './example.js';
-import { reviewKey, readReview, saveReview } from './reviews.js';
+import { reviewKey, readReview, saveReview, reviewReason, reviewReasonLabels } from './reviews.js';
 import { draftKey, readDraft, saveDraft, clearDraft } from './drafts.js';
 import { prepareOffline } from './offline.js';
 
@@ -354,7 +354,7 @@ function renderReviewQueue(records) {
     const original = lessonRoute(lessons[i], record.route);
     const rows = original.actions
       .filter(action => record.steps.includes(action.id))
-      .map(action => reviewRow(action, record.scenario, original, true));
+      .map(action => reviewRow(action, { scenario: record.scenario, lesson: original, reason: record.reasons?.[action.id], compact: true }));
     entry.list.replaceChildren(...rows);
   });
 }
@@ -510,6 +510,8 @@ el['vr-practice'].addEventListener('click', async () => {
           message: el.feedback.textContent,
           retry: el.feedback.dataset.tone === 'retry',
           review: finished ? needsReview(run) : [],
+          missed: run.missed,
+          assisted: run.assisted,
           water: remainingMaskWater(run.lesson.maskFill, finished, run.pressure['mask-exhale'])
         };
       },
@@ -565,7 +567,7 @@ function showExample(stepIndex, scenario, lesson = practice.lesson, returnFocus)
   practiceCamera = view?.cameraPose();
   feedback();
   stagedExample = null;
-  example.start(lesson, stepIndex, scenario);
+  example.start(lesson, stepIndex, scenario ?? (lesson.scenarios && 'walkthrough'));
   el['example-play'].focus({ preventScroll: true });
   showViewport();
 }
@@ -645,7 +647,7 @@ function drawExampleGuide(state, positions, docks) {
   }
 }
 
-function reviewRow(action, scenario, lesson = practice.lesson, compact = false) {
+function reviewRow(action, { scenario, reason, lesson = practice.lesson, compact = false }) {
   const row = document.createElement('li');
   const replay = button('見本を見る', 'quiet review-example', () => {
     const list = row.parentElement;
@@ -654,15 +656,26 @@ function reviewRow(action, scenario, lesson = practice.lesson, compact = false) 
   });
   replay.dataset.reviewStep = action.id;
   replay.setAttribute('aria-label', action.label + '手順の見本を見る');
-  if (compact) row.append(action.label);
-  else {
-    const title = document.createElement('strong');
-    title.textContent = action.label;
+  const copy = document.createElement('div');
+  const heading = document.createElement('div');
+  heading.className = 'review-item-heading';
+  const title = document.createElement(compact ? 'span' : 'strong');
+  title.textContent = action.label;
+  heading.append(title);
+  if (reason) {
+    const badge = document.createElement('span');
+    badge.className = 'review-reason';
+    badge.dataset.reason = reason;
+    badge.textContent = reviewReasonLabels[reason];
+    heading.append(badge);
+  }
+  copy.append(heading);
+  if (!compact) {
     const detail = document.createElement('p');
     detail.textContent = action.detail;
-    row.append(title, detail);
+    copy.append(detail);
   }
-  row.append(replay);
+  row.append(copy, replay);
   return row;
 }
 
@@ -676,7 +689,8 @@ function renderHistory() {
   detail.dataset.lesson = lesson.id;
   el['previous-review-count'].textContent = record.steps.length ? '見直し ' + record.steps.length + '項目' : '見直しなし';
   const original = lessonRoute(lesson, record.route);
-  const rows = original.actions.filter(action => record.steps.includes(action.id)).map(action => reviewRow(action, record.scenario, original));
+  const rows = original.actions.filter(action => record.steps.includes(action.id))
+    .map(action => reviewRow(action, { scenario: record.scenario, lesson: original, reason: record.reasons?.[action.id] }));
   if (!rows.length) {
     const row = document.createElement('li');
     row.textContent = '前回はヒントなしですべての手順を思い出せました。';
@@ -886,7 +900,8 @@ function render() {
     el['result-summary'].hidden = guided || Boolean(review.length);
     el['result-summary'].textContent = 'ヒントなしですべての手順を思い出せました。';
     el.review.hidden = !review.length;
-    el.review.replaceChildren(...review.map(action => reviewRow(action, practice.scenario)));
+    el.review.replaceChildren(...review.map(action =>
+      reviewRow(action, { scenario: practice.scenario, reason: reviewReason(practice, action.id) })));
     el['retry-recall'].hidden = !guided;
     el['next-lesson'].className = guided ? 'outline-control' : 'primary';
     const next = lessons[lessonIndex(lesson) + 1];
