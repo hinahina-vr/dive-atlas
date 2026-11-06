@@ -196,6 +196,12 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .choice.is-pressed { background: #206159; color: #effff8; }
 #mask-overlay.is-pressed .mask-window span { transition: none; }
 #mask-overlay.is-sealed .mask-window { border-top-color: #659f9b; }
+.mask-fingertip {
+  position: absolute; top: 0; left: 24%; width: clamp(38px, 12%, 94px); height: auto;
+  opacity: 0; transform: translate(-64%, -82%);
+}
+.mask-fingertip-right { left: 76%; transform: translate(-36%, -82%) scaleX(-1); }
+#mask-overlay.is-sealed .mask-fingertip { opacity: 1; }
 #scene-feedback {
   position: absolute; z-index: 1; bottom: 58px; left: 16px; max-width: 75%;
   padding: 5px 9px; border: 1px solid #5f9891; border-radius: 7px;

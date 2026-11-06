@@ -317,6 +317,7 @@ try {
   }
   const meterLevel = page => page.locator('#effect-meter').evaluate(node => Number(node.style.getPropertyValue('--level')));
   const maskLevel = page => page.locator('#mask-overlay').evaluate(node => Number.parseFloat(node.style.getPropertyValue('--mask-water')));
+  const fingers = page => page.locator('.mask-fingertip').evaluateAll(nodes => nodes.map(node => getComputedStyle(node).opacity));
   async function operate(page, action, input) {
     await getChoice(page, action.id)[input]();
     if (action.attachment) await dockChoice(page, action.attachment.dock)[input]();
@@ -494,6 +495,7 @@ try {
   await desktop.getByRole('button', { name: 'マスククリア', exact: true }).click();
   assert.equal(await maskLevel(desktop), 46);
   assert.equal(await meterLevel(desktop), .46);
+  assert.deepEqual(await fingers(desktop), ['0', '0']);
   await part(desktop, 'mask-breathe').click();
   await part(desktop, 'mask-hold').click();
   assert(await desktop.locator('#mask-overlay').evaluate(node => node.classList.contains('is-sealed')));
@@ -501,11 +503,13 @@ try {
   assert.equal(await value(desktop), '2');
   const remaining = await meterLevel(desktop);
   assert(remaining > 0 && remaining < .46, 'An interrupted press preserves the remaining water');
+  assert.deepEqual(await fingers(desktop), ['1', '1']);
   await desktop.screenshot({ path: join(output, 'desktop-mask-partial.png'), fullPage: true });
   await hold(desktop, 'mask-exhale', mouseDrag(desktop));
   assert.equal(await value(desktop), '3');
   assert.equal(await meterLevel(desktop), 0);
-  checks.push('1440 px mask drill: seal, progressive water loss, interrupted press, resume and clear');
+  assert.deepEqual(await fingers(desktop), ['0', '0']);
+  checks.push('1440 px mask drill: both fingers show during the seal and interrupted exhale, then release when the water clears');
   const waterCanvas = desktop.locator('#scene canvas');
   const waterBounds = await waterCanvas.boundingBox();
   const viewDrag = mouseDrag(desktop);
@@ -742,6 +746,8 @@ try {
   }));
   await maskMarker.tap();
   assert.equal(await value(portrait), '2');
+  assert.deepEqual(await fingers(portrait), ['1', '1']);
+  await portrait.screenshot({ path: join(output, 'mobile-narrow-mask-sealed.png') });
   await portrait.getByRole('button', { name: 'インフレーター', exact: true }).tap();
   assert(await portrait.evaluate(() => {
     const title = document.querySelector('.view-title').getBoundingClientRect();

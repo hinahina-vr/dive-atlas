@@ -103,10 +103,14 @@ function makeInspectionPreview(model, station) {
   };
 }
 
+const visorWidth = .96;
+const visorHeight = .76;
+const rimContact = { width: .36, bottom: .226, top: .292 };
+
 function makeVisor() {
-  const lens = new T.Mesh(new T.PlaneGeometry(.96, .58), new T.ShaderMaterial({
+  const lens = new T.Mesh(new T.PlaneGeometry(visorWidth, visorHeight), new T.ShaderMaterial({
     transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
-    uniforms: { water: { value: 0 }, time: { value: 0 } },
+    uniforms: { water: { value: 0 }, time: { value: 0 }, seal: { value: 0 }, rimCue: { value: 0 } },
     vertexShader: `
       varying vec2 uvAtLens;
       void main() {
@@ -117,16 +121,32 @@ function makeVisor() {
       varying vec2 uvAtLens;
       uniform float water;
       uniform float time;
+      uniform float seal;
+      uniform float rimCue;
       void main() {
-        vec2 p = abs((uvAtLens - .5) * vec2(.96, .58)) - vec2(.35, .17);
+        vec2 point = (uvAtLens - .5) * vec2(${visorWidth}, ${visorHeight});
+        vec2 p = abs(point) - vec2(.35, .17);
         float edge = length(max(p, 0.0)) + min(max(p.x, p.y), 0.0);
         float inner = 1.0 - smoothstep(.072, .075, edge);
         float frame = (1.0 - smoothstep(.103, .106, edge)) - inner;
+        float glassY = point.y / .58 + .5;
         float level = mix(-.02, 1.02, water) + sin(uvAtLens.x * 17.0 + time) * .006;
-        float fill = inner * (1.0 - smoothstep(level - .012, level, uvAtLens.y)) * step(.001, water);
-        float wave = fill * smoothstep(level - .027, level - .012, uvAtLens.y);
+        float fill = inner * (1.0 - smoothstep(level - .012, level, glassY)) * step(.001, water);
+        float wave = fill * smoothstep(level - .027, level - .012, glassY);
         vec3 glass = mix(vec3(.02, .18, .23), vec3(.50, .95, .83), wave);
-        gl_FragColor = vec4(mix(glass, vec3(.015, .085, .11), frame), frame * .98 + fill * .66);
+        float topRail = (1.0 - smoothstep(.010, .017, abs(point.y - .259))) * frame;
+        float contact = 1.0 - smoothstep(.046, .066, abs(abs(point.x) - .224));
+        vec3 frameColor = mix(vec3(.015, .085, .11), vec3(.72, .40, .10), topRail * contact * rimCue);
+
+        vec2 wrist = vec2(.378, .366);
+        vec2 finger = vec2(abs(point.x), point.y) - wrist;
+        vec2 segment = vec2(.224, .258) - wrist;
+        float along = clamp(dot(finger, segment) / dot(segment, segment), 0.0, 1.0);
+        float distanceToFinger = length(finger - along * segment);
+        float glove = seal * (1.0 - smoothstep(.022, .025, distanceToFinger));
+        vec3 gloveColor = mix(vec3(.061, .145, .165), vec3(.017, .046, .058), smoothstep(.004, .025, distanceToFinger));
+        vec3 color = mix(mix(glass, frameColor, frame), gloveColor, glove);
+        gl_FragColor = vec4(color, max(frame * .98 + fill * .66, glove * .98));
         #include <colorspace_fragment>
       }`
   }));
@@ -557,16 +577,27 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
   const restingPosition = new T.Vector3();
   let pulse;
   let previousTime;
+  let canUseMaskRim = false;
   const aim = controller => {
     if (!controller.visible || !placed || !presentation) return null;
-    const { panel, targets } = presentation;
+    const { panel, targets, lens } = presentation;
     const { mesh } = panel;
     controller.getWorldPosition(origin);
     direction.set(0, 0, -1).transformDirection(controller.matrixWorld);
     raycaster.set(origin, direction);
     const hit = raycaster.intersectObject(mesh)[0];
     const id = hit && panel.pick(hit);
-    const target = reviewIndex < 0 && !example.active() && targets?.pick(raycaster);
+    let target = reviewIndex < 0 && !example.active() && targets?.pick(raycaster);
+    if (lens && canUseMaskRim) {
+      const contact = raycaster.intersectObject(lens)[0];
+      if (contact) {
+        const x = Math.abs(contact.uv.x - .5) * visorWidth;
+        const y = (contact.uv.y - .5) * visorHeight;
+        if (x <= rimContact.width && y >= rimContact.bottom && y <= rimContact.top) {
+          target = { id: 'mask-hold', spatial: true, distance: contact.distance };
+        }
+      }
+    }
     if (target && (!id || target.distance < hit.distance)) return target;
     return id ? { id, distance: hit.distance } : null;
   };
@@ -782,11 +813,18 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
       for (let index = 0; index < shownIndex; index += 1) completed.add(current.steps[index].id);
       const effects = demo ? exampleEffects(demo) : null;
       const pressure = effects?.pressure ?? (reviewStep ? reviewPressure : current.pressure);
+      const focusStep = demo ? (applied ? null : demo.step) : reviewStep;
+      const next = current.steps[current.index];
+      canUseMaskRim = Boolean(lens && next && !demo && !reviewStep && !completed.has('mask-hold'));
       if (lens) {
         const water = demo ? remainingMaskWater(lesson.maskFill, completed.has('mask-exhale'), pressure['mask-exhale']) :
           reviewStep ? lesson.maskFill : current.water;
+        const sealed = completed.has('mask-hold') && !completed.has('mask-exhale');
+        const cue = focusStep?.id === 'mask-hold' || (canUseMaskRim && current.guide && next.id === 'mask-hold');
         lens.material.uniforms.water.value = water;
         lens.material.uniforms.time.value = motion * .0012;
+        lens.material.uniforms.seal.value = Number(sealed);
+        lens.material.uniforms.rimCue.value = Number(cue);
         if (demo) demo.amount = Math.round(water * 20) * 5;
       }
       if (demo && inflator) demo.amount = Math.round(inflatorAir(completed.has('add-air'), completed.has('vent'), pressure) * 20) * 5;
@@ -794,7 +832,6 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
       const blend = blending ? 1 - Math.exp(-Math.min(time - previousTime, 100) / 75) : 1;
       previousTime = time;
       const active = effects?.active ?? (current.active || (pulse?.until > time ? pulse.action : ''));
-      const focusStep = demo ? (applied ? null : demo.step) : reviewStep;
       const detail = gear ? (demo && !demo.complete ? demo.step.id : reviewStep?.id || inspecting) : undefined;
       model.update(completed, blend, motion, { active, pressure, detail });
       if (!fins && !gear) model.sync?.();
