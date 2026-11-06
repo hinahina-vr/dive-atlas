@@ -31,7 +31,7 @@ export function readDraft(storage) {
     const step = actions[index];
     const progress = (step.pressTime || step.balance) && Number.isFinite(raw.progress) && raw.progress > 0 && raw.progress <= 1
       ? raw.progress : 0;
-    if (!index && !missed.size && !assisted.size && !progress) return null;
+    if (!index && !missed.size && !assisted.size && !progress && raw.resumeAtStart !== true) return null;
     const pressure = progress ? { [step.id]: progress } : {};
     const practice = { lesson, mode: raw.mode, choices, index, missed, assisted, pressure, scenario };
     return { id: raw.id, practice, immersive: raw.immersive };
@@ -40,15 +40,16 @@ export function readDraft(storage) {
   }
 }
 
-export function saveDraft(storage, id, practice, immersive) {
+export function saveDraft(storage, id, practice, immersive, { resumeAtStart = false } = {}) {
   const { lesson, mode, index, missed, assisted, pressure, choices, scenario } = practice;
   const step = lesson.actions[index];
   if (!storage || !step) return false;
   const progress = pressure[step.id] || 0;
-  if (!index && !missed.size && !assisted.size && !progress) return false;
+  if (!index && !missed.size && !assisted.size && !progress && !resumeAtStart) return false;
   try {
     storage.setItem(draftKey, JSON.stringify({
       id, lesson: lesson.id, route: lesson.route, mode, immersive, scenario, progress,
+      resumeAtStart: resumeAtStart || undefined,
       done: lesson.actions.slice(0, index).map(action => action.id),
       choices: choices.map(action => action.id), missed: [...missed], assisted: [...assisted]
     }));

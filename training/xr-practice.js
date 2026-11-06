@@ -20,6 +20,8 @@ const inflatorControls = [
   maskControls.at(-1)
 ];
 
+const nextBuddyControl = { id: 'next-buddy', label: 'バディチェックへ ›', x: 32, y: 173, w: 960, h: 85 };
+
 const inspectionSlots = [
   { id: 'normal', label: '足についてくる', x: 32, y: 173, w: 454, h: 85 },
   { id: 'repair', label: 'すき間がある・調整する', x: 538, y: 173, w: 454, h: 85 }
@@ -54,6 +56,7 @@ function makeInspectionPreview(model, station) {
       }
     },
     dispose() {
+      view.removeFromParent();
       replicas.clear();
       backing.geometry.dispose();
       backing.material.dispose();
@@ -136,28 +139,30 @@ function makePanel(lesson) {
     draw(state, hovered, placing, done, inspecting) {
       const air = inflator ? inflatorAir(done.has('add-air'), done.has('vent'), state.pressure) : 0;
       const amount = Math.round((inflator ? air : state.water) * 100);
-      const key = [state.index, state.guide, state.message, state.retry, amount, hovered, placing, inspecting].join('|');
+      const key = [state.index, state.guide, state.message, state.retry, state.reviewCount, amount, hovered, placing, inspecting].join('|');
       if (key === previous) return;
       previous = key;
       const next = state.steps[state.index];
       const inspection = inspecting && next?.inspection;
-      const compact = (inflator && next?.id !== 'balance') || ((fins || gear) && !inspection);
+      const canAdvance = lesson.id === 'gear' && !next;
+      const compact = (inflator && next?.id !== 'balance') || ((fins || gear) && !inspection && !canAdvance);
       context.clearRect(0, 0, 1024, 346);
       rect(0, 0, 1024, compact ? 246 : 346, '#f1fffd');
       text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', 700);
       const note = fins && inspection ? 'かかとを動かすと、フィンはどうなった？' :
         inspection ? inspection.prompt :
+        canAdvance ? '機材セット完了' :
         (fins || gear) && placing ? '照準を合わせて置く' :
         inflator && placing ? '排気口を置く高さを選ぶ' :
         (fins || gear || inflator) && state.guide ? next?.label : '';
       text(note || state.message || (!next ? '練習完了' : '操作に照準を合わせてトリガーを押す'), 32, 129, 34, '#246270');
-      const options = inspection ? inspectionSlots.map(slot =>
-        fins ? slot : { ...slot, label: inspection[slot.id] }) : [];
+      const options = canAdvance ? [nextBuddyControl] :
+        inspection ? inspectionSlots.map(slot => fins ? slot : { ...slot, label: inspection[slot.id] }) : [];
       visibleControls = compact ? controls.slice(-1) : [...options, ...controls];
       visibleControls.forEach(control => {
         const index = state.steps.findIndex(step => step.id === control.id);
         const done = index >= 0 && index < state.index;
-        const guide = state.guide && index === state.index;
+        const guide = control.id === 'next-buddy' || (state.guide && index === state.index);
         const selected = hovered === control.id;
         const fill = done ? '#e5efed' : selected ? '#7be5d4' : guide ? '#a8eee0' : '#d5efec';
         rect(control.x, control.y, control.w, control.h, fill);
@@ -167,7 +172,8 @@ function makePanel(lesson) {
       if (fins || gear) {
         const hint = placing ? 'トリガーを離すか、置く場所を選ぶ' :
           state.retry ? state.message : inspection ? inspection.note || '' :
-          !next ? 'VRを閉じると復習結果に戻ります' :
+          !next ? (state.reviewCount === null ? 'VRを閉じると復習結果に戻ります' :
+            state.reviewCount ? '見直す手順は' + state.reviewCount + 'つ · 通常画面で確認' : '見直す手順なし') :
           next.pressTime ? 'トリガーを押し続ける' : fins ? '足元にある目印を探す' : '器材の目印を選ぶ';
         text(hint, 32, compact ? 197 : 300, 32, '#246270');
       } else if (recovery) {
@@ -254,7 +260,7 @@ function spatialTargets(lesson, model, scene) {
     const point = offset.clone();
     if (!inflator) point.y += dock ? .12 : .14;
     if (id === 'replace') point.x += .13;
-    if (id === 'buddy-vent') point.y -= .10;
+    if (id === 'buddy-vent') point.z += .17;
     const trimming = id.startsWith('trim-');
     const phaseOnly = (fins && !dock) || trimming || id === 'trace-hose';
     const actionId = trimming ? 'balance' : id;
@@ -297,6 +303,7 @@ function spatialTargets(lesson, model, scene) {
     },
     dispose() {
       for (const { mesh } of targets) {
+        mesh.removeFromParent();
         mesh.geometry.dispose();
         mesh.material.map.dispose();
         mesh.material.dispose();
@@ -305,7 +312,7 @@ function spatialTargets(lesson, model, scene) {
   };
 }
 
-export function createPracticeXR(renderer, session, { lesson, scenario, lights, readState, press, trim, apply }) {
+export function createPracticeXR(renderer, session, { lesson, scenario, lights, readState, advanceToBuddy, press, trim, apply }) {
   const scene = new T.Scene();
   const gear = lesson.scene === 'gear';
   const atmosphere = gear ? 0xd6ede6 : 0x79cec8;
@@ -317,8 +324,9 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
   const fins = lesson.scene === 'fins';
   const stage = new T.Group();
   const root = new T.Group();
+  const equipment = new T.Group();
   stage.add(root);
-  const model = gear ? makeModel(root, lesson, scenario) : makeDiveModel(root, lesson, scenario);
+  root.add(equipment);
   const floor = gear ? new T.Mesh(new T.PlaneGeometry(30, 30), new T.MeshStandardMaterial({ color: 0xa7c8bf, roughness: .90 })) : null;
   if (floor) {
     floor.rotation.x = -Math.PI / 2;
@@ -326,7 +334,6 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     root.add(floor);
     root.scale.setScalar(.70);
   }
-  const targets = mask ? null : spatialTargets(lesson, model, scene);
   const completed = new Set();
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const rig = new T.Group();
@@ -337,13 +344,41 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
   const visor = new T.Group();
   const lens = mask ? makeVisor() : null;
   const station = new T.Group();
-  const panel = makePanel(lesson);
-  const preview = gear ? makeInspectionPreview(model, station) : null;
-  const { mesh } = panel;
   if (lens) visor.add(lens);
-  station.add(mesh);
   rig.add(camera, visor, station);
   scene.add(stage, rig);
+
+  function mount(nextLesson, nextScenario) {
+    const model = gear ? makeModel(equipment, nextLesson, nextScenario) : makeDiveModel(equipment, nextLesson, nextScenario);
+    const targets = mask ? null : spatialTargets(nextLesson, model, scene);
+    const panel = makePanel(nextLesson);
+    const preview = gear ? makeInspectionPreview(model, station) : null;
+    station.add(panel.mesh);
+    return { model, targets, panel, preview };
+  }
+  let presentation = mount(lesson, scenario);
+
+  function unmount() {
+    if (presentation) {
+      const { targets, panel, preview } = presentation;
+      presentation = null;
+      targets?.dispose();
+      preview?.dispose();
+      const { mesh } = panel;
+      mesh.removeFromParent();
+      mesh.geometry.dispose();
+      mesh.material.map.dispose();
+      mesh.material.dispose();
+    }
+    equipment.traverse(object => {
+      if (object.isInstancedMesh) object.dispose();
+      object.geometry?.dispose();
+      const material = object.material;
+      if (material?.map?.isCanvasTexture) material.map.dispose();
+      if (material?.isShaderMaterial || material?.map?.isCanvasTexture) material.dispose();
+    });
+    equipment.clear();
+  }
 
   const raycaster = new T.Raycaster();
   const origin = new T.Vector3();
@@ -352,6 +387,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
   const eye = new T.Vector3();
   let placed = false;
   let placing;
+  let continueRequested = false;
   let holding;
   let inspecting;
   let carry;
@@ -360,7 +396,9 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
   let pulse;
   let previousTime;
   const aim = controller => {
-    if (!controller.visible || !placed) return null;
+    if (!controller.visible || !placed || !presentation) return null;
+    const { panel, targets } = presentation;
+    const { mesh } = panel;
     controller.getWorldPosition(origin);
     direction.set(0, 0, -1).transformDirection(controller.matrixWorld);
     raycaster.set(origin, direction);
@@ -390,7 +428,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
       const hit = aim(controller);
       selected = hit?.id;
       const step = state?.steps.find(action => action.id === selected);
-      const part = (fins || gear) && model.grabbable[selected];
+      const part = (fins || gear) && presentation?.model.grabbable[selected];
       if (part && !carry && !holding && step && step === state.steps[state.index]) {
         placing = selected;
         const offset = part.getWorldPosition(new T.Vector3()).sub(raycaster.ray.at(hit.distance, carriedPosition));
@@ -403,6 +441,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     }
     function select() {
       if (selected === 'exit') close();
+      else if (selected === 'next-buddy') continueRequested = true;
       else if (carry?.controller === controller) {
         const target = aim(controller);
         carry = null;
@@ -423,7 +462,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
           inspecting = selected;
         } else if (expected?.attachment && expected.id === selected) {
           placing = selected;
-        } else if (placing && model.docks[selected]) {
+        } else if (placing && presentation?.model.docks[selected]) {
           place(selected);
         } else if (selected === 'trim-add' || selected === 'trim-vent') {
           const adding = selected === 'trim-add';
@@ -465,6 +504,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     part.position.copy(part.parent.worldToLocal(carriedPosition));
   }
   function cancelInputs() {
+    continueRequested = false;
     placing = null;
     pulse = null;
     previousTime = undefined;
@@ -476,8 +516,8 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
 
   return {
     render(time, frame) {
-      if (!frame) return;
-      const state = readState();
+      if (!frame || ending) return;
+      let state = readState();
       if (!state) { close(); return; }
       if (session.visibilityState !== 'visible') return;
       if (!space) {
@@ -486,6 +526,24 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
       }
       const pose = frame.getViewerPose(space);
       if (!pose) { cancelInputs(); return; }
+      if (continueRequested) {
+        continueRequested = false;
+        try {
+          const next = advanceToBuddy();
+          if (next) {
+            cancelInputs();
+            inspecting = null;
+            unmount();
+            presentation = mount(next.lesson, next.scenario);
+            state = readState();
+          }
+        } catch {
+          close();
+          return;
+        }
+      }
+      if (!presentation || !state) { close(); return; }
+      const { model, targets, panel, preview } = presentation;
       visor.position.copy(pose.transform.position);
       visor.quaternion.copy(pose.transform.orientation);
       if (!placed) {
@@ -540,21 +598,11 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
         line.geometry.dispose();
         line.material.dispose();
       }
-      root.traverse(object => {
-        if (object.isInstancedMesh) object.dispose();
-        object.geometry?.dispose();
-        const material = object.material;
-        if (material?.map?.isCanvasTexture) material.map.dispose();
-        if (material?.isShaderMaterial || material?.map?.isCanvasTexture) material.dispose();
-      });
-      targets?.dispose();
-      preview?.dispose();
+      unmount();
+      floor?.geometry.dispose();
       floor?.material.dispose();
       lens?.geometry.dispose();
       lens?.material.dispose();
-      mesh.geometry.dispose();
-      mesh.material.map.dispose();
-      mesh.material.dispose();
     }
   };
 }

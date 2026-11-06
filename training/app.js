@@ -212,8 +212,8 @@ function renderDraft() {
   el['draft-description'].textContent = lesson.title + ' · ' + index + ' / ' + lesson.actions.length + '手順';
 }
 
-function saveCurrentDraft() {
-  if (saveDraft(storage, runId, practice, immersive)) {
+function saveCurrentDraft(options) {
+  if (saveDraft(storage, runId, practice, immersive, options)) {
     savedDraft = { id: runId, practice, immersive };
     renderDraft();
   }
@@ -485,7 +485,7 @@ el['vr-practice'].addEventListener('click', async () => {
   if (xrBusy || el['vr-practice'].hidden) return;
   xrBusy = true;
   renderXREntry();
-  const run = practice;
+  let run = practice;
   let session;
   try {
     session = await navigator.xr.requestSession('immersive-vr');
@@ -494,6 +494,7 @@ el['vr-practice'].addEventListener('click', async () => {
       scenario: run.scenario,
       readState() {
         if (practice !== run || example.current()) return null;
+        const finished = run.index === run.lesson.actions.length;
         return {
           steps: run.lesson.actions,
           index: run.index,
@@ -502,8 +503,17 @@ el['vr-practice'].addEventListener('click', async () => {
           pressure: run.pressure,
           message: el.feedback.textContent,
           retry: el.feedback.dataset.tone === 'retry',
-          water: remainingMaskWater(run.lesson.maskFill, run.index === run.lesson.actions.length, run.pressure['mask-exhale'])
+          reviewCount: finished && run.mode === 'recall' ? needsReview(run).length : null,
+          water: remainingMaskWater(run.lesson.maskFill, finished, run.pressure['mask-exhale'])
         };
+      },
+      advanceToBuddy() {
+        if (practice !== run || example.current() || run.lesson.id !== 'gear' ||
+          run.index !== run.lesson.actions.length) return;
+        openLesson(lessons[lessonIndex(run.lesson) + 1]);
+        run = practice;
+        saveCurrentDraft({ resumeAtStart: true });
+        return { lesson: run.lesson, scenario: run.scenario };
       },
       press,
       trim,
