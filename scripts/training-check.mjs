@@ -81,6 +81,9 @@ try {
     const context = await browser.newContext({ viewport, isMobile: mobile, hasTouch: mobile, reducedMotion: mobile ? 'reduce' : 'no-preference' });
     const page = await context.newPage();
     page.on('pageerror', error => pageErrors.push(error.message));
+    page.on('console', message => {
+      if (message.type() === 'error' && /WebGLProgram|shader error/i.test(message.text())) pageErrors.push(message.text());
+    });
     return page;
   };
   const getChoice = (page, id) => page.locator('[data-action="' + id + '"]');
@@ -119,6 +122,16 @@ try {
     move: point => session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [point] }),
     end: () => session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
   });
+  async function hold(page, id, drag, threshold = 1, during = async () => {}) {
+    await drag.start(await center(part(page, id)));
+    await page.waitForFunction(({ id, threshold }) => {
+      const node = [...document.querySelectorAll('#hotspots button')].find(item => item.dataset.part === id);
+      return node?.classList.contains('is-pressed') && Number(node.style.getPropertyValue('--press-progress')) >= threshold;
+    }, { id, threshold });
+    await during();
+    await drag.end();
+  }
+  const meterLevel = page => page.locator('#effect-meter').evaluate(node => Number(node.style.getPropertyValue('--level')));
   async function operate(page, action, input) {
     await getChoice(page, action.id)[input]();
     if (action.attachment) await dockChoice(page, action.attachment.dock)[input]();
@@ -184,6 +197,20 @@ try {
   assert.equal(await desktop.locator('#result-heading').innerText(), '練習完了');
   checks.push('1440 px desktop WebGL: camera drag, invalid dock, three equipment drags, review, keyboard buddy check');
 
+  await desktop.getByRole('button', { name: 'マスククリア', exact: true }).click();
+  await part(desktop, 'mask-breathe').click();
+  await part(desktop, 'mask-hold').click();
+  assert(await desktop.locator('#mask-overlay').evaluate(node => node.classList.contains('is-sealed')));
+  await hold(desktop, 'mask-exhale', mouseDrag(desktop), .20);
+  assert.equal(await value(desktop), '2');
+  const remaining = await meterLevel(desktop);
+  assert(remaining > 0 && remaining < 1, 'An interrupted press preserves the remaining water');
+  await desktop.screenshot({ path: join(output, 'desktop-mask-partial.png'), fullPage: true });
+  await hold(desktop, 'mask-exhale', mouseDrag(desktop));
+  assert.equal(await value(desktop), '3');
+  assert.equal(await meterLevel(desktop), 0);
+  checks.push('1440 px mask drill: seal, progressive water loss, interrupted press, resume and clear');
+
   const mobileSize = { width: 390, height: 844 };
   const mobileDrag = await testPage(mobileSize, true);
   await mobileDrag.goto(previewUrl + 'training/');
@@ -229,7 +256,9 @@ try {
   await getChoice(mobile, 'mask-breathe').tap();
   await mobile.locator('#hint').tap();
   await getChoice(mobile, 'mask-hold').tap();
-  await getChoice(mobile, 'mask-exhale').tap();
+  await mobile.evaluate(() => window.scrollTo(0, 0));
+  const waterInput = touchDrag(await mobile.context().newCDPSession(mobile));
+  await hold(mobile, 'mask-exhale', waterInput);
   assert.equal(await mobile.locator('#review li').count(), 2);
   assert.equal(await mobile.locator('#mask-overlay').evaluate(node => node.style.getPropertyValue('--mask-water')), '0%');
   await mobile.locator('#reset').tap();
@@ -244,7 +273,7 @@ try {
   for (const lesson of lessons.slice(3)) {
     await mobile.getByRole('button', { name: lesson.tab || lesson.title, exact: true }).tap();
     await mobile.locator('#hotspots .is-guide:visible').waitFor();
-    await mobile.locator('#perspective').tap();
+    if (lesson.id === 'fins') await mobile.locator('#perspective').tap();
     assert.equal(await mobile.locator('#perspective').getAttribute('aria-pressed'), 'true');
     await mobile.locator('#hotspots .is-guide:visible').waitFor();
     if (lesson.id === 'recovery') {
@@ -256,9 +285,35 @@ try {
       await sweep.waitFor();
       await mobile.screenshot({ path: join(output, 'mobile-recovery.png'), fullPage: true });
       await sweep.tap();
-      assert.equal(await mobile.locator('#progress').getAttribute('aria-valuenow'), '2');
-    }
-    if (lesson.id === 'fins') {
+      assert.equal(await value(mobile), '2');
+      await mobile.locator('#reset-view').tap();
+      await part(mobile, 'replace').tap();
+      await dock(mobile, 'mouth').tap();
+      assert.equal(await value(mobile), '3');
+      await hold(mobile, 'purge', waterInput, 1, async () => {
+        await mobile.screenshot({ path: join(output, 'mobile-purge.png'), fullPage: true });
+      });
+      assert.equal(await value(mobile), '4');
+      await part(mobile, 'reg-breathe').tap();
+    } else if (lesson.id === 'inflator') {
+      const initial = await center(part(mobile, 'add-air'));
+      await hold(mobile, 'add-air', waterInput, 1, async () => {
+        assert.equal(await meterLevel(mobile), 1);
+        const lifted = await center(part(mobile, 'add-air'));
+        assert(lifted.y < initial.y - 9, 'BCD rises relative to the screen while adding air');
+      });
+      assert.equal(await value(mobile), '1');
+      await part(mobile, 'raise').tap();
+      await dock(mobile, 'above').tap();
+      assert.equal(await value(mobile), '2');
+      const beforeVent = await center(part(mobile, 'vent'));
+      await hold(mobile, 'vent', waterInput, 1, async () => {
+        assert.equal(await meterLevel(mobile), 0);
+        const lowered = await center(part(mobile, 'vent'));
+        assert(lowered.y > beforeVent.y + 9, 'BCD drops relative to the screen while venting');
+        await mobile.screenshot({ path: join(output, 'mobile-inflator.png'), fullPage: true });
+      });
+    } else {
       await operate(mobile, lesson.actions[0], 'tap');
       await mobile.evaluate(() => window.scrollTo(0, 0));
       for (const action of lesson.actions.slice(1, 3)) {
@@ -267,13 +322,11 @@ try {
       }
       await mobile.screenshot({ path: join(output, 'mobile-fins.png'), fullPage: true });
       await operate(mobile, lesson.actions[3], 'tap');
-    } else {
-      for (const action of lesson.actions.slice(lesson.id === 'recovery' ? 2 : 0)) await operate(mobile, action, 'tap');
     }
     assert.equal(await mobile.locator('#result-heading').innerText(), '練習完了');
     assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   }
-  checks.push('390 px touch WebGL at /dive-atlas/: camera drag, part drag and two-tap placement, wrong order, hint, review, reset and all other drills');
+  checks.push('390 px touch WebGL at /dive-atlas/: gear gestures, mask press, recovery and purge, buoyancy response, fin placement, wrong order and review');
 
   const noGl = await testPage({ width: 360, height: 800 }, true);
   await noGl.addInitScript(() => {
@@ -287,8 +340,11 @@ try {
   await noGl.locator('.scene-error').waitFor();
   for (const action of lessons[0].actions) await operate(noGl, action, 'tap');
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
+  await noGl.getByRole('button', { name: 'マスククリア', exact: true }).tap();
+  for (const action of lessons[2].actions) await operate(noGl, action, 'tap');
+  assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
   assert.deepEqual(pageErrors, []);
-  checks.push('360 px WebGL-unavailable fallback: gear drill still completes');
+  checks.push('360 px WebGL-unavailable fallback: gear and mask drills still complete');
   await writeFile(join(output, 'report.json'), JSON.stringify({ revision, checks }, null, 2));
   console.log(output);
   for (const check of checks) console.log('PASS ' + check);

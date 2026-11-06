@@ -68,7 +68,7 @@ export function createPlacement({ viewport, markers, caption, menu, choices, onS
     markers.replaceChildren();
     dockButtons.clear();
     const heading = document.createElement('p');
-    heading.textContent = action.attachment.part + 'の取り付け先を選んでください。';
+    heading.textContent = action.attachment.prompt || action.attachment.part + 'の取り付け先を選んでください。';
     menu.replaceChildren(heading);
     for (const [id, label] of Object.entries(docks)) {
       const isGuide = guided && action.attachment.dock === id;

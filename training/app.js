@@ -1,12 +1,13 @@
 import { lessons, newPractice, choose, reveal, needsReview } from './lessons.js';
 import { createPlacement } from './placement.js';
+import { createPress } from './press.js';
 
 const byId = id => document.getElementById(id);
 const el = Object.fromEntries([
   'viewport', 'scene', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall', 'view-label', 'view-subtitle', 'view-help',
   'rotate-left', 'rotate-right', 'reset-view', 'module-label', 'step-count', 'progress',
   'lesson-title', 'lesson-description', 'instruction', 'step-label', 'step-title', 'step-description',
-  'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
+  'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
 ].map(id => [id, byId(id)]));
 
 let practice = newPractice(lessons[0], 'guided');
@@ -14,6 +15,7 @@ let hint = false;
 let view;
 let viewFailed = false;
 let immersive = false;
+let activePress = '';
 const marks = new Map();
 const placement = createPlacement({
   viewport: el.viewport,
@@ -25,6 +27,30 @@ const placement = createPlacement({
   onAttempt: apply,
   onGrip: (...args) => view?.grip(...args),
   onRelease: () => view?.releaseGrip()
+});
+
+const press = createPress({
+  begin(action) {
+    if (practice.lesson.actions[practice.index]?.id !== action.id) {
+      apply(action.id);
+      return null;
+    }
+    feedback();
+    return practice.pressure[action.id] || 0;
+  },
+  change(action, value, active) {
+    practice.pressure[action.id] = value;
+    activePress = active ? action.id : '';
+    refreshEffect();
+  },
+  complete(action, keyboard) { apply(action.id, keyboard); },
+  interrupted(action) {
+    const messages = {
+      'mask-exhale': '水が残っています。もう一度、鼻から息を吐きましょう。',
+      'add-air': '少しふくらみました。もう一度、給気ボタンを短く押します。'
+    };
+    feedback(messages[action.id] || '途中で止まりました。ボタンを押して続けましょう。');
+  }
 });
 
 document.addEventListener('keydown', event => {
@@ -47,7 +73,7 @@ function feedback(text = '', tone = '') {
   el.feedback.textContent = text;
   el.feedback.dataset.tone = tone;
   const sceneFeedback = el['scene-feedback'];
-  sceneFeedback.hidden = !text || !view || !practice.lesson.docks;
+  sceneFeedback.hidden = !text || !view;
   sceneFeedback.textContent = text;
   sceneFeedback.dataset.tone = tone;
 }
@@ -56,7 +82,7 @@ function apply(id, fromKeyboard = false, dock) {
   const result = choose(practice, id, dock);
   if (!result) return;
   if (!result.ok) {
-    const message = result.wrongDock ? 'そこには付きません。取り付け先を見直しましょう。' :
+    const message = result.wrongDock ? '位置が違います。器材の位置を見直しましょう。' :
       practice.mode === 'guided' ? '今の手順を先に試してみましょう。' : 'この場面では、先に別の操作があります。';
     feedback(message, 'retry');
     return;
@@ -71,7 +97,8 @@ function apply(id, fromKeyboard = false, dock) {
 }
 
 function start(lesson, mode) {
-  if (lesson !== practice.lesson) immersive = lesson.scene === 'mask' && Boolean(view);
+  press.cancel();
+  if (lesson !== practice.lesson) immersive = Boolean(view) && ['mask', 'recovery', 'inflator'].includes(lesson.scene);
   practice = newPractice(lesson, mode);
   hint = false;
   feedback();
@@ -125,7 +152,27 @@ function project(positions, docks) {
   }
 }
 
+function refreshEffect() {
+  const { lesson, pressure, index } = practice;
+  const done = lesson.actions.slice(0, index);
+  const has = id => done.some(action => action.id === id);
+  const clear = has('mask-exhale');
+  const water = clear ? 0 : 1 - (pressure['mask-exhale'] || 0);
+  const air = has('vent') ? 0 : has('add-air') ? 1 - (pressure.vent || 0) : pressure['add-air'] || 0;
+  const maskOverlay = el['mask-overlay'];
+  maskOverlay.classList.toggle('is-pressed', activePress === 'mask-exhale');
+  maskOverlay.classList.toggle('is-sealed', has('mask-hold') && !clear);
+  maskOverlay.style.setProperty('--mask-water', (46 * water) + '%');
+  const meter = el['effect-meter'];
+  meter.hidden = !view || (lesson.scene !== 'mask' && lesson.scene !== 'inflator');
+  const meterLabel = lesson.scene === 'mask' ? 'マスク内の水' : 'BCDのふくらみ';
+  if (meter.firstElementChild.textContent !== meterLabel) meter.firstElementChild.textContent = meterLabel;
+  meter.style.setProperty('--level', String(lesson.scene === 'mask' ? water : air));
+  view?.interact(pressure, activePress);
+}
+
 function render() {
+  press.cancel();
   placement.clear();
   const { lesson, mode, index } = practice;
   const step = lesson.actions[index];
@@ -141,20 +188,23 @@ function render() {
   el['view-label'].textContent = lesson.label;
   const waterLabels = {
     mask: done.includes('mask-exhale') ? 'マスク内の水が抜けた' : 'マスク内に水が入った',
-    recovery: '水中 · 右側にホース',
+    recovery: '水中 · レギュレーター回収',
     inflator: '水中 · 目盛りを目安に浮き沈みを見る',
     fins: '水面 · 足元を見る'
   };
   el['view-subtitle'].textContent = immersive ? waterLabels[lesson.scene] : lesson.subtitle;
   el.viewport.classList.toggle('is-water', immersive);
-  el['view-help'].textContent = step?.attachment ? 'ドラッグ／器材→取付先をタップ' :
+  el['view-help'].textContent = step?.pressTime ? (step.id === 'add-air' ? '目印を短く押す' : '目印を押し続ける') :
+    step?.attachment ? 'ドラッグ／器材→目印をタップ' :
     immersive && lesson.scene !== 'inflator' ? 'ドラッグで見回す' : 'ドラッグで回転';
   el.perspective.hidden = !view || lesson.scene === 'gear';
-  el.perspective.textContent = lesson.scene === 'inflator' ? '水中で見る' : 'ダイバー視点';
+  el.perspective.textContent = lesson.scene === 'inflator'
+    ? (immersive ? '器材台で見る' : '水中で見る')
+    : (immersive ? '模型で見る' : 'ダイバー視点');
   el.perspective.setAttribute('aria-pressed', String(immersive));
   const maskOverlay = el['mask-overlay'];
   maskOverlay.hidden = !immersive || lesson.scene !== 'mask';
-  maskOverlay.style.setProperty('--mask-water', done.includes('mask-exhale') ? '0%' : '46%');
+  refreshEffect();
   el['module-label'].textContent = 'DRILL ' + String(lessons.indexOf(lesson) + 1).padStart(2, '0');
   el['step-count'].textContent = String(index).padStart(2, '0') + ' / ' + String(lesson.actions.length).padStart(2, '0');
   el.progress.setAttribute('aria-valuemax', lesson.actions.length);
@@ -172,14 +222,15 @@ function render() {
   el['step-label'].textContent = showGuide ? (hint ? 'ヒント' : '次の操作') : '自力で復習';
   el['step-title'].textContent = showGuide ? step.label : '次は何をする？';
   el['step-description'].textContent = showGuide ? step.detail : (viewFailed ? '下の選択肢から操作を選んでください。' : '器材の目印か、下の選択肢から操作を選んでください。');
-  const options = view && lesson.docks && mode === 'guided' && step ? [step] : available;
+  const options = view && (lesson.docks || lesson.scene === 'mask') && mode === 'guided' && step ? [step] : available;
   el.choices.replaceChildren(...options.map((action, i) => {
     const guided = showGuide && action === step;
-    const item = button('', 'choice' + (guided ? ' is-guide' : ''), event => {
+    const item = button('', 'choice' + (guided ? ' is-guide' : ''), view && action.pressTime ? null : event => {
       const keyboard = event.detail === 0;
       if (action.attachment) placement.select(action, { docks: lesson.docks, guided, source: item, keyboard });
       else apply(action.id, keyboard);
     });
+    if (view && action.pressTime) press.bind(item, action);
     item.dataset.action = action.id;
     const number = document.createElement('span');
     number.className = 'mark';
@@ -196,8 +247,9 @@ function render() {
     for (const action of markerActions) {
       if (marks.has(action.anchor)) continue;
       const guided = showGuide && action === step;
-      const marker = button('', 'hotspot' + (guided ? ' is-guide' : ''), action.attachment ? null : () => apply(action.id));
+      const marker = button('', 'hotspot' + (guided ? ' is-guide' : ''), action.attachment || action.pressTime ? null : () => apply(action.id));
       if (action.attachment) placement.bind(marker, action, { docks: lesson.docks, guided });
+      if (action.pressTime) press.bind(marker, action);
       marker.dataset.part = action.id;
       marker.tabIndex = -1;
       marker.setAttribute('aria-label', action.label);

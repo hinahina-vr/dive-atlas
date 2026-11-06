@@ -37,6 +37,7 @@ export function createView(container, onProject) {
   let model;
   let root;
   let done = new Set();
+  let interaction = { pressure: {}, active: '' };
   let frame = 0;
   let width = 1;
   let height = 1;
@@ -78,10 +79,13 @@ export function createView(container, onProject) {
     const delta = last ? Math.min(time - last, 50) : 17;
     last = time;
     const settling = time - changed < 620;
-    model.update(done, reducedMotion.matches || !settling ? 1 : 1 - Math.exp(-delta / 79), reducedMotion.matches ? 240 : time);
+    const k = reducedMotion.matches || !settling ? 1 : 1 - Math.exp(-delta / 79);
+    model.update(done, k, reducedMotion.matches ? 240 : time, interaction);
     if (firstPerson) {
       camera.position.copy(look);
-      direction.set(Math.sin(orbit.theta) * Math.sin(orbit.phi), Math.cos(orbit.phi), -Math.cos(orbit.theta) * Math.sin(orbit.phi));
+      const exhaling = interaction.active === 'mask-exhale' && !reducedMotion.matches;
+      const phi = orbit.phi - (exhaling ? .12 : 0);
+      direction.set(Math.sin(orbit.theta) * Math.sin(phi), Math.cos(phi), -Math.cos(orbit.theta) * Math.sin(phi));
       camera.lookAt(direction.add(look));
     } else {
       camera.position.setFromSpherical(orbit).add(look);
@@ -102,7 +106,7 @@ export function createView(container, onProject) {
     }
     if (part) part.position.copy(restPosition);
     onProject(targets, docks);
-    const bubbling = model.animated && (done.has('mask-exhale') || (done.has('bubbles') && !done.has('replace')));
+    const bubbling = model.animated && (interaction.active || (done.has('bubbles') && !done.has('replace')));
     if (!reducedMotion.matches && (settling || bubbling || model.inWater)) queue();
   }
 
@@ -161,6 +165,11 @@ export function createView(container, onProject) {
   return {
     rotate,
     resetCamera: () => resetCamera(previous),
+    interact(pressure, active) {
+      interaction = { pressure, active };
+      changed = performance.now();
+      queue();
+    },
     grip(id, x, y) {
       if (!model?.grabbable?.[id]) return;
       grip = { id, x, y };
@@ -194,7 +203,7 @@ export function createView(container, onProject) {
         scene.add(root);
         previous = lesson;
         resetCamera(lesson);
-        model.update(new Set(finished), 1, 0);
+        model.update(new Set(finished), 1, 0, interaction);
       }
       done = new Set(finished);
       changed = performance.now();

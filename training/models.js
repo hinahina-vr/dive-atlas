@@ -103,7 +103,7 @@ function stage(parent, y = -1.27) {
 function octo(parent, color, ...point) {
   const item = group(parent, ...point);
   cyl(item, .133, .115, rubber, 0, 0, 0, 'z');
-  cyl(item, .112, .025, color, 0, 0, .071, 'z');
+  item.userData.purge = cyl(item, .112, .025, color, 0, 0, .071, 'z');
   ring(item, .08, .007, rubber, 0, 0, .09);
   box(item, .145, .06, .105, rubber, 0, .11, -.02);
   cyl(item, .044, .075, metal, -.16, 0, 0, 'x');
@@ -113,8 +113,8 @@ function inflatorHead(parent, ...point) {
   const item = group(parent, ...point);
   sphere(item, .102, .211, .085, rubber);
   cyl(item, .064, .13, rubber, 0, .18, 0);
-  cyl(item, .048, .023, lime, 0, .014, .084, 'z');
-  cyl(item, .049, .025, gray, 0, -.11, .081, 'z');
+  item.userData.supply = cyl(item, .048, .023, lime, 0, .014, .084, 'z');
+  item.userData.exhaust = cyl(item, .049, .025, gray, 0, -.11, .081, 'z');
   cyl(item, .053, .054, aluminum, -.101, .058, 0, 'x');
   return item;
 }
@@ -304,17 +304,24 @@ function diver(root, recovery) {
     [.31, -.10], [.12, -.13], [0, -.096], [-.12, -.13], [-.31, -.1]];
   plate(mask, rim, .083, .052, teal, 0, 0, -.015);
   sphere(mask, .10, .104, .115, rubber, 0, -.075, .084);
-  const water = group(mask);
+  const water = group(mask, 0, -.063, 0);
+  const fingertips = group(mask);
+  for (const side of [-1, 1]) {
+    sphere(fingertips, .037, .12, .034, rubber, side * .20, .271, .134).rotation.z = side * -.23;
+  }
   for (const side of [-1, 1]) {
     const pane = [[-.133, -.074], [-.151, .099], [-.105, .162], [.111, .151], [.137, .072], [.095, -.075]];
     plate(mask, pane, .025, .026, lens, side * .185, .025, .095);
     sphere(mask, .057, .034, .025, white, side * .163, .09, .087);
     sphere(mask, .022, .023, .012, rubber, side * .160, .09, .108);
-    box(water, .242, .081, .021, lens, side * .183, -.024, .132);
+    box(water, .242, .081, .021, lens, side * .183, .04, .132);
   }
   const regulator = octo(torso, aluminum, 0, .245, .433);
-  const breathingHose = hose(torso, [[-.16, .24, .43], [-.46, .29, .24], [-.54, .35, -.05], [-.35, .33, -.35]], .04);
-  const lastRegPosition = regulator.position.clone();
+  const hoseOrigin = v(-.35, .33, -.35);
+  const hoseEnd = v(0, 0, 0);
+  const updateHose = flexibleHose(torso, .04, rubber, (from, to) => [
+    v(-.65, .25, -.13), v(to.x - .14, to.y + .09, to.z - .11)
+  ]);
   const arm = group(torso, -.54, -.26, .025);
   const upper = cyl(arm, .118, .63, rubber, 0, -.28, 0);
   sphere(arm, .116, .119, .116, rubber, 0, -.592, 0);
@@ -329,44 +336,52 @@ function diver(root, recovery) {
   return {
     anchors: recovery ? {
       bubbles: [torso, v(.20, .22, .59)], sweep: [arm, v(-.14, -.40, .12)],
-      replace: [regulator, v(-.08, -.10, .12)], 'reg-breathe': [mask, v(.34, -.06, .17)]
+      replace: [regulator, v(-.08, -.10, .12)], purge: [regulator, v(0, .01, .115)],
+      'reg-breathe': [mask, v(.34, -.06, .17)]
     } : {
       'mask-breathe': [regulator, v(.16, -.03, .14)], 'mask-hold': [mask, v(.05, .27, .14)],
       'mask-exhale': [mask, v(-.13, -.15, .23)]
     },
+    ...(recovery ? { docks: { mouth: [torso, v(0, .245, .52)], chest: [torso, v(.36, -.30, .25)] },
+      grabbable: { replace: regulator } } : {}),
     animated: true,
-    update(done, k, time) {
+    sync() {
+      hoseEnd.copy(regulator.position);
+      hoseEnd.x -= .17;
+      updateHose(hoseOrigin, hoseEnd);
+    },
+    update(done, k, time, interaction) {
       const swept = done.has('sweep');
       const replaced = done.has('replace');
       const clear = done.has('mask-exhale');
-      const held = done.has('mask-hold');
+      const held = done.has('mask-hold') && !clear;
+      const exhaling = interaction.active === 'mask-exhale';
+      const purging = interaction.active === 'purge';
+      regulator.userData.purge.position.z = purging ? .057 : .071;
       const regPosition = recovery && !replaced ? v(swept ? -.80 : -.56, swept ? .06 : -.39, swept ? .41 : -.31) : v(0, .245, .433);
       regulator.position.lerp(regPosition, k);
-      if (lastRegPosition.distanceToSquared(regulator.position) > .000001) {
-        const { x, y, z } = regulator.position;
-        const tube = new T.CatmullRomCurve3([
-          v(x - .17, y, z), v(x - .31, y + .09, z - .11),
-          v(-.65, .25, -.13), v(-.35, .33, -.35)
-        ]);
-        breathingHose.geometry.dispose();
-        breathingHose.geometry = new T.TubeGeometry(tube, 24, .04, 8, false);
-        lastRegPosition.copy(regulator.position);
-      }
       torso.rotation.z = T.MathUtils.lerp(torso.rotation.z, swept && !replaced ? -.16 : 0, k);
       arm.rotation.z = T.MathUtils.lerp(arm.rotation.z, swept && !replaced ? -.62 : .08, k);
       arm.rotation.x = T.MathUtils.lerp(arm.rotation.x, swept && !replaced ? -1.13 : 0, k);
       lower.rotation.x = T.MathUtils.lerp(lower.rotation.x, swept && !replaced ? -.70 : -.12, k);
-      mask.rotation.x = T.MathUtils.lerp(mask.rotation.x, held ? -.11 : 0, k);
-      water.scale.y = T.MathUtils.lerp(water.scale.y, clear ? .01 : 1, k);
-      water.visible = !recovery && water.scale.y > .035;
-      bubbles.visible = recovery ? done.has('bubbles') && !replaced : clear;
-      bubbles.position.set(0, clear ? .43 : .24, .59);
+      fingertips.visible = !recovery && held;
+      mask.rotation.x = T.MathUtils.lerp(mask.rotation.x, exhaling ? -.15 : held ? -.06 : 0, k);
+      const remaining = clear ? 0 : 1 - (interaction.pressure['mask-exhale'] || 0);
+      water.scale.y = T.MathUtils.lerp(water.scale.y, remaining, k);
+      water.visible = !recovery && water.scale.y > .015;
+      bubbles.visible = recovery ? purging || (done.has('bubbles') && !replaced) : exhaling;
+      bubbles.position.set(0, exhaling ? .43 : .24, .59);
       bubbleParts.forEach((bubble, i) => {
         const phase = (time * .00038 + i / bubbleParts.length) % 1;
         bubble.position.set(Math.sin(phase * 7 + i) * .17, phase * 1.09, Math.cos(i) * .11 + phase * .12);
       });
     }
   };
+}
+
+function airAmount(done, pressure) {
+  if (done.has('vent')) return 0;
+  return done.has('add-air') ? 1 - (pressure.vent || 0) : pressure['add-air'] || 0;
 }
 
 function inflator(root, inWater = false) {
@@ -377,22 +392,31 @@ function inflator(root, inWater = false) {
   plate(bladder, [[-.32, -.44], [-.29, .32], [-.15, .43], [.11, .46], [.26, .30], [.25, -.41], [.04, -.51]],
     .12, .052, teal, 0, 0, .29);
   textPlate(bladder, 'BCD', '#0b3b42', .43, -.012, -.043, .47);
-  const low = group(root);
-  hose(low, [[-.34, .39, .03], [-.08, .82, .06], [.40, .73, .05], [.59, .24, .18], [.61, -.14, .23]], .086);
-  const high = group(root);
-  hose(high, [[-.34, .39, .03], [-.12, .74, .06], [.26, .98, .07], [.58, .91, .18], [.61, .60, .23]], .086);
   const head = inflatorHead(root, .61, -.44, .23);
+  const airCellPort = v(-.34, .39, .03);
+  const handEnd = v(0, 0, 0);
+  const updateAirway = flexibleHose(root, .074, rubber, (from, to) => [
+    v(from.x + .27, Math.max(.77, to.y + .09), .05),
+    v(to.x - .12, Math.max(.57, to.y + .13), to.z - .06)
+  ]);
   head.scale.setScalar(1.55);
   head.rotation.z = -.13;
   return {
-    anchors: { 'add-air': [head, v(.09, .04, .15)], raise: [head, v(-.11, .17, .12)], vent: [head, v(.08, -.15, .15)] },
-    update(done, k) {
+    anchors: { 'add-air': [head, v(.055, .02, .12)], raise: [head, v(-.13, .18, .10)], vent: [head, v(.05, -.11, .13)] },
+    docks: { above: [root, v(.52, .77, .39)], below: [root, v(.52, -.62, .41)] },
+    grabbable: { raise: head },
+    sync() {
+      handEnd.set(0, .25, 0);
+      root.worldToLocal(head.localToWorld(handEnd));
+      updateAirway(airCellPort, handEnd);
+    },
+    update(done, k, _time, interaction) {
       const raised = done.has('raise');
-      const inflated = done.has('add-air') && !done.has('vent');
-      bladder.scale.lerp(v(inflated ? 1.14 : 1, inflated ? 1.14 : 1, inflated ? 1.46 : 1), k);
-      head.position.y = T.MathUtils.lerp(head.position.y, raised ? .28 : -.45, k);
-      high.visible = raised;
-      low.visible = !raised;
+      const air = airAmount(done, interaction.pressure);
+      bladder.scale.lerp(v(1 + .16 * air, 1 + .16 * air, 1 + .58 * air), k);
+      head.position.lerp(raised ? v(.61, .54, .23) : v(.61, -.44, .23), k);
+      head.userData.supply.position.z = interaction.active === 'add-air' ? .070 : .084;
+      head.userData.exhaust.position.z = interaction.active === 'vent' ? .067 : .081;
     }
   };
 }
@@ -463,12 +487,40 @@ export function makeModel(root, lesson) {
 
 const seaRock = mat(0x35666b, .95);
 const reef = mat(0x498d82, .88);
-const sand = mat(0x67a4a2, .93);
+const sandTint = new T.Color(0x326b72);
 
 function waterBackdrop(root) {
   const water = group(root);
-  const floor = mesh(water, new T.PlaneGeometry(42, 42), sand, 0, -2.7, -2);
+  const tide = { value: 0 };
+  const floor = mesh(water, new T.PlaneGeometry(46, 46), new T.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { tide, tint: { value: sandTint } },
+    vertexShader: `
+      varying vec2 seabed;
+      varying float depth;
+      void main() {
+        vec4 view = modelViewMatrix * vec4(position, 1.0);
+        seabed = position.xy;
+        depth = length(view.xyz);
+        gl_Position = projectionMatrix * view;
+      }`,
+    fragmentShader: `
+      varying vec2 seabed;
+      varying float depth;
+      uniform float tide;
+      uniform vec3 tint;
+      void main() {
+        float haze = 1.0 - smoothstep(3.0, 18.0, depth);
+        vec2 drift = seabed * vec2(2.7, 3.1);
+        float weave = sin(drift.x + cos(drift.y + tide)) + sin(drift.y - tide * .7 + sin(drift.x * 1.3));
+        float caustic = pow(clamp(1.0 - abs(weave), 0.0, 1.0), 5.0);
+        float light = .78 + .21 * caustic * haze;
+        gl_FragColor = vec4(tint * light, haze * .87);
+        #include <colorspace_fragment>
+      }`
+  }), 0, -2.7, -2);
   floor.rotation.x = -Math.PI / 2;
+  floor.renderOrder = -1;
   for (let i = 0; i < 16; i += 1) {
     const bearing = i * 2.4;
     const radius = 2.1 + i * .40;
@@ -489,9 +541,39 @@ function waterBackdrop(root) {
     bank.scale.set(.82, 1.52, 1.18);
     bank.rotation.y = x * .78;
   }
+  const specks = new Float32Array(116 * 3);
+  for (let i = 0; i < specks.length; i += 3) {
+    const seed = i / 3 + 1;
+    specks[i] = Math.sin(seed * 3.63) * 5.1;
+    specks[i + 1] = -2.24 + (seed * 1.37 % 3.73);
+    specks[i + 2] = Math.cos(seed * 5.24) * 5.8 - 1.2;
+  }
+  const motes = new T.BufferGeometry().setAttribute('position', new T.BufferAttribute(specks, 3));
+  const particles = new T.Points(motes, new T.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { tide },
+    vertexShader: `
+      uniform float tide;
+      varying float glow;
+      void main() {
+        vec3 p = position + vec3(sin(tide + position.z) * .14, cos(tide * .54 + position.x) * .16, 0.0);
+        vec4 view = modelViewMatrix * vec4(p, 1.0);
+        glow = (1.0 - smoothstep(1.0, 10.0, -view.z)) * .49;
+        gl_PointSize = clamp(7.5 / max(1.0, -view.z), 1.4, 3.4);
+        gl_Position = projectionMatrix * view;
+      }`,
+    fragmentShader: `
+      varying float glow;
+      void main() {
+        float edge = 1.0 - smoothstep(.14, .50, distance(gl_PointCoord, vec2(.5)));
+        gl_FragColor = vec4(.71,.96,.94,glow * edge);
+      }`
+  }));
+  particles.renderOrder = 2;
+  water.add(particles);
   const surface = mesh(water, new T.PlaneGeometry(40, 40, 1, 1), new T.ShaderMaterial({
     side: T.DoubleSide, transparent: true, depthWrite: false,
-    uniforms: { time: { value: 0 } },
+    uniforms: { tide },
     vertexShader: `
       varying vec2 plane;
       void main() {
@@ -500,18 +582,18 @@ function waterBackdrop(root) {
       }`,
     fragmentShader: `
       varying vec2 plane;
-      uniform float time;
+      uniform float tide;
       void main() {
         vec2 q = plane * 1.5;
-        float a = sin(q.x * 3.5 + sin(q.y * 2.1 + time) * 1.4);
-        float b = sin(q.y * 3.0 - cos(q.x * 2.3 - time) * 1.4);
+        float a = sin(q.x * 3.5 + sin(q.y * 2.1 + tide) * 1.4);
+        float b = sin(q.y * 3.0 - cos(q.x * 2.3 - tide) * 1.4);
         float caustic = pow(clamp(1.0 - abs(a + b), 0.0, 1.0), 5.0);
         float distanceFade = 1.0 - smoothstep(2.0, 14.0, length(plane));
         gl_FragColor = vec4(mix(vec3(.04,.38,.48), vec3(.52,.94,.91), caustic), (.24 + .34 * caustic) * distanceFade);
       }`
   }), 0, 1.65, 0);
   surface.rotation.x = -Math.PI / 2;
-  return time => { surface.material.uniforms.time.value = time * .0007; };
+  return time => { tide.value = time * .0007; };
 }
 
 function immersionRegulator(root) {
@@ -523,41 +605,48 @@ function immersionRegulator(root) {
   const palm = sphere(arm, .105, .061, .14, rubber);
   const cuff = cyl(arm, .081, .5, cloth, 0, -.14, .18);
   cuff.rotation.x = -.91;
-  const hoseLink = hose(root, [[1.4, -.37, 1.70], [1.25, -.40, 1.84], [.73, -.62, 2.10], [.39, -.73, 2.27]], .033);
+  const hoseOrigin = v(.39, -.73, 2.27);
+  const hoseEnd = v(0, 0, 0);
+  const updateHose = flexibleHose(root, .033, rubber, (from, to) => [
+    v(.66, -.62, 2.11), v(to.x * .82 + .15, to.y - .15, to.z + .24)
+  ]);
   const motionAnchor = group(root, 1.60, -.33, 1.63);
   const bubbleAnchor = group(root, -.24, -.19, 1.15);
   const breathingAnchor = group(root, .16, -.30, 1.1);
+  sphere(root, .14, .16, .10, cloth, -.38, -.49, 1.48);
   const bubbles = Array.from({ length: 11 }, () => sphere(root, .026, .028, .024, lens));
   let elapsed = 0;
   let swept = false;
-  let lastPosition = regulator.position.clone();
   return {
+    docks: { mouth: [root, v(.02, -.27, 1.56)], chest: [root, v(-.38, -.40, 1.41)] },
+    grabbable: { replace: regulator },
     anchors: {
       bubbles: [bubbleAnchor, v(0, 0, 0)], sweep: [motionAnchor, v(0, 0, 0)],
-      replace: [regulator, v(0, .15, 0)], 'reg-breathe': [breathingAnchor, v(0, 0, 0)]
+      replace: [regulator, v(0, .08, .015)], purge: [regulator, v(0, .04, .10)],
+      'reg-breathe': [breathingAnchor, v(0, 0, 0)]
     },
-    update(done, k, time) {
+    sync() {
+      arm.position.copy(regulator.position).add(v(.08, -.12, .16));
+      hoseEnd.copy(regulator.position);
+      hoseEnd.x -= .15;
+      updateHose(hoseOrigin, hoseEnd);
+    },
+    update(done, k, time, interaction) {
       const hasSwept = done.has('sweep');
       const replaced = done.has('replace');
       if (hasSwept && !swept) elapsed = time;
       swept = hasSwept;
       const wave = hasSwept && !replaced && k < 1 ? Math.sin(Math.min((time - elapsed) / 540, 1) * Math.PI) : 0;
-      const target = replaced ? v(.02, -.23, 1.95) : hasSwept ? v(.24 + wave * .76, -.36 - wave * .32, 1.07 + wave * .31) : v(1.56, -.37, 1.70);
+      const target = replaced ? v(.02, -.27, 1.53) : hasSwept ? v(.24 + wave * .76, -.36 - wave * .32, 1.07 + wave * .31) : v(1.56, -.37, 1.70);
       regulator.position.lerp(target, k);
       arm.visible = hasSwept && !replaced;
-      arm.position.copy(regulator.position).add(v(.08, -.12, .16));
       palm.rotation.y = -wave;
-      if (lastPosition.distanceToSquared(regulator.position) > .000001) {
-        const { x, y, z } = regulator.position;
-        const tube = new T.CatmullRomCurve3([v(x - .15, y, z), v(x * .82 + .15, y - .15, z + .24), v(.66, -.62, 2.11), v(.39, -.73, 2.27)]);
-        hoseLink.geometry.dispose();
-        hoseLink.geometry = new T.TubeGeometry(tube, 24, .033, 8, false);
-        lastPosition.copy(regulator.position);
-      }
+      const purging = interaction.active === 'purge';
+      regulator.userData.purge.position.z = purging ? .057 : .071;
       for (let i = 0; i < bubbles.length; i += 1) {
         const f = (i / bubbles.length + time * .0006) % 1;
-        bubbles[i].visible = done.has('bubbles') && !replaced;
-        bubbles[i].position.set(Math.sin(i * 1.6 + f * 8) * .12, -.24 + f * .96, 1.27 - f * .29);
+        bubbles[i].visible = purging || (done.has('bubbles') && !replaced);
+        bubbles[i].position.set(Math.sin(i * 1.6 + f * 8) * .12, -.24 + f * .96, (purging ? 1.48 : 1.27) - f * .29);
       }
     }
   };
@@ -579,11 +668,11 @@ export function makeDiveModel(root, lesson) {
     for (let i = -2; i <= 2; i += 1) box(line, i === 0 ? .25 : .12, .014, .034, i === 0 ? lime : white, .056, i * .46, 0);
     const parts = inflator(equipment, true);
     model = {
-      anchors: parts.anchors,
-      update(done, k, time) {
-        const rise = done.has('add-air') && !done.has('vent');
-        equipment.position.y = T.MathUtils.lerp(equipment.position.y, rise ? .46 : 0, k);
-        parts.update(done, k, time);
+      ...parts,
+      update(done, k, time, interaction) {
+        const air = airAmount(done, interaction.pressure);
+        equipment.position.y = T.MathUtils.lerp(equipment.position.y, .59 * air, k < 1 ? k * .47 : 1);
+        parts.update(done, k, time, interaction);
       }
     };
   } else {
@@ -591,10 +680,10 @@ export function makeDiveModel(root, lesson) {
     model = {
       anchors: {},
       fixedTargets: { 'mask-breathe': [.51, .74], 'mask-hold': [.50, .21], 'mask-exhale': [.50, .61] },
-      update(done, _k, time) {
+      update(_done, _k, time, interaction) {
         for (let i = 0; i < bubbles.length; i += 1) {
           const f = (i / bubbles.length + time * .00059) % 1;
-          bubbles[i].visible = done.has('mask-exhale');
+          bubbles[i].visible = interaction.active === 'mask-exhale';
           bubbles[i].position.set(Math.cos(f * 6 + i) * (.16 + .14 * f), -.25 + f * 1.26, .7 - f * 1.45);
         }
       }
@@ -603,9 +692,9 @@ export function makeDiveModel(root, lesson) {
   return {
     ...model,
     inWater: true,
-    update(done, k, time) {
+    update(done, k, time, interaction) {
       updateWater(time);
-      model.update(done, k, time);
+      model.update(done, k, time, interaction);
     }
   };
 }

@@ -1,5 +1,8 @@
 const action = (id, label, detail, done, anchor = id) => ({ id, label, detail, done, anchor });
-const attach = (id, label, detail, done, part, dock) => ({ ...action(id, label, detail, done), attachment: { part, dock } });
+const attach = (id, label, detail, done, part, dock, prompt) => ({
+  ...action(id, label, detail, done), attachment: { part, dock, prompt }
+});
+const press = (id, label, detail, done, pressTime) => ({ ...action(id, label, detail, done), pressTime });
 
 export const lessons = [
   {
@@ -46,7 +49,7 @@ export const lessons = [
     actions: [
       action('mask-breathe', '口で呼吸する', 'レギュレーターをくわえたまま、口で呼吸を続けます。', 'レギュレーターで呼吸しています。'),
       action('mask-hold', 'マスクの上側を押さえる', '上側の縁を軽く押さえ、下側から水が出るようにします。', 'マスクの上側を押さえました。'),
-      action('mask-exhale', '鼻から息を吐く', '少し上を向いて鼻から息を吐き、マスクの下側から水を出します。', 'マスク内の水が抜けました。')
+      press('mask-exhale', '鼻から息を吐く', '上の縁を押さえたまま、少し上を向いて鼻から息を吐きます。水が残ったら、もう一度吐きます。', 'マスク内の水が抜けました。', 1250)
     ]
   },
   {
@@ -54,10 +57,12 @@ export const lessons = [
     subtitle: '水中 · 右腕でホースをすくう方法',
     description: '右肩の後ろに外れたレギュレーターを、腕でホースをすくって回収します。',
     scene: 'recovery', source: 'https://blog.padi.com/how-to-recover-your-regulator-when-diving/',
+    docks: { mouth: '口元', chest: '胸元' },
     actions: [
       action('bubbles', '細く息を吐き続ける', '口から外れている間は、息を止めずに少しずつ吐きます。', '口から小さな泡が出ています。'),
-      action('sweep', '右腕でホースをすくう', '右に体を傾け、右腕を太ももの横から後ろへ回し、外側を通って前へ戻します。', 'ホースが右腕に掛かりました。'),
-      action('replace', 'くわえ直して水を出す', '回収したレギュレーターをくわえ、講習で習った方法で中の水を出します。ここではパージを使います。', '水が抜けました。'),
+      action('sweep', '右腕でホースをすくう', '右に体を傾け、右腕を太ももの横から後ろへ回し、外側を通って前へ戻します。', 'ホースが右腕に掛かりました。正面に戻ると口元に運べます。'),
+      attach('replace', 'レギュレーターをくわえ直す', '回収したセカンドステージを口元に運びます。', 'レギュレーターをくわえ直しました。', 'セカンドステージ', 'mouth', 'セカンドステージを戻す位置を選んでください。'),
+      press('purge', 'パージボタンで水を出す', 'くわえ直したら中の水を出します。この練習では、正面のパージボタンを使います。', '水が抜けました。', 530),
       action('reg-breathe', '慎重に吸って確かめる', '最初の息を慎重に吸い、呼吸できることを確かめます。', 'レギュレーターでの呼吸に戻りました。')
     ]
   },
@@ -65,11 +70,12 @@ export const lessons = [
     id: 'inflator', title: 'パワーインフレーター', tab: 'インフレーター', label: 'POWER INFLATOR',
     subtitle: '器材台 · 2つのボタン',
     description: '給気と排気を見分けて、BCDのふくらみがどう変わるか試します。',
-    scene: 'inflator', source: 'https://www.sherwoodscuba.com/ModuleFile/BC_MANUAL_Sherwood-1-.PDF?id=3475',
+    scene: 'inflator', source: 'https://ww2.scubapro.com/media/845366/vn_09-2019-scubapro_jacket-eng.pdf',
+    docks: { above: 'BCDより上', below: 'BCDより下' },
     actions: [
-      action('add-air', '給気ボタンを短く押す', '給気を短く試し、BCDが少しふくらむのを見ます。', 'BCDが少しふくらみました。'),
-      action('raise', '排気口を高くする', 'このモデルでは、ホース先端の排気口をBCD内の空気より高い位置にします。', '排気口が高い位置に来ました。'),
-      action('vent', '排気ボタンを押す', '排気ボタンを押し、BCDから空気が抜けるのを見ます。', 'BCDから空気が抜けました。')
+      press('add-air', '給気ボタンを短く押す', '給気を短く試し、BCDが少しふくらむのを見ます。', 'BCDが少しふくらみました。', 290),
+      attach('raise', '排気口を高くする', 'このモデルでは、ホース先端の排気口をBCD内の空気より高い位置にします。', '排気口が高い位置に来ました。', 'インフレーター', 'above', '排気するときの高さを選んでください。'),
+      press('vent', '排気ボタンを押す', '排気ボタンを押し、BCDから空気が抜けるのを見ます。', 'BCDから空気が抜けました。', 730)
     ]
   },
   {
@@ -95,7 +101,7 @@ export function newPractice(lesson, mode, random = Math.random) {
       [choices[i], choices[j]] = [choices[j], choices[i]];
     }
   }
-  return { lesson, mode, choices, index: 0, missed: new Set(), assisted: new Set() };
+  return { lesson, mode, choices, index: 0, missed: new Set(), assisted: new Set(), pressure: {} };
 }
 
 export function choose(practice, id, dock) {
