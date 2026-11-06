@@ -53,10 +53,47 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   background: radial-gradient(ellipse at 51% 38%, #30615e, #122f3d 50%, #0c202c 80%);
 }
 .viewport::after { content: ""; position: absolute; z-index: -1; inset: 0; opacity: .42; background-image: radial-gradient(#74b5b5 1px, transparent 1px); background-size: 27px 27px; mask-image: radial-gradient(ellipse, #000, transparent 75%); }
-#scene, #hotspots { position: absolute; inset: 0; }
+#scene, #hotspots, #dock-markers { position: absolute; inset: 0; }
 #scene canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 #scene canvas:active { cursor: grabbing; }
-#hotspots { pointer-events: none; }
+#hotspots, #dock-markers { pointer-events: none; }
+#dock-markers { z-index: 2; }
+#grip-label {
+  position: absolute; z-index: 1; right: 15px; top: 13px; max-width: 55%;
+  color: #fff5da; background: #102b35ed; border: 1px solid #af9062; border-radius: 8px;
+  padding: 6px 10px; font-size: .74rem; line-height: 1.4; pointer-events: none;
+}
+#scene-feedback {
+  position: absolute; z-index: 1; bottom: 58px; left: 16px; max-width: 75%;
+  padding: 5px 9px; border: 1px solid #5f9891; border-radius: 7px;
+  color: #d7f8e8; background: #0d2a36f0; font-size: .74rem; pointer-events: none;
+}
+#scene-feedback[data-tone="retry"] { color: #ffdf9b; border-color: #b6935a; }
+.hotspot.is-grabbable { cursor: grab; touch-action: none; }
+.is-placing #hotspots .hotspot { opacity: 0; pointer-events: none; }
+.dock {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: auto;
+  width: 46px; height: 46px; border: 0; border-radius: 50%; background: transparent;
+}
+.dock::before {
+  content: ""; position: absolute; inset: 8px; border: 2px dashed #a2e1db;
+  border-radius: inherit; background: #123b40b5; box-shadow: 0 0 0 2px #092b35bf;
+}
+.dock.is-guide::before { border-style: solid; border-color: var(--amber); }
+.dock:hover::before, .dock.is-over::before { background: #94e6d4a6; border-color: #ebfff8; }
+.dock span {
+  display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  padding: 4px 7px; border-radius: 5px; color: #fff6da; background: #102a36f2;
+  font-size: .69rem; font-weight: 700; white-space: nowrap;
+}
+.dock.is-guide span { display: block; }
+#placement-menu {
+  display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; padding: 10px;
+  border: 1px solid #567977; border-radius: 9px; background: #153640;
+}
+#placement-menu p { flex: 0 0 100%; font-size: .78rem; color: #d1e9e4; }
+#placement-menu .choice { flex: 1 1 41%; }
+#placement-menu .quiet { padding-inline: 8px; }
 .viewport.is-water { background: radial-gradient(ellipse at 50% 0%, #62b8bb, #126976 49%, #0b3648 100%); }
 #mask-overlay {
   pointer-events: none; position: absolute; inset: 18% 7% 16%; display: grid;

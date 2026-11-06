@@ -9,20 +9,33 @@ import { lessons, newPractice, choose, reveal, needsReview } from '../training/l
 const root = resolve(import.meta.dirname, '..');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 const checks = [];
+const attempt = (practice, action) => choose(practice, action.id, action.attachment?.dock);
 for (const lesson of lessons) {
   const practice = newPractice(lesson, 'recall', () => 0);
   const [first, second, third] = lesson.actions;
   assert.notEqual(practice.choices[0], first);
   assert.equal(choose(practice, 'unknown'), null);
-  assert.equal(choose(practice, second.id).ok, false);
+  assert.equal(attempt(practice, second).ok, false);
   assert.equal(practice.index, 0);
-  assert.equal(choose(practice, first.id).ok, true);
+  assert.equal(attempt(practice, first).ok, true);
   assert.equal(reveal(practice), second);
-  for (const action of lesson.actions.slice(1)) assert.equal(choose(practice, action.id).ok, true);
+  for (const action of lesson.actions.slice(1)) {
+    if (action.attachment) {
+      assert.equal(choose(practice, action.id), null);
+      assert.equal(choose(practice, action.id, 'no-such-dock'), null);
+    }
+    assert.equal(attempt(practice, action).ok, true);
+  }
   assert.deepEqual(needsReview(practice), [first, second]);
   assert.equal(choose(practice, third.id), null);
 }
-checks.push('All drill states: wrong order, hints, full run, completion and review');
+const gear = newPractice(lessons[0], 'recall');
+assert.equal(choose(gear, 'inspect').ok, true);
+assert.equal(choose(gear, 'bcd', 'valve').wrongDock, true);
+assert.equal(gear.index, 1);
+assert.deepEqual(needsReview(gear).map(action => action.id), ['bcd']);
+assert.equal(choose(gear, 'bcd', 'cylinder').ok, true);
+checks.push('All drill states: wrong order, wrong destination, hints, full run, completion and review');
 
 const artifactBase = join(root, 'artifacts');
 await mkdir(artifactBase, { recursive: true });
@@ -71,6 +84,45 @@ try {
     return page;
   };
   const getChoice = (page, id) => page.locator('[data-action="' + id + '"]');
+  const part = (page, id) => page.locator('#hotspots [data-part="' + id + '"]');
+  const dock = (page, id) => page.locator('#dock-markers [data-dock="' + id + '"]');
+  const dockChoice = (page, id) => page.locator('#placement-menu [data-dock-choice="' + id + '"]');
+  const value = page => page.locator('#progress').getAttribute('aria-valuenow');
+  const center = async locator => {
+    await locator.waitFor();
+    const box = await locator.boundingBox();
+    assert(box);
+    return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
+  };
+  async function movePart(page, id, target, drag, during = async () => {}) {
+    const marker = part(page, id);
+    const from = await center(marker);
+    await drag.start(from);
+    await drag.move({ x: from.x + 14, y: from.y + 7 });
+    const end = await center(dock(page, target));
+    await drag.move(end);
+    await page.waitForFunction(({ id, end }) => {
+      const node = [...document.querySelectorAll('#hotspots button')].find(item => item.dataset.part === id);
+      const rect = node?.getBoundingClientRect();
+      return rect && Math.hypot(rect.x + rect.width / 2 - end.x, rect.y + rect.height / 2 - end.y) < 4;
+    }, { id, end });
+    await during();
+    await drag.end();
+  }
+  const mouseDrag = page => ({
+    async start({ x, y }) { await page.mouse.move(x, y); await page.mouse.down(); },
+    move: ({ x, y }) => page.mouse.move(x, y, { steps: 3 }),
+    end: () => page.mouse.up()
+  });
+  const touchDrag = session => ({
+    start: point => session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] }),
+    move: point => session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [point] }),
+    end: () => session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  });
+  async function operate(page, action, input) {
+    await getChoice(page, action.id)[input]();
+    if (action.attachment) await dockChoice(page, action.attachment.dock)[input]();
+  }
   const position = locator => locator.evaluate(item => [item.style.left, item.style.top].join('/'));
   async function ready(page) {
     await page.locator('#scene canvas').waitFor({ state: 'visible' });
@@ -104,15 +156,33 @@ try {
   await desktop.screenshot({ path: join(output, 'desktop-gear.png'), fullPage: true });
   await firstMarker.click();
   assert.equal(await desktop.locator('#progress').getAttribute('aria-valuenow'), '1');
-  for (const action of lessons[0].actions.slice(1)) await getChoice(desktop, action.id).click();
-  assert.equal(await desktop.locator('#result-heading').innerText(), '練習完了');
+  await movePart(desktop, 'bcd', 'valve', mouseDrag(desktop));
+  assert.equal(await value(desktop), '1');
+  assert.equal(await desktop.locator('#feedback').getAttribute('data-tone'), 'retry');
+  assert(await desktop.locator('#scene-feedback').isVisible());
+  await part(desktop, 'bcd').hover();
+  await movePart(desktop, 'bcd', 'cylinder', mouseDrag(desktop), async () => {
+    assert.equal(await value(desktop), '1');
+    await desktop.screenshot({ path: join(output, 'desktop-placement.png'), fullPage: true });
+  });
+  assert.equal(await value(desktop), '2');
+  for (const action of lessons[0].actions.slice(2)) {
+    if (action.attachment) {
+      await part(desktop, action.id).hover();
+      await movePart(desktop, action.id, action.attachment.dock, mouseDrag(desktop));
+    } else {
+      await operate(desktop, action, 'click');
+    }
+  }
+  assert.match(await desktop.locator('#review').innerText(), /BCDを取り付ける/);
+  assert.equal(await desktop.locator('#result-heading').innerText(), 'もう一度見ておきたい手順');
   await desktop.locator('#next-lesson').click();
   assert.equal(await desktop.locator('#lesson-title').innerText(), 'バディチェック');
   await desktop.locator('#hotspots .is-guide:visible').waitFor();
   await desktop.screenshot({ path: join(output, 'desktop-buddy.png'), fullPage: true });
   for (const action of lessons[1].actions) await getChoice(desktop, action.id).press('Enter');
   assert.equal(await desktop.locator('#result-heading').innerText(), '練習完了');
-  checks.push('1440 px desktop WebGL: drag, reset, model hotspot, gear, next drill and keyboard buddy check');
+  checks.push('1440 px desktop WebGL: camera drag, invalid dock, three equipment drags, review, keyboard buddy check');
 
   const mobileSize = { width: 390, height: 844 };
   const mobileDrag = await testPage(mobileSize, true);
@@ -132,11 +202,22 @@ try {
     const marker = document.querySelector('#hotspots .is-guide');
     return [marker.style.left, marker.style.top].join('/') !== before;
   }, before);
+  await getChoice(mobileDrag, 'inspect').press('Enter');
+  await mobileDrag.evaluate(() => window.scrollTo(0, 0));
+  await mobileDrag.locator('#reset-view').press('Enter');
+  await movePart(mobileDrag, 'bcd', 'cylinder', touchDrag(input), async () => {
+    await mobileDrag.screenshot({ path: join(output, 'mobile-placement.png'), fullPage: true });
+  });
+  assert.equal(await value(mobileDrag), '2');
   // Raw DevTools drag input and Playwright tap input use separate touch sessions.
   await mobileDrag.context().close();
   const mobile = await testPage(mobileSize, true);
   await mobile.goto(previewUrl + 'training/');
   await ready(mobile);
+  await part(mobile, 'inspect').tap();
+  await part(mobile, 'bcd').tap();
+  await dock(mobile, 'cylinder').tap();
+  assert.equal(await value(mobile), '2');
   await mobile.getByRole('button', { name: 'マスククリア', exact: true }).tap();
   assert.equal(await mobile.locator('#lesson-title').innerText(), 'マスククリア');
   assert(await mobile.locator('#mask-overlay').isVisible());
@@ -177,11 +258,22 @@ try {
       await sweep.tap();
       assert.equal(await mobile.locator('#progress').getAttribute('aria-valuenow'), '2');
     }
-    for (const action of lesson.actions.slice(lesson.id === 'recovery' ? 2 : 0)) await getChoice(mobile, action.id).tap();
+    if (lesson.id === 'fins') {
+      await operate(mobile, lesson.actions[0], 'tap');
+      await mobile.evaluate(() => window.scrollTo(0, 0));
+      for (const action of lesson.actions.slice(1, 3)) {
+        await part(mobile, action.id).tap();
+        await dock(mobile, action.attachment.dock).tap();
+      }
+      await mobile.screenshot({ path: join(output, 'mobile-fins.png'), fullPage: true });
+      await operate(mobile, lesson.actions[3], 'tap');
+    } else {
+      for (const action of lesson.actions.slice(lesson.id === 'recovery' ? 2 : 0)) await operate(mobile, action, 'tap');
+    }
     assert.equal(await mobile.locator('#result-heading').innerText(), '練習完了');
     assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   }
-  checks.push('390 px touch WebGL at /dive-atlas/: rotate, wrong order, hint, review, reset and all other drills');
+  checks.push('390 px touch WebGL at /dive-atlas/: camera drag, part drag and two-tap placement, wrong order, hint, review, reset and all other drills');
 
   const noGl = await testPage({ width: 360, height: 800 }, true);
   await noGl.addInitScript(() => {
@@ -193,7 +285,7 @@ try {
   });
   await noGl.goto(previewUrl + 'training/');
   await noGl.locator('.scene-error').waitFor();
-  for (const action of lessons[0].actions) await getChoice(noGl, action.id).tap();
+  for (const action of lessons[0].actions) await operate(noGl, action, 'tap');
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
   assert.deepEqual(pageErrors, []);
   checks.push('360 px WebGL-unavailable fallback: gear drill still completes');

@@ -1,11 +1,12 @@
 import { lessons, newPractice, choose, reveal, needsReview } from './lessons.js';
+import { createPlacement } from './placement.js';
 
 const byId = id => document.getElementById(id);
 const el = Object.fromEntries([
   'viewport', 'scene', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall', 'view-label', 'view-subtitle', 'view-help',
   'rotate-left', 'rotate-right', 'reset-view', 'module-label', 'step-count', 'progress',
   'lesson-title', 'lesson-description', 'instruction', 'step-label', 'step-title', 'step-description',
-  'choices', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
+  'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
 ].map(id => [id, byId(id)]));
 
 let practice = newPractice(lessons[0], 'guided');
@@ -14,26 +15,50 @@ let view;
 let viewFailed = false;
 let immersive = false;
 const marks = new Map();
+const placement = createPlacement({
+  viewport: el.viewport,
+  markers: el['dock-markers'],
+  menu: el['placement-menu'],
+  caption: el['grip-label'],
+  choices: el.choices,
+  onSelect: () => feedback(),
+  onAttempt: apply,
+  onGrip: (...args) => view?.grip(...args),
+  onRelease: () => view?.releaseGrip()
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && placement.active()) {
+    event.preventDefault();
+    placement.clear(true);
+  }
+});
 
 function button(label, className, onClick) {
   const element = document.createElement('button');
   element.type = 'button';
   element.className = className;
   element.textContent = label;
-  element.addEventListener('click', onClick);
+  if (onClick) element.addEventListener('click', onClick);
   return element;
 }
 
 function feedback(text = '', tone = '') {
   el.feedback.textContent = text;
   el.feedback.dataset.tone = tone;
+  const sceneFeedback = el['scene-feedback'];
+  sceneFeedback.hidden = !text || !view || !practice.lesson.docks;
+  sceneFeedback.textContent = text;
+  sceneFeedback.dataset.tone = tone;
 }
 
-function apply(id, fromKeyboard = false) {
-  const result = choose(practice, id);
+function apply(id, fromKeyboard = false, dock) {
+  const result = choose(practice, id, dock);
   if (!result) return;
   if (!result.ok) {
-    feedback(practice.mode === 'guided' ? '今の手順を先に試してみましょう。' : 'この場面では、先に別の操作があります。', 'retry');
+    const message = result.wrongDock ? 'そこには付きません。取り付け先を見直しましょう。' :
+      practice.mode === 'guided' ? '今の手順を先に試してみましょう。' : 'この場面では、先に別の操作があります。';
+    feedback(message, 'retry');
     return;
   }
   hint = false;
@@ -87,7 +112,8 @@ el.perspective.addEventListener('click', () => {
   render();
 });
 
-function project(positions) {
+function project(positions, docks) {
+  placement.project(docks);
   const taken = [];
   for (const [anchor, marker] of marks) {
     const point = positions[anchor];
@@ -100,6 +126,7 @@ function project(positions) {
 }
 
 function render() {
+  placement.clear();
   const { lesson, mode, index } = practice;
   const step = lesson.actions[index];
   const done = lesson.actions.slice(0, index).map(action => action.id);
@@ -120,7 +147,8 @@ function render() {
   };
   el['view-subtitle'].textContent = immersive ? waterLabels[lesson.scene] : lesson.subtitle;
   el.viewport.classList.toggle('is-water', immersive);
-  el['view-help'].textContent = immersive && lesson.scene !== 'inflator' ? 'ドラッグで見回す' : 'ドラッグで回転';
+  el['view-help'].textContent = step?.attachment ? 'ドラッグ／器材→取付先をタップ' :
+    immersive && lesson.scene !== 'inflator' ? 'ドラッグで見回す' : 'ドラッグで回転';
   el.perspective.hidden = !view || lesson.scene === 'gear';
   el.perspective.textContent = lesson.scene === 'inflator' ? '水中で見る' : 'ダイバー視点';
   el.perspective.setAttribute('aria-pressed', String(immersive));
@@ -144,9 +172,14 @@ function render() {
   el['step-label'].textContent = showGuide ? (hint ? 'ヒント' : '次の操作') : '自力で復習';
   el['step-title'].textContent = showGuide ? step.label : '次は何をする？';
   el['step-description'].textContent = showGuide ? step.detail : (viewFailed ? '下の選択肢から操作を選んでください。' : '器材の目印か、下の選択肢から操作を選んでください。');
-  el.choices.replaceChildren(...available.map((action, i) => {
+  const options = view && lesson.docks && mode === 'guided' && step ? [step] : available;
+  el.choices.replaceChildren(...options.map((action, i) => {
     const guided = showGuide && action === step;
-    const item = button('', 'choice' + (guided ? ' is-guide' : ''), event => apply(action.id, event.detail === 0));
+    const item = button('', 'choice' + (guided ? ' is-guide' : ''), event => {
+      const keyboard = event.detail === 0;
+      if (action.attachment) placement.select(action, { docks: lesson.docks, guided, source: item, keyboard });
+      else apply(action.id, keyboard);
+    });
     item.dataset.action = action.id;
     const number = document.createElement('span');
     number.className = 'mark';
@@ -163,7 +196,9 @@ function render() {
     for (const action of markerActions) {
       if (marks.has(action.anchor)) continue;
       const guided = showGuide && action === step;
-      const marker = button('', 'hotspot' + (guided ? ' is-guide' : ''), () => apply(action.id));
+      const marker = button('', 'hotspot' + (guided ? ' is-guide' : ''), action.attachment ? null : () => apply(action.id));
+      if (action.attachment) placement.bind(marker, action, { docks: lesson.docks, guided });
+      marker.dataset.part = action.id;
       marker.tabIndex = -1;
       marker.setAttribute('aria-label', action.label);
       marker.title = action.label;

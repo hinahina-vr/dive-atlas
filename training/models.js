@@ -43,6 +43,19 @@ function hose(parent, coordinates, radius = .036, material = rubber) {
   const path = new T.CatmullRomCurve3(coordinates.map(point => v(...point)));
   return mesh(parent, new T.TubeGeometry(path, 28, radius, 8, false), material);
 }
+function flexibleHose(parent, radius, material, route) {
+  const tube = mesh(parent, new T.BufferGeometry(), material);
+  const lastFrom = v(Infinity, 0, 0);
+  const lastTo = v(Infinity, 0, 0);
+  return (from, to) => {
+    if (lastFrom.distanceToSquared(from) < .000001 && lastTo.distanceToSquared(to) < .000001) return;
+    lastFrom.copy(from);
+    lastTo.copy(to);
+    const path = new T.CatmullRomCurve3([from, ...route(from, to), to]);
+    tube.geometry.dispose();
+    tube.geometry = new T.TubeGeometry(path, 22, radius, 8, false);
+  };
+}
 function plate(parent, coords, depth, round, material, ...point) {
   const shape = new T.Shape();
   shape.moveTo(...coords[0]);
@@ -147,6 +160,10 @@ function kit(root, startAssembled) {
   box(jacket, .20, .12, .079, rubber, 0, -.49, .32);
   box(jacket, .074, .052, .01, teal, 0, -.49, .365);
   const tankBand = cyl(tank, .39, .12, rubber, 0, -.02, 0);
+  const bandLatch = group(tank, .36, -.02, .15);
+  const latchHandle = group(bandLatch, .075, 0, 0);
+  box(latchHandle, .18, .095, .048, aluminum, .053, 0, 0);
+  box(latchHandle, .055, .06, .018, amber, .095, 0, .031);
   hose(jacket, [[-.37, .49, -.05], [-.68, .53, .04], [-.74, .31, .25], [-.68, .06, .42]], .053);
   const inflator = inflatorHead(jacket, -.68, -.03, .42);
   for (let i = 0; i < 7; i += 1) {
@@ -163,11 +180,40 @@ function kit(root, startAssembled) {
   const loose = group(reg);
   hose(loose, [[.08, -.01, .02], [.42, .035, .06], [.57, -.26, .16], [.57, -.57, .27]], .032);
   octo(loose, teal, .58, -.64, .28);
-  hose(loose, [[-.06, -.07, .07], [-.28, -.24, .15], [-.27, -.56, .2], [-.12, -.84, .26]], .029, amber);
-  octo(loose, amber, -.08, -.85, .26).scale.setScalar(.85);
-  const looseFeed = hose(loose, [[-.08, 0, .07], [-.3, .05, .12], [-.53, -.12, .23], [-.49, -.38, .31]]);
-  hose(loose, [[.04, -.055, -.05], [.24, -.28, .1], [.20, -.63, .19], [.22, -1.05, .25]], .029);
-  const gauge = group(loose, .23, -1.16, .26);
+  const spareRest = v(-.08, -.85, .26);
+  const spare = octo(loose, amber, ...spareRest);
+  spare.scale.setScalar(.85);
+  const spareOrigin = v(-.06, -.07, .07);
+  const spareClip = v(.57, -.34, .47);
+  const spareEnd = v(0, 0, 0);
+  const updateSpare = flexibleHose(loose, .029, amber, (from, to) => [
+    v(from.x - .29, from.y - .17, from.z + .11), v(to.x - .36, to.y + .20, to.z + .15)
+  ]);
+  const coupler = group(root);
+  cyl(coupler, .048, .14, metal, 0, 0, 0, 'x');
+  for (let i = 0; i < 4; i += 1) {
+    const grip = ring(coupler, .047, .006, aluminum, -.024 + i * .018, 0, 0);
+    grip.rotation.y = Math.PI / 2;
+  }
+  const feedStart = v(0, 0, 0);
+  const feedEnd = v(0, 0, 0);
+  const updateFeed = flexibleHose(root, .034, gray, (from, to) => {
+    const span = Math.min(from.distanceTo(to), 1.6);
+    return [v(from.x - .24 * span, from.y + .15 * span, from.z + .06 * span),
+      v(to.x - .16 * span, to.y + .32 * span, to.z + .06 * span)];
+  });
+  const inlet = v(-.15, .058, 0);
+  const source = v(-.08, 0, .07);
+  const freeEnd = v(-.38, -.32, .47);
+  const couplerRest = v(0, 0, 0);
+  const gaugeRest = v(.23, -1.16, .26);
+  const gauge = group(loose, ...gaugeRest);
+  const gaugeOrigin = v(.04, -.055, -.05);
+  const gaugeClip = v(-.49, -.49, .43);
+  const gaugeEnd = v(0, 0, 0);
+  const updateGauge = flexibleHose(loose, .029, rubber, (from, to) => [
+    v(from.x + .24, from.y - .24, from.z + .05), v(to.x + .17, to.y + .27, to.z - .10)
+  ]);
   cyl(gauge, .142, .083, rubber, 0, 0, 0, 'z');
   cyl(gauge, .118, .015, white, 0, 0, .048, 'z');
   textPlate(gauge, 'bar', '#24535b', .087, 0, -.06, .06);
@@ -179,37 +225,67 @@ function kit(root, startAssembled) {
   const needle = group(gauge, 0, 0, .065);
   box(needle, .011, .091, .008, coral, 0, .037, 0);
   cyl(needle, .014, .009, rubber, 0, 0, 0, 'z');
-  const connectedFeed = hose(root, [[.18, 1.05, -.16], [-.34, 1.13, -.11], [-.71, .81, .05],
-    [-.86, .40, .27], [-.84, .018, .43]], .033, gray);
-  const clip = box(jacket, .077, .098, .048, amber, .57, -.29, .36);
+  const clip = box(jacket, .077, .098, .048, amber, .57, -.26, .36);
+  box(jacket, .077, .098, .048, aluminum, -.49, -.38, .34);
+  const parked = v(0, 0, 0);
+
+  function secure(part, mount, rest, stowed, k) {
+    if (stowed) loose.worldToLocal(jacket.localToWorld(parked.copy(mount)));
+    part.position.lerp(stowed ? parked : rest, k);
+  }
 
   return {
     anchors: {
-      inspect: [tank, v(0, 1.25, .18)], bcd: [jacket, v(-.12, -.48, .44)], first: [reg, v(.12, .17, .13)],
-      connect: [inflator, v(-.11, 0, .13)], stow: [clip, v(.18, .05, .1)], open: [knob, v(.11, .03, .07)],
+      inspect: [tank, v(0, 1.25, .18)], bcd: [jacket, v(-.04, .18, .34)], lock: [bandLatch, v(.14, .02, .08)],
+      uncap: [dustCap, v(.04, -.01, .015)], first: [reg, v(.12, .22, .13)],
+      connect: startAssembled ? [inflator, v(-.11, 0, .13)] : [coupler, v(.05, 0, .045)],
+      stow: [clip, v(.18, .05, .1)], open: [knob, v(.11, .03, .07)],
       pressure: [gauge, v(.07, -.09, .13)], weights: [jacket, v(-.48, -.41, .45)], releases: [jacket, v(.02, -.14, .39)]
+    },
+    docks: {
+      cylinder: [tank, v(0, .02, .39)],
+      valve: [tank, v(0, 1.15, .145)],
+      inflator: [inflator, inlet]
+    },
+    grabbable: { bcd: jacket, first: reg, connect: coupler },
+    sync() {
+      root.worldToLocal(reg.localToWorld(feedStart.copy(source)));
+      feedEnd.copy(coupler.position);
+      feedEnd.x -= .067;
+      updateFeed(feedStart, feedEnd);
+      spareEnd.copy(spare.position);
+      spareEnd.x -= .17 * spare.scale.x;
+      updateSpare(spareOrigin, spareEnd);
+      gaugeEnd.copy(gauge.position);
+      gaugeEnd.y += .13;
+      updateGauge(gaugeOrigin, gaugeEnd);
     },
     update(done, k) {
       const bcd = startAssembled || done.has('bcd');
       const first = startAssembled || done.has('first');
       const stow = startAssembled || done.has('stow');
       const open = startAssembled || done.has('open');
-      jacket.position.lerp(v(bcd ? .03 : -.84, bcd ? 0 : -.33, bcd ? 0 : .24), k);
+      jacket.position.lerp(v(bcd ? .28 : -.84, bcd ? 0 : -.33, bcd ? 0 : .24), k);
       jacket.rotation.y = T.MathUtils.lerp(jacket.rotation.y, bcd ? -.10 : .35, k);
       jacket.scale.lerp(v(1, done.has('buoyancy') ? 1.06 : 1, done.has('buoyancy') ? 1.1 : 1), k);
-      reg.position.lerp(v(first ? .28 : 1.11, first ? 1.04 : .01, first ? -.13 : .32), k);
+      reg.position.lerp(v(first ? .28 : 1.11, first ? 1.04 : .11, first ? -.13 : .32), k);
       reg.rotation.z = T.MathUtils.lerp(reg.rotation.z, first ? 0 : -.19, k);
       loose.rotation.y = T.MathUtils.lerp(loose.rotation.y, stow ? .63 : -.12, k);
-      loose.scale.lerp(v(stow ? .90 : 1, stow ? .94 : 1, 1), k);
+      secure(spare, spareClip, spareRest, stow, k);
+      secure(gauge, gaugeClip, gaugeRest, stow, k);
       knob.rotation.x = T.MathUtils.lerp(knob.rotation.x, open ? 2.35 : 0, k);
-      gauge.rotation.y = T.MathUtils.lerp(gauge.rotation.y, open && !done.has('pressure') && !startAssembled ? 2.82 : .08, k);
+      gauge.rotation.y = T.MathUtils.lerp(gauge.rotation.y, done.has('gauge-away') && !done.has('pressure') ? 2.82 : .08, k);
       needle.rotation.z = T.MathUtils.lerp(needle.rotation.z, open ? -.72 : 2.18, k);
       seal.material = done.has('inspect') ? lime : rubber;
       tankBand.visible = bcd;
-      clip.visible = stow;
-      dustCap.visible = !first;
-      connectedFeed.visible = startAssembled || done.has('connect');
-      looseFeed.visible = !connectedFeed.visible;
+      bandLatch.visible = bcd;
+      latchHandle.rotation.y = T.MathUtils.lerp(latchHandle.rotation.y, startAssembled || done.has('lock') ? 0 : -.94, k);
+      clip.material = stow ? teal : amber;
+      dustCap.visible = !startAssembled && !done.has('uncap');
+      const connected = startAssembled || done.has('connect');
+      const host = connected ? inflator : loose;
+      root.worldToLocal(host.localToWorld(couplerRest.copy(connected ? inlet : freeEnd)));
+      coupler.position.lerp(couplerRest, k);
     }
   };
 }
@@ -336,7 +412,10 @@ function fins(root, inWater = false) {
   plate(fin, pocket, .12, .039, rubber, 0, .01, 0).rotation.x = Math.PI / 2;
   sphere(fin, .235, .123, .23, rubber, 0, .096, .435);
   const strap = group(fin, 0, .08, -.15);
-  hose(strap, [[-.24, 0, 0], [-.205, .03, -.19], [0, .05, -.26], [.205, .03, -.19], [.24, 0, 0]], .043, lime);
+  const strapRest = v(0, .05, -.26);
+  const strapGrip = group(strap, ...strapRest);
+  const band = mesh(strap, new T.BufferGeometry(), lime);
+  const lastGrip = v(Infinity, 0, 0);
   const boot = group(root);
   sphere(boot, .171, .125, .325, rubber, 0, 0, .11);
   sphere(boot, .168, .31, .157, gray, 0, .21, -.052);
@@ -345,9 +424,23 @@ function fins(root, inWater = false) {
   return {
     anchors: {
       'fin-strap': [strap, v(.21, .08, -.12)], 'fin-foot': [boot, v(.04, .13, .30)],
-      'fin-lock': [strap, v(-.22, .09, -.12)], 'fin-check': [boot, v(-.18, .29, -.04)]
+      'fin-lock': [strapGrip, v(0, .035, 0)], 'fin-check': [boot, v(-.18, .29, -.04)]
+    },
+    docks: { pocket: [fin, v(0, .16, .18)], heel: [boot, v(0, .09, -.19)] },
+    grabbable: { 'fin-foot': boot, 'fin-lock': strapGrip },
+    sync() {
+      const grip = strapGrip.position;
+      if (lastGrip.distanceToSquared(grip) < .000001) return;
+      lastGrip.copy(grip);
+      const path = new T.CatmullRomCurve3([
+        v(-.24, 0, 0), v((grip.x - .32) * .5, grip.y * .75, grip.z * .70), grip,
+        v((grip.x + .32) * .5, grip.y * .75, grip.z * .70), v(.24, 0, 0)
+      ]);
+      band.geometry.dispose();
+      band.geometry = new T.TubeGeometry(path, 20, .043, 8, false);
     },
     update(done, k) {
+      strapGrip.position.lerp(strapRest, k);
       const inserted = done.has('fin-foot');
       boot.position.lerp(inserted ? v(0, -.48, -.07) : v(-.56, -.16, -.43), k);
       boot.rotation.x = T.MathUtils.lerp(boot.rotation.x, inserted ? 0 : -.24, k);

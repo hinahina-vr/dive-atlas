@@ -24,6 +24,10 @@ export function createView(container, onProject) {
   scene.add(sky, key, rim, fill);
 
   const point = new T.Vector3();
+  const anchorPoint = new T.Vector3();
+  const gripPoint = new T.Vector3();
+  const restPosition = new T.Vector3();
+  let grip = null;
   const orbit = new T.Spherical(5.9, 1.28, .42);
   const look = new T.Vector3(0, -.06, 0);
   const fog = new T.FogExp2(0x276772, .125);
@@ -45,6 +49,29 @@ export function createView(container, onProject) {
     if (visible && !frame && !document.hidden) frame = requestAnimationFrame(draw);
   }
 
+  function projectAnchors(anchors) {
+    const targets = {};
+    for (const [id, [parent, position]] of Object.entries(anchors)) {
+      if (!parent.visible) continue;
+      point.copy(position);
+      parent.localToWorld(point).project(camera);
+      const x = (point.x * .5 + .5) * width;
+      const y = (.5 - point.y * .5) * height;
+      if (point.z < 1 && x > 21 && x < width - 21 && y > 24 && y < height - 58) targets[id] = { x, y };
+    }
+    return targets;
+  }
+
+  function movePart(part) {
+    const [parent, local] = model.anchors[grip.id];
+    parent.localToWorld(anchorPoint.copy(local));
+    point.copy(anchorPoint).project(camera);
+    gripPoint.set(grip.x / width * 2 - 1, 1 - grip.y / height * 2, point.z).unproject(camera);
+    part.parent.worldToLocal(gripPoint);
+    part.parent.worldToLocal(anchorPoint);
+    part.position.add(gripPoint.sub(anchorPoint));
+  }
+
   function draw(time) {
     frame = 0;
     if (!model || document.hidden) return;
@@ -60,20 +87,21 @@ export function createView(container, onProject) {
       camera.position.setFromSpherical(orbit).add(look);
       camera.lookAt(look);
     }
+    camera.updateMatrixWorld();
+    const docks = projectAnchors(model.docks || {});
+    const part = grip && model.grabbable?.[grip.id];
+    if (part) {
+      restPosition.copy(part.position);
+      movePart(part);
+    }
+    model.sync?.();
     renderer.render(scene, camera);
-    const targets = {};
+    const targets = projectAnchors(model.anchors);
     for (const [id, [x, y]] of Object.entries(model.fixedTargets || {})) {
       targets[id] = { x: x * width, y: y * height };
     }
-    for (const [id, [parent, position]] of Object.entries(model.anchors)) {
-      point.copy(position);
-      parent.localToWorld(point);
-      point.project(camera);
-      const x = (point.x * .5 + .5) * width;
-      const y = (.5 - point.y * .5) * height;
-      if (point.z < 1 && x > 21 && x < width - 21 && y > 24 && y < height - 58) targets[id] = { x, y };
-    }
-    onProject(targets);
+    if (part) part.position.copy(restPosition);
+    onProject(targets, docks);
     const bubbling = model.animated && (done.has('mask-exhale') || (done.has('bubbles') && !done.has('replace')));
     if (!reducedMotion.matches && (settling || bubbling || model.inWater)) queue();
   }
@@ -118,8 +146,8 @@ export function createView(container, onProject) {
   function resetCamera(lesson) {
     if (firstPerson) {
       orbit.theta = 0;
-      orbit.phi = lesson.scene === 'fins' ? 2.22 : lesson.scene === 'recovery' ? 1.90 : 1.64;
-      if (lesson.scene === 'fins') look.set(0, 1.53, 1.46);
+      orbit.phi = lesson.scene === 'fins' ? 2.06 : lesson.scene === 'recovery' ? 1.90 : 1.64;
+      if (lesson.scene === 'fins') look.set(0, 1.53, 1.92);
       else look.set(0, .17, 2.43);
     } else {
       orbit.theta = lesson?.scene === 'gear' ? .46 : .29;
@@ -133,8 +161,21 @@ export function createView(container, onProject) {
   return {
     rotate,
     resetCamera: () => resetCamera(previous),
+    grip(id, x, y) {
+      if (!model?.grabbable?.[id]) return;
+      grip = { id, x, y };
+      queue();
+    },
+    releaseGrip() {
+      if (!grip) return;
+      movePart(model.grabbable[grip.id]);
+      grip = null;
+      changed = performance.now();
+      queue();
+    },
     show(lesson, finished, immersive) {
       if (previous !== lesson || immersive !== alternateView) {
+        grip = null;
         if (root) {
           scene.remove(root);
           root.traverse(object => {

@@ -45,7 +45,10 @@
           <div class="mask-window"><span></span></div>
         </div>
         <button type="button" id="perspective" aria-pressed="false" hidden>ダイバー視点</button>
+        <p id="grip-label" hidden></p>
+        <p id="scene-feedback" aria-hidden="true" hidden></p>
         <div id="hotspots"></div>
+        <div id="dock-markers"></div>
         <div class="view-controls" role="group" aria-label="カメラ操作">
           <button type="button" id="rotate-left" aria-label="左に回す" title="左に回す">↶</button>
           <button type="button" id="reset-view" aria-label="視点を戻す" title="視点を戻す">⌖</button>
@@ -68,6 +71,7 @@
           <p class="step-description" id="step-description"></p>
         </div>
         <div id="choices" role="group" aria-label="操作を選ぶ"></div>
+        <div id="placement-menu" role="group" aria-label="取り付け先を選ぶ" hidden></div>
         <p id="feedback" role="status" aria-live="polite"></p>
         <div id="result" hidden>
           <p class="result-heading" id="result-heading"></p>

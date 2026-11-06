@@ -1,18 +1,27 @@
 const action = (id, label, detail, done, anchor = id) => ({ id, label, detail, done, anchor });
+const attach = (id, label, detail, done, part, dock) => ({ ...action(id, label, detail, done), attachment: { part, dock } });
 
 export const lessons = [
   {
     id: 'gear', title: '機材セッティング', label: 'KIT ASSEMBLY',
     subtitle: 'ヨーク式・ジャケット型BCD',
-    description: 'シリンダーの点検から、組み立てた器材の確認まで。',
+    description: 'シリンダーを点検し、器材を手に取って組み立てます。',
+    docks: {
+      cylinder: 'シリンダーの胴',
+      valve: 'バルブの接合面',
+      inflator: 'インフレーターの接続口'
+    },
     scene: 'gear', source: 'https://blog.padi.com/how-to-assemble-your-dive-gear/',
     actions: [
       action('inspect', 'シリンダーを点検', '検査期限と、バルブ側のOリングの状態を確認します。', '検査期限とOリングを確認しました。'),
-      action('bcd', 'BCDを固定', 'バンドを締め、バックルを閉じて、シリンダーがずれないか確かめます。', 'BCDが固定されました。'),
-      action('first', 'ファーストステージを付ける', 'ダストキャップを外し、接合面をOリングに合わせて、締めすぎないよう固定します。', 'ファーストステージが取り付きました。'),
-      action('connect', 'インフレーターに接続', '低圧ホースをつなぎ、カプラーがロックしたか確かめます。', '低圧ホースが接続されました。'),
+      attach('bcd', 'BCDを取り付ける', 'BCDを持ち、バンドをシリンダーに通します。', 'BCDがシリンダーに掛かりました。', 'BCD', 'cylinder'),
+      action('lock', 'BCDのバンドを締める', 'バックルを閉じ、シリンダーがずれないか確かめます。', 'BCDが固定されました。'),
+      action('uncap', 'ダストキャップを外す', 'ファーストステージのダストキャップを外します。', '接合面が見えるようになりました。'),
+      attach('first', 'ファーストステージを付ける', 'ファーストステージを持ち、接合面をバルブのOリングに合わせます。締めすぎないよう固定します。', 'ファーストステージが取り付きました。', 'ファーストステージ', 'valve'),
+      attach('connect', 'インフレーターに接続', '低圧ホースの先を持ち、インフレーターにつなぎます。カプラーがロックしたか確かめます。', '低圧ホースが接続されました。', '低圧ホース', 'inflator'),
       action('stow', 'ホース類をまとめる', '予備のセカンドステージと残圧計を、取り出せる位置に留めます。', 'ホース類を留めました。'),
-      action('open', '残圧計を人に向けず開栓', '残圧計の文字盤を自分や周りの人に向けず、バルブをゆっくり開きます。', 'バルブが開き、残圧計の針が上がりました。'),
+      action('gauge-away', '残圧計を人からそらす', '残圧計の文字盤を、自分や周りの人からそらします。', '残圧計の向きを変えました。', 'pressure'),
+      action('open', 'バルブを開く', '残圧計を人からそらしたまま、バルブをゆっくり開きます。', 'バルブが開き、残圧計に圧力がかかりました。'),
       action('pressure', '残圧と器材の状態を確認', '残圧を読み、空気漏れや器材のゆるみがないか確かめます。', '潜る前のバディチェックへ進めます。')
     ]
   },
@@ -67,11 +76,12 @@ export const lessons = [
     id: 'fins', title: 'フィンの履き方', label: 'OPEN-HEEL FINS',
     subtitle: '陸上 · ブーツとヒールストラップ',
     description: 'ブーツにオープンヒールのフィンを履きます。陸上の器材台と、水面で足元を見たときの両方を確認できます。',
+    docks: { pocket: 'フィンのポケット', heel: 'ブーツのかかと' },
     scene: 'fins', source: 'https://www.padi.com/gear/fins',
     actions: [
       action('fin-strap', 'ストラップを外側へ', 'ブーツが入るように、かかとのストラップをよけます。', '足を入れるスペースができました。'),
-      action('fin-foot', 'ブーツのつま先を入れる', 'フィンのポケットに、ブーツのつま先から入れます。', 'ブーツがポケットに入りました。'),
-      action('fin-lock', 'ストラップをかかとに掛ける', 'ストラップをかかとに掛け、位置を整えます。', 'かかとにストラップが掛かりました。'),
+      attach('fin-foot', 'ブーツのつま先を入れる', 'ブーツを持ち、つま先をフィンのポケットに入れます。', 'ブーツがポケットに入りました。', 'ブーツ', 'pocket'),
+      attach('fin-lock', 'ストラップをかかとに掛ける', 'ストラップを持ち、かかとに掛けます。', 'かかとにストラップが掛かりました。', 'ストラップ', 'heel'),
       action('fin-check', 'フィットを確かめる', 'かかとを軽く動かし、ストラップが外れず、きつすぎないか確かめます。', 'フィンのフィットを確かめました。')
     ]
   }
@@ -88,12 +98,13 @@ export function newPractice(lesson, mode, random = Math.random) {
   return { lesson, mode, choices, index: 0, missed: new Set(), assisted: new Set() };
 }
 
-export function choose(practice, id) {
+export function choose(practice, id, dock) {
   const expected = practice.lesson.actions[practice.index];
-  if (!expected || !practice.choices.some(action => action.id === id)) return null;
-  if (id !== expected.id) {
+  const action = practice.choices.find(choice => choice.id === id);
+  if (!expected || !action || (action.attachment && !Object.hasOwn(practice.lesson.docks, dock))) return null;
+  if (id !== expected.id || (action.attachment && action.attachment.dock !== dock)) {
     practice.missed.add(expected.id);
-    return { ok: false, expected };
+    return { ok: false, expected, wrongDock: id === expected.id };
   }
   practice.index += 1;
   return { ok: true, expected };
