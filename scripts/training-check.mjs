@@ -509,6 +509,18 @@ try {
   await mobileDrag.waitForFunction(() =>
     document.querySelector('.panel').getBoundingClientRect().top >= document.querySelector('#viewport').getBoundingClientRect().bottom);
   checks.push('844 × 390 mobile landscape: visible model and instructions, touch placement, menu and example, then back to portrait with progress');
+  await mobileDrag.setViewportSize({ width: 568, height: 320 });
+  await mobileDrag.getByRole('button', { name: 'マスククリア', exact: true }).press('Enter');
+  await mobileDrag.waitForFunction(() => {
+    const scene = document.querySelector('#viewport').getBoundingClientRect();
+    const instruction = document.querySelector('#instruction').getBoundingClientRect();
+    const choice = document.querySelector('#choices .is-guide').getBoundingClientRect();
+    const settings = document.querySelector('#mask-settings').getBoundingClientRect();
+    return scene.top >= 0 && scene.bottom <= innerHeight + 1 && scene.right < instruction.left &&
+      instruction.top >= 0 && choice.bottom <= innerHeight && settings.top >= choice.bottom;
+  });
+  await mobileDrag.screenshot({ path: join(output, 'mobile-landscape-mask.png') });
+  checks.push('568 × 320 mobile landscape: mask scene and next action remain visible before settings');
   // Raw DevTools drag input and Playwright tap input use separate touch sessions.
   await mobileDrag.context().close();
   const mobile = await testPage(mobileSize, true);

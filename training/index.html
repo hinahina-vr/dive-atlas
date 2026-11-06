@@ -98,6 +98,19 @@
         <div class="progress" id="progress" role="progressbar" aria-label="練習の進み具合" aria-valuemin="0"></div>
         <h2 id="lesson-title"></h2>
         <p id="lesson-description" class="description"></p>
+        <div id="instruction" tabindex="-1">
+          <p class="step-label" id="step-label"></p>
+          <p class="step-title" id="step-title"></p>
+          <p class="step-description" id="step-description"></p>
+        </div>
+        <div id="choices" role="group" aria-label="操作を選ぶ"></div>
+        <div id="placement-menu" role="group" aria-label="取り付け先を選ぶ" hidden></div>
+        <p id="feedback" role="status" aria-live="polite"></p>
+        <div id="result" hidden>
+          <p class="result-heading" id="result-heading"></p>
+          <ul id="review"></ul>
+          <button type="button" id="next-lesson" class="primary" hidden></button>
+        </div>
         <div id="mask-settings" class="lesson-settings" hidden>
           <label>練習を始めるときの水の量
             <select id="mask-fill">
@@ -121,19 +134,6 @@
             </select>
           </label>
           <p>方法を変えると、この種目は最初からになります。</p>
-        </div>
-        <div id="instruction" tabindex="-1">
-          <p class="step-label" id="step-label"></p>
-          <p class="step-title" id="step-title"></p>
-          <p class="step-description" id="step-description"></p>
-        </div>
-        <div id="choices" role="group" aria-label="操作を選ぶ"></div>
-        <div id="placement-menu" role="group" aria-label="取り付け先を選ぶ" hidden></div>
-        <p id="feedback" role="status" aria-live="polite"></p>
-        <div id="result" hidden>
-          <p class="result-heading" id="result-heading"></p>
-          <ul id="review"></ul>
-          <button type="button" id="next-lesson" class="primary" hidden></button>
         </div>
         <details id="previous-review" hidden>
           <summary><span>前回の自力復習</span><span id="previous-review-count"></span></summary>
