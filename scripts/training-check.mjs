@@ -728,6 +728,83 @@ try {
   checks.push('390 px touch WebGL at /dive-atlas/: gear gestures, mask press, recovery and purge, buoyancy response, fin placement, wrong order and review');
   await mobile.context().close();
 
+  const graphics = await testPage(mobileSize, true);
+  await graphics.goto(previewUrl + 'training/');
+  await ready(graphics);
+  const graphicsCanvas = graphics.locator('#scene canvas');
+  const sceneStatus = graphics.locator('#scene-status');
+  async function loseGraphics() {
+    await graphicsCanvas.evaluate(node => {
+      node.testContextLoss = node.getContext('webgl2').getExtension('WEBGL_lose_context');
+      if (!node.testContextLoss) throw new Error('WEBGL_lose_context is unavailable');
+      node.testContextLoss.loseContext();
+    });
+    await sceneStatus.waitFor();
+    assert.match(await sceneStatus.innerText(), /一時的に中断/);
+    assert(await graphicsCanvas.isHidden());
+    assert(await graphics.locator('#view-controls').isHidden());
+  }
+  async function restoreGraphics() {
+    await graphicsCanvas.evaluate(node => node.testContextLoss.restoreContext());
+    await graphicsCanvas.waitFor();
+    await sceneStatus.waitFor({ state: 'hidden' });
+    assert.equal(await graphicsCanvas.count(), 1);
+    assert(await graphicsCanvas.evaluate(node => !node.getContext('webgl2').isContextLost()));
+  }
+  await part(graphics, 'inspect').tap();
+  await answer(graphics, 'normal').focus();
+  await loseGraphics();
+  assert.equal(await value(graphics), '0');
+  assert.match(await graphics.locator('#inspection-panel').innerText(), /検査期限は2028年5月/);
+  assert(await answer(graphics, 'normal').evaluate(node => document.activeElement === node));
+  await answer(graphics, 'normal').tap();
+  assert.equal(await value(graphics), '1');
+  await getChoice(graphics, 'inspect-ring').tap();
+  await restoreGraphics();
+  assert(await graphics.locator('#viewport.has-detail').isVisible());
+  assert(await answer(graphics, 'repair').isVisible());
+  await answer(graphics, 'repair').tap();
+  assert.equal(await value(graphics), '2');
+  await part(graphics, 'bcd').tap();
+  await dock(graphics, 'cylinder').waitFor();
+  await dockChoice(graphics, 'cylinder').focus();
+  await loseGraphics();
+  assert(await graphics.locator('#placement-menu').isVisible());
+  assert.equal(await graphics.locator('#dock-markers button:visible').count(), 0);
+  assert(await dockChoice(graphics, 'cylinder').evaluate(node => document.activeElement === node));
+  await dockChoice(graphics, 'cylinder').tap();
+  assert.equal(await value(graphics), '3');
+  await restoreGraphics();
+  await part(graphics, 'lock').waitFor();
+  checks.push('390 px real WebGL loss: gear inspection and placement switch between 3D and text, preserving progress and focus');
+
+  await graphics.getByRole('button', { name: 'マスククリア', exact: true }).tap();
+  await graphics.locator('#mask-fill').selectOption('mask-full');
+  await graphics.locator('#recall').tap();
+  await getChoice(graphics, 'mask-exhale').press('Enter');
+  assert.equal(await value(graphics), '0');
+  await getChoice(graphics, 'mask-breathe').tap();
+  await getChoice(graphics, 'mask-hold').tap();
+  await graphics.evaluate(() => window.scrollTo(0, 0));
+  const graphicsInput = touchDrag(await graphics.context().newCDPSession(graphics));
+  await hold(graphics, 'mask-exhale', graphicsInput, .23, loseGraphics);
+  const waterAtLoss = await maskLevel(graphics);
+  assert(waterAtLoss > 0 && waterAtLoss < 90);
+  assert.equal(await value(graphics), '2');
+  assert(await getChoice(graphics, 'mask-exhale').isVisible());
+  await graphics.screenshot({ path: join(output, 'mobile-graphics-interrupted.png'), fullPage: true });
+  await restoreGraphics();
+  assert.equal(await maskLevel(graphics), waterAtLoss);
+  assert(await graphics.locator('#mask-overlay.is-sealed').isVisible());
+  await graphics.evaluate(() => window.scrollTo(0, 0));
+  await hold(graphics, 'mask-exhale', graphicsInput);
+  assert.equal(await value(graphics), '3');
+  assert.equal(await maskLevel(graphics), 0);
+  await graphics.reload();
+  assert.equal(await graphics.locator('#review-state-mask').innerText(), '見直し 1項目');
+  await graphics.context().close();
+  checks.push('390 px real WebGL loss during mask clear: cancel the interrupted press, preserve water through restoration and save the review');
+
   const noGl = await testPage({ width: 360, height: 800 }, true);
   await noGl.addInitScript(() => {
     const getContext = HTMLCanvasElement.prototype.getContext;

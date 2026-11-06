@@ -3,7 +3,7 @@ import { makeModel, makeDiveModel } from './models.js';
 
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
-export function createView(container, onProject) {
+export function createView(container, onProject, onAvailabilityChange) {
   const renderer = new T.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.6));
   renderer.toneMapping = T.ACESFilmicToneMapping;
@@ -47,9 +47,10 @@ export function createView(container, onProject) {
   let last = 0;
   let visible = true;
   let activePointer;
+  let contextLost = false;
 
   function queue() {
-    if (visible && !frame && !document.hidden) frame = requestAnimationFrame(draw);
+    if (!contextLost && visible && !frame && !document.hidden) frame = requestAnimationFrame(draw);
   }
 
   function projectAnchors(anchors) {
@@ -77,7 +78,7 @@ export function createView(container, onProject) {
 
   function draw(time) {
     frame = 0;
-    if (!model || document.hidden) return;
+    if (contextLost || !model || document.hidden) return;
     const delta = last ? Math.min(time - last, 50) : 17;
     last = time;
     const settling = time - changed < 620;
@@ -119,15 +120,17 @@ export function createView(container, onProject) {
     if (!reducedMotion.matches && (settling || bubbling || model.inWater)) queue();
   }
 
-  const resize = new ResizeObserver(() => {
+  function resizeView() {
     width = container.clientWidth;
     height = container.clientHeight;
-    if (!width || !height) return;
+    if (!width || !height || contextLost) return;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
     queue();
-  });
+  }
+
+  const resize = new ResizeObserver(resizeView);
   resize.observe(container);
   const observer = new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
@@ -136,7 +139,24 @@ export function createView(container, onProject) {
   observer.observe(container);
   document.addEventListener('visibilitychange', queue);
   reducedMotion.addEventListener('change', queue);
-  canvas.addEventListener('webglcontextrestored', queue);
+  canvas.addEventListener('webglcontextlost', event => {
+    event.preventDefault();
+    contextLost = true;
+    cancelAnimationFrame(frame);
+    frame = 0;
+    last = 0;
+    grip = null;
+    if (activePointer && canvas.hasPointerCapture(activePointer[0])) canvas.releasePointerCapture(activePointer[0]);
+    activePointer = null;
+    canvas.hidden = true;
+    onAvailabilityChange(false);
+  });
+  canvas.addEventListener('webglcontextrestored', () => {
+    contextLost = false;
+    canvas.hidden = false;
+    resizeView();
+    onAvailabilityChange(true);
+  });
 
   function rotate(amount, tilt = 0) {
     if (detail) {

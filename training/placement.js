@@ -138,6 +138,7 @@ export function createPlacement({ viewport, markers, caption, menu, choices, onS
 
   return {
     select, bind, project, clear,
-    active: () => Boolean(selection)
+    active: () => Boolean(selection),
+    selectedAction: () => selection?.action
   };
 }

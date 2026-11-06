@@ -7,7 +7,8 @@ import { prepareOffline } from './offline.js';
 
 const byId = id => document.getElementById(id);
 const el = Object.fromEntries([
-  'viewport', 'scene', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall', 'view-label', 'view-subtitle', 'view-help',
+  'viewport', 'scene', 'scene-status', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall',
+  'view-label', 'view-subtitle', 'view-help', 'view-controls',
   'rotate-left', 'rotate-right', 'reset-view', 'module-label', 'step-count', 'progress',
   'review-overview-status', 'review-next',
   'lesson-title', 'lesson-description', 'instruction', 'step-label', 'step-title', 'step-description',
@@ -153,7 +154,7 @@ function openInspection(action, source, keyboard) {
   }
   panel.append(button('閉じる', 'quiet', () => closeInspection(true)));
   const marker = marks.get(action.anchor);
-  inspecting = { source, keyboard, marker };
+  inspecting = { action, source, keyboard, marker };
   marker?.classList.add('is-inspection-target');
   el.viewport.classList.add('is-inspecting');
   panel.hidden = false;
@@ -519,7 +520,7 @@ function render() {
   el.perspective.setAttribute('aria-pressed', String(immersive));
   const maskOverlay = el['mask-overlay'];
   maskOverlay.hidden = !useWater || lesson.scene !== 'mask';
-  if (!demo) el['example-guide'].toggleAttribute('hidden', true);
+  if (!demo || !view) el['example-guide'].toggleAttribute('hidden', true);
   el['example-caption'].hidden = !demo || !view;
   el['example-controls'].hidden = !demo;
   el['practice-footer'].hidden = Boolean(demo);
@@ -623,20 +624,53 @@ function render() {
   view?.show(lesson, done, immersive, practice.scenario);
 }
 
+function setSceneView(next, message = '') {
+  const inspection = inspecting;
+  const attachment = placement.selectedAction();
+  const active = document.activeElement;
+  const answer = el['inspection-panel'].contains(active) ? active.dataset.answer : undefined;
+  const dock = el['placement-menu'].contains(active) ? active.dataset.dockChoice : undefined;
+  const selectedAction = inspection?.action.id || attachment?.id || active?.dataset.action || active?.dataset.part;
+  const cameraFocused = el['view-controls'].contains(active) || active === el.perspective;
+  const lastFeedback = el.feedback.textContent;
+  const lastTone = el.feedback.dataset.tone;
+  view = next;
+  viewFailed = !view;
+  el['scene-status'].textContent = message;
+  el['scene-status'].hidden = Boolean(view);
+  el['view-help'].hidden = !view;
+  el['view-controls'].hidden = !view;
+  if (!view) placement.project({});
+  render();
+  if (selectedAction) {
+    const choice = el.choices.querySelector('[data-action="' + selectedAction + '"]');
+    if (inspection && choice) {
+      openInspection(inspection.action, choice, inspection.keyboard);
+      if (answer) el['inspection-panel'].querySelector('[data-answer="' + answer + '"]')?.focus({ preventScroll: true });
+    } else if (attachment && choice) {
+      placement.select(attachment, {
+        docks: practice.lesson.docks, guided: choice.classList.contains('is-guide'), source: choice, keyboard: Boolean(dock)
+      });
+      if (dock) el['placement-menu'].querySelector('[data-dock-choice="' + dock + '"]')?.focus({ preventScroll: true });
+    } else {
+      choice?.focus({ preventScroll: true });
+    }
+  } else if (cameraFocused && !view) {
+    (el.instruction.hidden ? el.reset : el.instruction).focus({ preventScroll: true });
+  }
+  feedback(lastFeedback, lastTone);
+}
+
 render();
 prepareOffline(byId('offline-status'));
 try {
   const { createView } = await import('./view.js');
-  view = createView(el.scene, project);
-  render();
+  const sceneView = createView(el.scene, project, available => {
+    if (available) setSceneView(sceneView);
+    else setSceneView(null, '3D表示が一時的に中断しました。下の選択肢で練習を続けられます。');
+  });
+  setSceneView(sceneView);
 } catch (error) {
   console.warn('Could not start the practice 3D view.', error);
-  viewFailed = true;
-  const message = document.createElement('p');
-  message.className = 'scene-error';
-  message.textContent = '3D表示を開けませんでした。操作の選択肢で手順を復習できます。';
-  el.scene.replaceChildren(message);
-  el['view-help'].hidden = true;
-  for (const id of ['rotate-left', 'rotate-right', 'reset-view']) el[id].hidden = true;
-  render();
+  setSceneView(null, '3D表示を開けませんでした。下の選択肢で手順を復習できます。');
 }
