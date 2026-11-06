@@ -412,7 +412,8 @@ el.hint.addEventListener('click', () => {
   saveCurrentDraft();
   feedback();
   render();
-  el.choices.querySelector('.is-guide')?.focus({ preventScroll: true });
+  el.choices.querySelector('.is-guide')?.focus({ preventScroll: Boolean(view) });
+  if (view && (portraitLayout.matches || landscapeLayout.matches)) showViewport();
 });
 el.reset.addEventListener('click', () => {
   press.cancel();

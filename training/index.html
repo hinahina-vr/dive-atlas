@@ -64,17 +64,19 @@
         <div id="scene" aria-label="3D器材モデル">
           <p id="scene-status" class="scene-status" role="status">3Dを準備しています。下の選択肢で先に練習できます。</p>
         </div>
-        <div class="view-title">
-          <p class="eyebrow" id="view-label"></p>
-          <p id="view-subtitle"></p>
+        <div class="view-header">
+          <div class="view-title">
+            <p class="eyebrow" id="view-label"></p>
+            <p id="view-subtitle"></p>
+          </div>
+          <div class="view-modes">
+            <button type="button" id="vr-mask" class="view-mode" hidden>VRで試す</button>
+            <button type="button" id="perspective" class="view-mode" aria-pressed="false" hidden>ダイバー視点</button>
+          </div>
         </div>
         <div id="mask-overlay" aria-hidden="true" hidden>
           <div class="mask-window"><span></span></div>
           <div class="mask-window"><span></span></div>
-        </div>
-        <div class="view-modes">
-          <button type="button" id="vr-mask" class="view-mode" hidden>VRで試す</button>
-          <button type="button" id="perspective" class="view-mode" aria-pressed="false" hidden>ダイバー視点</button>
         </div>
         <p id="grip-label" hidden></p>
         <div id="effect-meter" aria-hidden="true" hidden><span></span><i></i></div>

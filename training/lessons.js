@@ -117,7 +117,7 @@ export const lessons = [
     id: 'inflator', title: 'パワーインフレーター', tab: 'インフレーター', label: 'POWER INFLATOR',
     subtitle: '器材台 · 2つのボタン',
     description: '給気と排気を見分けて、BCDのふくらみがどう変わるか試します。',
-    scene: 'inflator', source: 'https://ww2.scubapro.com/media/845366/vn_09-2019-scubapro_jacket-eng.pdf',
+    scene: 'inflator', source: 'https://www.padi.com/ja/diving-gear/bcd',
     docks: { above: 'BCDより上', below: 'BCDより下' },
     actions: [
       press('add-air', '給気ボタンを短く押す', '給気を短く試し、BCDが少しふくらむのを見ます。', 'BCDが少しふくらみました。', 290),

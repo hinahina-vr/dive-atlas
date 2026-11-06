@@ -257,7 +257,11 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 }
 #mask-overlay.is-flooded .mask-window span { border-top-color: transparent; border-radius: 0; }
 #mask-overlay.is-clear .mask-window span { opacity: 0; }
-.view-modes { position: absolute; z-index: 2; top: 14px; right: 14px; display: flex; gap: 5px; }
+.view-header {
+  position: absolute; z-index: 2; top: 14px; inset-inline: 16px 14px; pointer-events: none;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+}
+.view-modes { display: flex; gap: 5px; flex: none; pointer-events: auto; }
 .view-mode {
   min-height: 42px; padding: 0 10px; border: 1px solid #79aaa5;
   border-radius: 8px; background: #f3fffaef; color: #164a58; font-size: .75rem; font-weight: 700;
@@ -268,7 +272,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   .mask-window span { transition: none; }
 }
 .view-title {
-  position: absolute; z-index: 1; top: 14px; left: 16px; pointer-events: none;
+  min-width: 0; overflow-wrap: anywhere;
   border: 1px solid #b4dfd5; background: #f6fffaea; padding: 6px 8px; border-radius: 7px;
 }
 .view-title p+p { margin-top: .22rem; color: #345d69; font-size: .73rem; }
@@ -377,8 +381,7 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
   .lesson-status { font-size: .65rem; }
   .viewport { height: clamp(280px, 39svh, 380px); }
   .panel { padding: 14px; }
-  .view-title { top: 12px; left: 12px; }
-  .view-modes { top: 9px; right: 9px; }
+  .view-header { top: 9px; inset-inline: 12px 9px; }
   .view-controls { bottom: 9px; right: 9px; }
   #view-help { bottom: 21px; left: 12px; }
   .footnote { flex-wrap: wrap; }
@@ -417,8 +420,7 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
   .back-to-lessons { display: inline-flex; }
   .progress { margin: 6px 0 10px; }
   #instruction { margin: 8px 0; padding: 8px 9px; min-height: 0; }
-  .view-title { top: 9px; left: 10px; }
-  .view-modes { top: 9px; right: 9px; }
+  .view-header { top: 9px; inset-inline: 10px 9px; }
   .view-controls { bottom: 9px; right: 9px; }
   #view-help { bottom: 18px; left: 12px; }
 }

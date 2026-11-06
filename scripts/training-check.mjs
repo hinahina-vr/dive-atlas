@@ -613,8 +613,25 @@ try {
   assert(await portrait.locator('#instruction').evaluate(node => document.activeElement === node));
   assert(await sceneAndActionVisible());
   await portrait.screenshot({ path: join(output, 'mobile-portrait-practice.png') });
-  await portrait.context().close();
   checks.push('360 × 640 mobile portrait: lesson selection shows the 3D view and next action together, menu return and keyboard resume keep progress');
+
+  await portrait.setViewportSize({ width: 320, height: 568 });
+  await portrait.locator('#recall').tap();
+  await getChoice(portrait, 'mask-breathe').tap();
+  await portrait.locator('#hint').tap();
+  assert(await portrait.locator('#viewport').evaluate(node => {
+    const box = node.getBoundingClientRect();
+    return box.top >= 0 && box.bottom <= innerHeight;
+  }));
+  await part(portrait, 'mask-hold').tap();
+  assert.equal(await value(portrait), '2');
+  await portrait.getByRole('button', { name: 'インフレーター', exact: true }).tap();
+  assert(await portrait.evaluate(() =>
+    document.querySelector('.view-title').getBoundingClientRect().right <=
+    document.querySelector('#perspective').getBoundingClientRect().left));
+  await portrait.screenshot({ path: join(output, 'mobile-narrow-inflator.png') });
+  await portrait.context().close();
+  checks.push('320 × 568: a hint reveals the 3D control, and the scene title fits beside the view switch');
 
   const mobile = await testPage(mobileSize, true);
   let loadScene;
