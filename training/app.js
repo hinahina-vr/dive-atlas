@@ -850,7 +850,7 @@ function setSceneView(next, message = '') {
 }
 
 render();
-prepareOffline(byId('offline-status'));
+prepareOffline(byId('offline-status'), byId('install-app'), byId('install-help'));
 if (window.isSecureContext && navigator.xr) {
   navigator.xr.isSessionSupported('immersive-vr').then(supported => {
     xrSupported = supported;

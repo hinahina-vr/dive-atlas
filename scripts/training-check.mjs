@@ -191,7 +191,7 @@ const revision = JSON.parse(await readFile(join(dist, 'revision.json'), 'utf8'))
 assert.equal(revision.revision, git('rev-parse', 'HEAD'));
 
 let servedPages = dist;
-const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json' };
+const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json', '.webmanifest':'application/manifest+json', '.svg':'image/svg+xml', '.png':'image/png' };
 const preview = createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
   if (!pathname.startsWith('/dive-atlas/')) return res.writeHead(404).end();
@@ -1070,7 +1070,42 @@ try {
   }
 
   let offPhone = await testPage(mobileSize, true, 'allow');
+  const offlineContext = offPhone.context();
+  await offlineContext.addInitScript(() => {
+    window.addEventListener('beforeinstallprompt', event => {
+      if (event.isTrusted) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }, { capture: true });
+  });
   await preparePage(offPhone);
+  const manifestSession = await offlineContext.newCDPSession(offPhone);
+  const manifest = await manifestSession.send('Page.getAppManifest');
+  assert.deepEqual(manifest.errors, []);
+  const app = JSON.parse(manifest.data);
+  const startUrl = new URL(app.start_url, manifest.url).href;
+  assert.equal(startUrl, offlineUrl);
+  assert.equal(new URL(app.scope, manifest.url).href, offlineUrl);
+  assert.equal(app.display, 'standalone');
+  const { installabilityErrors } = await manifestSession.send('Page.getInstallabilityErrors');
+  assert.deepEqual(installabilityErrors.filter(error => error.errorId !== 'in-incognito'), []);
+  const install = offPhone.getByRole('button', { name: '端末に追加', exact: true });
+  await install.tap();
+  assert(await offPhone.locator('#install-help').isVisible());
+  assert.equal(await install.getAttribute('aria-expanded'), 'true');
+  await offPhone.screenshot({ path: join(output, 'mobile-install-help.png'), fullPage: true });
+  await offPhone.evaluate(() => {
+    const event = new Event('beforeinstallprompt', { cancelable: true });
+    event.prompt = async () => { document.documentElement.dataset.testInstall = 'opened'; };
+    event.userChoice = Promise.resolve({ outcome: 'dismissed' });
+    window.dispatchEvent(event);
+  });
+  await install.tap();
+  assert.equal(await offPhone.locator('html').getAttribute('data-test-install'), 'opened');
+  assert(await offPhone.locator('#install-help').isHidden());
+  assert(await install.isVisible());
+  checks.push('390 px static build: standalone manifest and icons pass Chrome checks apart from incognito; install help and dismissed prompt keep practice available');
   await offPhone.getByRole('button', { name: 'マスククリア', exact: true }).tap();
   await offPhone.locator('#mask-fill').selectOption('mask-full');
   await offPhone.locator('#recall').tap();
@@ -1084,14 +1119,19 @@ try {
   assert(beforeClose > 0 && beforeClose < 90);
   await offPhone.getByRole('button', { name: 'フィンの履き方', exact: true }).tap();
   assert.match(await offPhone.locator('#draft-description').innerText(), /マスククリア.*2 \/ 3手順/);
-  const offlineContext = offPhone.context();
   await offPhone.close();
   await offlineContext.setOffline(true);
+  await offlineContext.addInitScript(() => {
+    Object.defineProperty(navigator, 'standalone', { value: true });
+  });
   offPhone = await offlineContext.newPage();
-  const offlineNavigation = await offPhone.goto(offlineUrl);
+  const offlineNavigation = await offPhone.goto(startUrl);
   assert(offlineNavigation?.fromServiceWorker());
   await ready(offPhone);
   await offPhone.locator('#offline-status[data-state="offline"]').waitFor();
+  await offPhone.getByRole('link', { name: '地図に戻る', exact: true }).tap();
+  assert.equal(offPhone.url(), startUrl);
+  assert.match(await offPhone.locator('#offline-status').innerText(), /地図は通信が戻ると開けます/);
   assert(await offPhone.locator('#resume-practice').isVisible());
   await offPhone.screenshot({ path: join(output, 'mobile-resume-offline.png'), fullPage: true });
   await offPhone.locator('#resume-practice').tap();
@@ -1115,6 +1155,14 @@ try {
   assert(savedFiles.includes('/dive-atlas/vendor/three.module.js'));
   assert(savedFiles.includes('/dive-atlas/vendor/three.core.js'));
   assert(savedFiles.includes('/dive-atlas/training/drafts.js'));
+  assert(savedFiles.includes('/dive-atlas/training/app.webmanifest'));
+  for (const size of [192, 512]) {
+    const dimensions = await offPhone.evaluate(async size => {
+      const image = await createImageBitmap(await (await fetch('./icon-' + size + '.png')).blob());
+      return [image.width, image.height];
+    }, size);
+    assert.deepEqual(dimensions, [size, size]);
+  }
   assert(savedFiles.every(path => /^\/dive-atlas\/(training\/|vendor\/three\.)/.test(path)));
   assert(await offPhone.evaluate(async () => {
     try { await fetch('../journal.json'); return false; } catch { return true; }
@@ -1132,8 +1180,11 @@ try {
   assert.equal(await value(offPhone), '0');
   assert.equal(await offPhone.evaluate(key => localStorage.getItem(key), draftKey), null);
   assert.equal(await offPhone.locator('#review-state-mask').innerText(), '見直し 1項目');
+  await offlineContext.setOffline(false);
+  await offPhone.locator('#offline-status[data-state="ready"]').waitFor();
+  assert(await offPhone.locator('#install-app').isHidden());
   await offlineContext.close();
-  checks.push('390 px static build: resume full-mask draft after closing offline, restore exact water level, save and replay review, reset without erasing review');
+  checks.push('390 px static build: manifest start URL launches offline, resumes the full-mask draft, saves the review, and keeps the offline map link in the app');
 
   const offPc = await testPage({ width: 1440, height: 960 }, false, 'allow');
   await preparePage(offPc);

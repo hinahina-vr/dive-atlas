@@ -39,7 +39,7 @@ for (const row of builtRows) assert.deepEqual(Object.keys(row).sort(), ['date','
 const pinSites = ['黒島北','黒島南','カメ吉','那覇シーサイドパーク'];
 const publicRows = pinSites.map(site => ({date:'2026-01-01', site, depth:15, duration:40}));
 fs.writeFileSync(publicJournalFile, JSON.stringify(publicRows));
-const mime = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.mjs':'text/javascript', '.json':'application/json', '.png':'image/png', '.geojson':'application/geo+json' };
+const mime = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.mjs':'text/javascript', '.json':'application/json', '.webmanifest':'application/manifest+json', '.svg':'image/svg+xml', '.png':'image/png', '.geojson':'application/geo+json' };
 const published = http.createServer((req,res)=>{
  if(!req.url.startsWith(prefix)) return res.writeHead(404).end();
  const relative = req.url.slice(prefix.length).split('?')[0];

@@ -1,0 +1,15 @@
+{
+  "lang": "ja",
+  "name": "OWD スキルラボ",
+  "short_name": "スキルラボ",
+  "description": "ダイビングの基本手順を3Dで復習する、DIVE ATLASの練習室。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#e1f7ee",
+  "background_color": "#d4efeb",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

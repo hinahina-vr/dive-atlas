@@ -6,6 +6,9 @@
   <meta name="theme-color" content="#e1f7ee">
   <meta name="owd-offline" content="disabled">
   <title>OWD スキルラボ | DIVE ATLAS</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="manifest" href="./app.webmanifest">
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.js"></script>
 </head>
@@ -24,7 +27,13 @@
       <div>
         <p class="eyebrow">OPEN WATER · SKILLS LAB</p>
         <h1 id="title">OWD スキルラボ</h1>
-        <p>次のダイブの前に、手順を思い出そう。 <span id="offline-status" role="status" hidden></span></p>
+        <p class="intro-copy">次のダイブの前に、手順を思い出そう。 <span id="offline-status" role="status" hidden></span>
+          <button type="button" id="install-app" class="quiet" aria-controls="install-help" aria-expanded="false" hidden>端末に追加</button>
+        </p>
+        <div id="install-help" hidden>
+          <p>iPhone・iPadはSafariの共有メニューから「ホーム画面に追加」。追加したアイコンから一度開き、「オフラインで使えます」と出たら準備完了です。</p>
+          <p>Android・PCは、ブラウザーのメニューから「ホーム画面に追加」またはアプリのインストールを選びます。</p>
+        </div>
       </div>
       <div class="intro-controls">
         <button type="button" id="show-example" class="outline-control" aria-pressed="false">▷ 見本を見る</button>

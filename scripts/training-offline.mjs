@@ -5,7 +5,8 @@ import { resolve } from 'node:path';
 export const trainingFiles = [
   'training/index.html', 'training/style.css', 'training/app.js', 'training/lessons.js',
   'training/view.js', 'training/models.js', 'training/placement.js', 'training/press.js',
-  'training/example.js', 'training/reviews.js', 'training/drafts.js', 'training/offline.js', 'training/xr-mask.js'
+  'training/example.js', 'training/reviews.js', 'training/drafts.js', 'training/offline.js', 'training/xr-mask.js',
+  'training/app.webmanifest', 'training/icon.svg', 'training/icon-192.png', 'training/icon-512.png'
 ];
 
 export const trainingLibraries = ['three.module.js', 'three.core.js'];
