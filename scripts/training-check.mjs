@@ -770,7 +770,17 @@ try {
   await portrait.evaluate(() => { Math.random = window.__originalRandom; delete window.__originalRandom; });
   assert.equal(await getChoice(portrait, 'raise').evaluate(node => node === document.querySelector('#choices button')), true);
   for (const id of ['add-air', 'raise', 'vent']) await part(portrait, id).waitFor({ timeout: 7000 });
+  assert.equal(await portrait.locator('#view-help').innerText(), 'ドラッグで回転');
+  assert.equal(await getChoice(portrait, 'raise').evaluate(node => node.textContent.slice(2)), 'インフレーターを持つ');
+  assert.equal(await getChoice(portrait, 'vent').locator('.choice-gesture').innerText(), '長押し');
+  assert.equal(await portrait.locator('#hotspots .is-guide').count(), 0);
   await portrait.screenshot({ path: join(output, 'mobile-narrow-inflator.png') });
+  await portrait.locator('#hint').tap();
+  assert.equal(await portrait.locator('#view-help').innerText(), '目印を短く押す');
+  assert.equal(await portrait.locator('#step-title').innerText(), inflatorLesson.actions[0].label);
+  assert.equal(await value(portrait), '0');
+  await portrait.screenshot({ path: join(output, 'mobile-narrow-inflator-hint.png') });
+  checks.push('320 px inflator: recall shows neutral interaction help, marks long presses per candidate, and reveals the next action only after a hint');
   checks.push('320 px inflator recall: both physical buttons and the grip on the hose remain available when the shuffled list puts the hose first');
   await portrait.context().close();
   checks.push('320 × 568: a hint reveals the 3D control, and the scene title fits beside the view switch');
@@ -877,6 +887,9 @@ try {
   await getChoice(mobile, 'mask-breathe').tap();
   await mobile.locator('#hint').tap();
   await getChoice(mobile, 'mask-hold').tap();
+  assert.equal(await mobile.locator('#view-help').innerText(), 'ドラッグで見回す');
+  assert.equal(await mobile.locator('#hotspots .is-guide').count(), 0);
+  assert.equal(await getChoice(mobile, 'mask-exhale').locator('.choice-gesture').innerText(), '長押し');
   await mobile.evaluate(() => window.scrollTo(0, 0));
   const waterInput = touchDrag(await mobile.context().newCDPSession(mobile));
   await hold(mobile, 'mask-exhale', waterInput);

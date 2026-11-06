@@ -31,6 +31,7 @@ const reviewControls = [
   { id: 'review-next', label: '次の手順 ›', x: 708, y: 268, w: 284, h: 60 }
 ];
 
+const hintControl = { id: 'hint', label: 'ヒント', x: 451, y: 25, w: 110, h: 65 };
 const exampleOpen = { id: 'example-open', label: '見本を見る', x: 585, y: 25, w: 183, h: 65 };
 const exampleBack = { ...exampleOpen, id: 'example-back', label: '練習に戻る' };
 const reviewExample = { ...exampleOpen, id: 'review-example', label: '見本を再生' };
@@ -45,11 +46,11 @@ const exampleControls = [
 const finRecallGroups = {
   'fin-part-strap': {
     label: 'ストラップ', anchor: 'fin-strap',
-    actions: { 'fin-strap': '外側へよける', 'fin-lock': 'かかとに掛ける', 'fin-check': 'フィットを確かめる' }
+    actions: { 'fin-strap': '外側へよける', 'fin-lock': 'ストラップを持つ', 'fin-check': 'フィットを確かめる' }
   },
   'fin-part-boot': {
     label: 'ブーツ', anchor: 'fin-wiggle',
-    actions: { 'fin-foot': 'ポケットに入れる', 'fin-wiggle': 'かかとを動かす（長押し）' }
+    actions: { 'fin-foot': 'ブーツを持つ', 'fin-wiggle': 'かかとを動かす（長押し）' }
   }
 };
 const finCancel = { id: 'fin-cancel', label: 'キャンセル', x: 32, y: 268, w: 248, h: 60 };
@@ -290,7 +291,7 @@ function makePanel(lesson, following) {
       const amount = Math.round((inflator ? air : state.water) * 100);
       const key = !hasController ? 'tracking:' + state.index : demo ?
         ['example', reviewIndex, demo.index, demo.paused, demo.complete, demo.motion >= 1, demo.amount, hovered].join('|') :
-        [state.index, state.guide, state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex, finChoice].join('|');
+        [state.index, state.guide, Boolean(state.active), state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex, finChoice].join('|');
       if (key === previous) return;
       previous = key;
       const next = state.steps[state.index];
@@ -312,14 +313,15 @@ function makePanel(lesson, following) {
       if (demo) { drawExample(demo, state, hovered, reviewIndex >= 0); return; }
       if (state.review[reviewIndex]) { drawReview(state, hovered, reviewIndex); return; }
       if (!next) { drawResult(state, hovered); return; }
-      text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', 530);
+      const canHint = !state.guide && !state.active;
+      text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', canHint ? 398 : 530);
       const note = fins && inspection ? 'かかとを動かすと、フィンはどうなった？' :
         inspection ? inspection.prompt :
         finGroup ? finGroup.label + 'で何をする？' :
         (fins || gear) && placing ? '照準を合わせて置く' :
         inflator && placing ? '排気口を置く高さを選ぶ' :
         finChoice ? next.attachment.part + 'を持つ' :
-        (fins || gear || inflator) && state.guide ? next?.label : '';
+        state.guide ? next.label : '';
       text(note || state.message || '操作に照準を合わせてトリガーを押す', 32, 129, 34, '#246270');
       const options = inspection ? inspectionSlots.map(slot => fins ? slot : { ...slot, label: inspection[slot.id] }) : [];
       if (finGroup) {
@@ -330,7 +332,8 @@ function makePanel(lesson, following) {
         }));
       }
       if (finInput) options.push(finCancel);
-      drawControls(compact ? [exampleOpen, exit] : [...options, ...controls, exampleOpen], state, hovered, undefined, Boolean(finGroup));
+      const top = canHint ? [hintControl, exampleOpen] : [exampleOpen];
+      drawControls(compact ? [...top, exit] : [...options, ...controls, ...top], state, hovered, undefined, Boolean(finGroup));
       if (fins || gear) {
         const hint = placing ? 'トリガーを離すか、置く場所を選ぶ' :
           state.retry ? state.message : inspection ? inspection.note || '' :
@@ -338,10 +341,10 @@ function makePanel(lesson, following) {
           state.guide && next.pressTime ? 'トリガーを押し続ける' : fins ? '足元の部品を選ぶ' : '器材の目印を選ぶ';
         text(hint, finInput ? 310 : 32, compact ? 197 : 300, 32, '#246270', finInput ? 675 : 960);
       } else if (recovery) {
-        const note = placing ? '正面を向いて「口元」を選ぶ' :
+        const note = placing ? (state.guide ? '正面を向いて「口元」を選ぶ' : '取り付け先に照準を合わせる') :
           !state.guide ? '次の操作を思い出し、器材かボタンを選ぶ' :
-          ['sweep', 'reach', 'trace-hose'].includes(next.id) ? '右肩側を見て、ホースの目印を探す' : next.label;
-        text(note, 32, 303, 32, '#246270');
+          ['sweep', 'reach', 'trace-hose'].includes(next.id) ? '右肩側を見て、ホースの目印を探す' : '';
+        if (note) text(note, 32, 303, 32, '#246270');
       } else {
         const label = inflator
           ? (done.has('vent') ? balanceLabels[balanceStatus(air)] : 'BCDのふくらみ')
@@ -454,7 +457,7 @@ function spatialTargets(lesson, model, scene) {
           if (id === inspecting || (phaseOnly && index !== state.index)) continue;
           if (gear && placing === 'bcd' && id === 'inflator') continue;
           if (gear && !dock && (inspecting || sharedAnchor >= state.index ||
-            index > state.index + (state.guide ? 0 : 2))) continue;
+            (state.guide && index !== state.index))) continue;
         }
         parent.localToWorld(mesh.position.copy(point));
         if (delta.subVectors(mesh.position, eye).normalize().dot(forward) < .70) continue;
@@ -463,6 +466,7 @@ function spatialTargets(lesson, model, scene) {
           mesh.position.add(labelOffset);
         }
         mesh.quaternion.copy(orientation);
+        mesh.scale.setScalar(gear && !dock && !state.guide && !focusStep ? .83 : 1);
         mesh.updateMatrixWorld();
         mesh.visible = true;
       }
@@ -477,9 +481,9 @@ function spatialTargets(lesson, model, scene) {
       }
       return nearest;
     },
-    highlight(hovered, reviewing) {
+    highlight(hovered, reviewing, guided) {
       for (const { id, mesh } of targets) {
-        if (mesh.visible) mesh.material.color.setHex(reviewing || id === hovered ? 0x9bf2df : 0xffffff);
+        if (mesh.visible) mesh.material.color.setHex(reviewing || id === hovered || id === guided ? 0x9bf2df : 0xffffff);
       }
     },
     dispose() {
@@ -493,7 +497,7 @@ function spatialTargets(lesson, model, scene) {
   };
 }
 
-export function createPracticeXR(renderer, session, { lesson, scenario, following, lights, readState, advanceToNext, recallAfterExample, retryFromResult, press, trim, apply }) {
+export function createPracticeXR(renderer, session, { lesson, scenario, following, lights, readState, advanceToNext, recallAfterExample, retryFromResult, requestHint, press, trim, apply }) {
   const scene = new T.Scene();
   scene.background = new T.Color();
   scene.fog = new T.FogExp2();
@@ -656,6 +660,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
       if (selected === 'exit') close();
       else if (selected === 'next-lesson') requestedRun = advanceToNext;
       else if (selected === 'retry-recall') requestedRun = retryFromResult;
+      else if (selected === 'hint' && !holding && !carry) requestHint();
       else if ((selected === 'example-open' || selected === 'review-example') && !holding && !carry) {
         const state = readState();
         const step = selected === 'review-example' ? state?.review[reviewIndex] : undefined;
@@ -859,7 +864,8 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
         line.scale.z = hit?.distance || .84;
         hovered ??= hit?.id;
       }
-      if (fins || gear || inflator || focusStep) targets?.highlight(hovered, Boolean(focusStep));
+      const guidedTarget = current.guide ? (placing ? next?.attachment?.dock : next?.id) : undefined;
+      targets?.highlight(hovered, Boolean(focusStep), guidedTarget);
       panel.draw(current, hovered, placing, completed, inspecting, reviewIndex, demo, finChoice, hasController);
       renderer.render(scene, camera);
     },

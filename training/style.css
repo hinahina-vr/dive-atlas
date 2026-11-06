@@ -348,6 +348,7 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
   display: flex; align-items: center; gap: .45rem;
 }
 .choice .mark { flex: 0 0 16px; color: #2b736d; font: 700 .69rem ui-monospace, monospace; }
+.choice-gesture { margin-left: auto; color: #395f67; font-size: .67rem; white-space: nowrap; }
 .choice:hover { border-color: #60a99d; background: #d9f3ea; }
 .choice.is-guide, .primary { background: var(--mint); color: #0c423b; border-color: #78c7b1; }
 .choice.is-guide .mark { color: #246254; }

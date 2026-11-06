@@ -415,12 +415,16 @@ for (const mode of ['guided', 'recall']) {
     if (portraitLayout.matches || landscapeLayout.matches) showViewport();
   });
 }
-el.hint.addEventListener('click', () => {
-  if (!reveal(practice)) return;
+function revealHint() {
+  if (practice.mode !== 'recall' || hint || !reveal(practice)) return false;
   hint = true;
   saveCurrentDraft();
   feedback();
   render();
+  return true;
+}
+el.hint.addEventListener('click', () => {
+  if (!revealHint()) return;
   el.choices.querySelector('.is-guide')?.focus({ preventScroll: Boolean(view) });
   if (view && (portraitLayout.matches || landscapeLayout.matches)) showViewport();
 });
@@ -544,6 +548,9 @@ el['vr-practice'].addEventListener('click', async () => {
       retryFromResult() {
         if (practice !== run || run.index !== run.lesson.actions.length) return;
         return switchRun(run.lesson, 'recall', run.mode === 'recall' ? run.scenario : undefined);
+      },
+      requestHint() {
+        if (practice === run) revealHint();
       },
       press,
       trim,
@@ -792,6 +799,8 @@ function render() {
   const done = lesson.actions.slice(0, index).map(action => action.id);
   const showGuide = Boolean(step && (mode === 'guided' || hint));
   const available = practice.choices.filter(action => !done.includes(action.id));
+  const choiceLabel = action => mode === 'recall' && action.attachment && !(showGuide && action === step)
+    ? action.attachment.part + 'を持つ' : action.label;
 
   for (const option of ['guided', 'recall']) el[option].setAttribute('aria-pressed', String(!demo && mode === option));
   lessonButtons.forEach(({ item }, i) => {
@@ -810,9 +819,10 @@ function render() {
   el.viewport.classList.toggle('is-example', Boolean(demo));
   el['show-example'].setAttribute('aria-pressed', String(Boolean(demo)));
   el['show-example'].textContent = demo ? '見本を閉じる' : '見本を見る';
-  el['view-help'].textContent = immersive && ['sweep', 'reach'].includes(step?.id) ? 'ドラッグで右肩側を見る' :
-    step?.pressTime ? (step.id === 'add-air' ? '目印を短く押す' : '目印を押し続ける') :
-    step?.attachment ? 'ドラッグ／器材→目印をタップ' :
+  const guidedStep = showGuide || demo ? step : null;
+  el['view-help'].textContent = immersive && ['sweep', 'reach'].includes(guidedStep?.id) ? 'ドラッグで右肩側を見る' :
+    guidedStep?.pressTime ? (guidedStep.id === 'add-air' ? '目印を短く押す' : '目印を押し続ける') :
+    guidedStep?.attachment ? 'ドラッグ／器材→目印をタップ' :
     immersive && lesson.scene !== 'inflator' ? 'ドラッグで見回す' : 'ドラッグで回転';
   el.perspective.hidden = Boolean(demo) || !view || lesson.scene === 'gear';
   renderXREntry();
@@ -897,7 +907,13 @@ function render() {
     number.className = 'mark';
     number.textContent = guided ? '›' : String(i + 1).padStart(2, '0');
     number.setAttribute('aria-hidden', 'true');
-    item.append(number, action.label);
+    item.append(number, choiceLabel(action));
+    if (view && mode === 'recall' && action.pressTime > 300) {
+      const gesture = document.createElement('small');
+      gesture.className = 'choice-gesture';
+      gesture.textContent = '長押し';
+      item.append(gesture);
+    }
     return item;
   }));
 
@@ -917,8 +933,8 @@ function render() {
       if (action.pressTime) press.bind(marker, action);
       marker.dataset.part = action.id;
       marker.tabIndex = -1;
-      marker.setAttribute('aria-label', action.label);
-      marker.title = action.label;
+      marker.setAttribute('aria-label', choiceLabel(action));
+      marker.title = choiceLabel(action);
       marker.hidden = true;
       marks.set(action.anchor, marker);
       el.hotspots.append(marker);
