@@ -1,4 +1,4 @@
-import { lessons, newPractice, choose, reveal, needsReview, recoveryRoute } from './lessons.js';
+import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater } from './lessons.js';
 import { createPlacement } from './placement.js';
 import { createPress } from './press.js';
 import { createExample } from './example.js';
@@ -10,7 +10,7 @@ const el = Object.fromEntries([
   'viewport', 'scene', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall', 'view-label', 'view-subtitle', 'view-help',
   'rotate-left', 'rotate-right', 'reset-view', 'module-label', 'step-count', 'progress',
   'lesson-title', 'lesson-description', 'instruction', 'step-label', 'step-title', 'step-description',
-  'recovery-methods', 'recovery-search', 'recovery-clear',
+  'mask-settings', 'mask-fill', 'recovery-methods', 'recovery-search', 'recovery-clear',
   'show-example', 'example-guide', 'example-caption', 'example-controls', 'example-prev', 'example-play',
   'example-next', 'example-recall', 'example-exit', 'previous-review', 'previous-review-count', 'previous-review-list', 'practice-footer',
   'inspection-panel', 'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
@@ -206,6 +206,7 @@ function start(lesson, mode) {
   example.stop();
   press.cancel();
   if (lesson.id !== practice.lesson.id) immersive = ['mask', 'recovery', 'inflator'].includes(lesson.scene);
+  if (lesson.id === 'mask') el['mask-fill'].value = lesson.route || 'mask-partial';
   if (lesson.id === 'recovery') {
     const [search, clear] = (lesson.route || 'sweep-purge').split('-');
     el['recovery-search'].value = search;
@@ -217,16 +218,14 @@ function start(lesson, mode) {
   render();
 }
 
-function selectedRecovery() {
-  return recoveryRoute(el['recovery-search'].value + '-' + el['recovery-clear'].value);
-}
-
 function openLesson(lesson) {
-  start(lesson.id === 'recovery' ? selectedRecovery() : lesson, practice.mode);
+  const route = lesson.id === 'mask' ? el['mask-fill'].value :
+    lesson.id === 'recovery' ? el['recovery-search'].value + '-' + el['recovery-clear'].value : undefined;
+  start(lessonRoute(lesson, route), practice.mode);
 }
 
-for (const control of ['recovery-search', 'recovery-clear']) {
-  el[control].addEventListener('change', () => start(selectedRecovery(), practice.mode));
+for (const control of ['mask-fill', 'recovery-search', 'recovery-clear']) {
+  el[control].addEventListener('change', () => openLesson(practice.lesson));
 }
 
 const lessonIndex = lesson => lessons.findIndex(item => item.id === lesson.id);
@@ -366,7 +365,7 @@ function renderHistory() {
   if (detail.dataset.lesson !== lesson.id) detail.open = false;
   detail.dataset.lesson = lesson.id;
   el['previous-review-count'].textContent = record.steps.length ? '見直し ' + record.steps.length + '項目' : '見直しなし';
-  const original = lesson.id === 'recovery' ? recoveryRoute(record.route) : lesson;
+  const original = lessonRoute(lesson, record.route);
   const rows = original.actions.filter(action => record.steps.includes(action.id)).map(action => reviewRow(action, record.scenario, original));
   if (!rows.length) {
     const row = document.createElement('li');
@@ -402,12 +401,14 @@ function refreshEffect() {
 function renderEffects(lesson, done, pressure, active) {
   const has = id => done.includes(id);
   const clear = has('mask-exhale');
-  const water = clear ? 0 : 1 - (pressure['mask-exhale'] || 0);
+  const water = remainingMaskWater(lesson.maskFill ?? 0, clear, pressure['mask-exhale']);
   const air = has('vent') ? 0 : has('add-air') ? 1 - (pressure.vent || 0) : pressure['add-air'] || 0;
   const maskOverlay = el['mask-overlay'];
   maskOverlay.classList.toggle('is-pressed', active === 'mask-exhale');
   maskOverlay.classList.toggle('is-sealed', has('mask-hold') && !clear);
-  maskOverlay.style.setProperty('--mask-water', (46 * water) + '%');
+  maskOverlay.classList.toggle('is-clear', clear);
+  maskOverlay.classList.toggle('is-flooded', water >= .98);
+  maskOverlay.style.setProperty('--mask-water', (100 * water) + '%');
   const meter = el['effect-meter'];
   meter.hidden = !view || (lesson.scene !== 'mask' && lesson.scene !== 'inflator');
   const meterLabel = lesson.scene === 'mask' ? 'マスク内の水' : 'BCDのふくらみ';
@@ -437,7 +438,7 @@ function render() {
   });
   el['view-label'].textContent = lesson.label;
   const waterLabels = {
-    mask: done.includes('mask-exhale') ? 'マスク内の水が抜けた' : 'マスク内に水が入った',
+    mask: done.includes('mask-exhale') ? 'マスク内の水が抜けた' : lesson.subtitle,
     recovery: lesson.subtitle,
     inflator: '水中 · 目盛りを目安に浮き沈みを見る',
     fins: '水面 · 足元を見る'
@@ -475,6 +476,7 @@ function render() {
   }));
   el['lesson-title'].textContent = lesson.title;
   el['lesson-description'].textContent = lesson.description;
+  el['mask-settings'].hidden = lesson.id !== 'mask' || Boolean(demo);
   el['recovery-methods'].hidden = lesson.id !== 'recovery' || Boolean(demo);
   el['source-link'].href = lesson.source;
   el.hotspots.replaceChildren();

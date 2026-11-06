@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { chromium } from 'playwright-core';
-import { lessons, newPractice, choose, reveal, needsReview, recoveryRoute } from '../training/lessons.js';
+import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater, recoveryRoute } from '../training/lessons.js';
 import { readReview, reviewKey, saveReview } from '../training/reviews.js';
 import { writeTrainingWorker } from './training-offline.mjs';
 
@@ -75,6 +75,19 @@ reviewData.set(reviewKey(lessons[0]), '{broken');
 assert.equal(readReview(storage, lessons[0]), null);
 assert.deepEqual(saveReview({ setItem() { throw new Error('storage is blocked'); } }, gear, 123), record);
 checks.push('Review storage: separate drills, invalid records and unavailable storage');
+const mask = lessons.find(lesson => lesson.id === 'mask');
+const fullMask = lessonRoute(mask, 'mask-full');
+assert.equal(remainingMaskWater(mask.maskFill, false), .46);
+assert.equal(remainingMaskWater(fullMask.maskFill, false, .25), .75);
+assert.equal(remainingMaskWater(fullMask.maskFill, true), 0);
+assert(fullMask.actions.at(-1).pressTime > mask.actions.at(-1).pressTime);
+const fullRun = newPractice(fullMask, 'recall');
+assert.equal(choose(fullRun, 'mask-exhale').ok, false);
+for (const action of fullMask.actions) assert.equal(attempt(fullRun, action).ok, true);
+const fullReview = saveReview(storage, fullRun, 235);
+assert.deepEqual(fullReview, { completedAt: 235, steps: ['mask-breathe'], route: 'mask-full' });
+assert.deepEqual(readReview(storage, mask), fullReview);
+checks.push('Mask water: starts at the selected level and keeps the original full-water scene in review');
 const recovery = recoveryRoute('sweep-purge');
 for (const search of ['sweep', 'reach']) {
   for (const clear of ['purge', 'exhale']) {
@@ -195,6 +208,7 @@ try {
     await drag.end();
   }
   const meterLevel = page => page.locator('#effect-meter').evaluate(node => Number(node.style.getPropertyValue('--level')));
+  const maskLevel = page => page.locator('#mask-overlay').evaluate(node => Number.parseFloat(node.style.getPropertyValue('--mask-water')));
   async function operate(page, action, input) {
     await getChoice(page, action.id)[input]();
     if (action.attachment) await dockChoice(page, action.attachment.dock)[input]();
@@ -324,13 +338,15 @@ try {
   checks.push('1440 px gear-to-buddy: inflate, vent, incorrect weight decision, two repairs, air and final check');
 
   await desktop.getByRole('button', { name: 'マスククリア', exact: true }).click();
+  assert.equal(await maskLevel(desktop), 46);
+  assert.equal(await meterLevel(desktop), .46);
   await part(desktop, 'mask-breathe').click();
   await part(desktop, 'mask-hold').click();
   assert(await desktop.locator('#mask-overlay').evaluate(node => node.classList.contains('is-sealed')));
   await hold(desktop, 'mask-exhale', mouseDrag(desktop), .20);
   assert.equal(await value(desktop), '2');
   const remaining = await meterLevel(desktop);
-  assert(remaining > 0 && remaining < 1, 'An interrupted press preserves the remaining water');
+  assert(remaining > 0 && remaining < .46, 'An interrupted press preserves the remaining water');
   await desktop.screenshot({ path: join(output, 'desktop-mask-partial.png'), fullPage: true });
   await hold(desktop, 'mask-exhale', mouseDrag(desktop));
   assert.equal(await value(desktop), '3');
@@ -349,6 +365,30 @@ try {
   assert(!(await waterCanvas.screenshot()).equals(firstWaterFrame), 'Water light keeps moving after the exercise settles');
   await desktop.screenshot({ path: join(output, 'desktop-shallows.png'), fullPage: true });
   checks.push('1440 px shallow-water view: mask clears, camera can look down and water light continues moving');
+  await desktop.locator('#mask-fill').selectOption('mask-full');
+  assert.equal(await value(desktop), '0');
+  assert.equal(await maskLevel(desktop), 100);
+  await desktop.locator('#perspective').click();
+  assert(await desktop.locator('#mask-overlay').isHidden());
+  await desktop.locator('#show-example').click();
+  await desktop.locator('#example-play').click();
+  assert.equal(await maskLevel(desktop), 100);
+  await desktop.locator('#example-next').click();
+  await desktop.locator('#example-next').click();
+  assert.equal(await desktop.locator('#step-title').innerText(), '鼻から息を吐く');
+  await desktop.locator('#example-play').click();
+  await desktop.waitForFunction(() => {
+    const level = Number.parseFloat(document.querySelector('#mask-overlay').style.getPropertyValue('--mask-water'));
+    return level > 0 && level < 90;
+  });
+  await desktop.locator('#example-exit').click();
+  assert.equal(await value(desktop), '0');
+  assert.equal(await maskLevel(desktop), 100);
+  assert(await desktop.locator('#mask-overlay').isHidden());
+  await desktop.locator('#perspective').click();
+  for (const id of ['mask-breathe', 'mask-hold', 'mask-exhale']) await getChoice(desktop, id).press('Enter');
+  assert.equal(await maskLevel(desktop), 0);
+  checks.push('1440 px flooded mask: model view, gradual clear in the demonstration, keyboard run and return to practice');
   await desktop.locator('#next-lesson').click();
   await desktop.locator('#recovery-search').selectOption('reach');
   await desktop.locator('#show-example').click();
@@ -513,6 +553,39 @@ try {
   await mobile.locator('#perspective').tap();
   assert.equal(await mobile.locator('#perspective').getAttribute('aria-pressed'), 'false');
   assert(await mobile.locator('#mask-overlay').isHidden());
+  await mobile.locator('#perspective').tap();
+  await mobile.locator('#mask-fill').selectOption('mask-full');
+  await mobile.locator('#recall').tap();
+  assert.equal(await maskLevel(mobile), 100);
+  assert.equal(await meterLevel(mobile), 1);
+  await mobile.locator('#mask-overlay.is-flooded').waitFor();
+  await mobile.screenshot({ path: join(output, 'mobile-mask-full.png'), fullPage: true });
+  await getChoice(mobile, 'mask-exhale').press('Enter');
+  assert.equal(await value(mobile), '0');
+  await getChoice(mobile, 'mask-breathe').tap();
+  await getChoice(mobile, 'mask-hold').tap();
+  await mobile.evaluate(() => window.scrollTo(0, 0));
+  await hold(mobile, 'mask-exhale', waterInput, .25);
+  const fullRemaining = await maskLevel(mobile);
+  assert(fullRemaining > 0 && fullRemaining < 90);
+  assert.equal(await value(mobile), '2');
+  await mobile.screenshot({ path: join(output, 'mobile-mask-full-partly-clear.png'), fullPage: true });
+  assert.equal(await maskLevel(mobile), fullRemaining);
+  await hold(mobile, 'mask-exhale', waterInput);
+  assert.equal(await maskLevel(mobile), 0);
+  assert.equal(await value(mobile), '3');
+  const savedFull = await mobile.evaluate(key => JSON.parse(localStorage.getItem(key)), maskReviewKey);
+  assert.deepEqual(savedFull.steps, ['mask-breathe']);
+  assert.equal(savedFull.route, 'mask-full');
+  await mobile.reload();
+  await mobile.getByRole('button', { name: 'マスククリア', exact: true }).tap();
+  await mobile.locator('#mask-fill').selectOption('mask-partial');
+  await previous.locator('summary').tap();
+  await previous.getByRole('button', { name: '口で呼吸する手順の見本を見る', exact: true }).tap();
+  assert.equal(await maskLevel(mobile), 100);
+  await mobile.locator('#example-exit').tap();
+  assert.equal(await maskLevel(mobile), 46);
+  checks.push('390 px flooded mask: touch interruption, stable remaining water, complete clear and original scene replay after reload');
   for (const lesson of lessons.slice(3)) {
     await mobile.getByRole('button', { name: lesson.tab || lesson.title, exact: true }).tap();
     await mobile.locator('#hotspots .is-guide:visible').waitFor();
@@ -543,7 +616,9 @@ try {
       await mobile.locator('#recovery-clear').selectOption('exhale');
       assert.equal(await value(mobile), '0');
       assert.equal(await mobile.locator('#progress').getAttribute('aria-valuemax'), '6');
+      await mobile.evaluate(() => { window.__originalRandom = Math.random; Math.random = () => .36; });
       await mobile.locator('#recall').tap();
+      await mobile.evaluate(() => { Math.random = window.__originalRandom; delete window.__originalRandom; });
       await getChoice(mobile, 'bubbles').tap();
       await mobile.evaluate(() => window.scrollTo(0, 0));
       for (let i = 0; i < 3; i += 1) await mobile.locator('#rotate-right').tap();
@@ -555,6 +630,8 @@ try {
       await hold(mobile, 'trace-hose', waterInput);
       assert.equal(await value(mobile), '3');
       await mobile.locator('#reset-view').tap();
+      assert(await part(mobile, 'reg-breathe').isHidden());
+      assert(await part(mobile, 'reg-exhale').isHidden());
       await part(mobile, 'replace').tap();
       await dock(mobile, 'mouth').tap();
       await getChoice(mobile, 'reg-breathe').tap();
@@ -640,6 +717,10 @@ try {
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
   await noGl.getByRole('button', { name: 'マスククリア', exact: true }).tap();
   for (const action of lessons[2].actions) await operate(noGl, action, 'tap');
+  assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
+  await noGl.locator('#mask-fill').selectOption('mask-full');
+  assert.match(await noGl.locator('#view-subtitle').innerText(), /全体に水が入った/);
+  for (const action of fullMask.actions) await operate(noGl, action, 'tap');
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
   await noGl.getByRole('button', { name: 'レギュレーター回収', exact: true }).tap();
   await noGl.locator('#recovery-search').selectOption('reach');

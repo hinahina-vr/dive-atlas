@@ -1,4 +1,5 @@
 import * as T from '../vendor/three.module.js';
+import { remainingMaskWater } from './lessons.js';
 
 const mat = (color, roughness = .55, metalness = 0) => new T.MeshStandardMaterial({ color, roughness, metalness });
 const rubber = mat(0x172933, .83);
@@ -345,7 +346,9 @@ function kit(root, startAssembled, issues) {
   };
 }
 
-function diver(root, recovery, reachRoute = false) {
+function diver(root, lesson) {
+  const recovery = lesson.scene === 'recovery';
+  const reachRoute = lesson.route?.startsWith('reach');
   const torso = group(root, 0, -.08, 0);
   sphere(torso, .64, .84, .30, cloth, 0, -.64, -.15);
   sphere(torso, .38, .46, .33, rubber, 0, .53, 0);
@@ -369,9 +372,12 @@ function diver(root, recovery, reachRoute = false) {
     plate(mask, pane, .025, .026, lens, side * .185, .025, .095);
     sphere(mask, .057, .034, .025, white, side * .163, .09, .087);
     sphere(mask, .022, .023, .012, rubber, side * .160, .09, .108);
-    box(water, .242, .081, .021, lens, side * .183, .04, .132);
+    box(water, .242, .223, .021, lens, side * .183, .111, .132);
   }
   const regulator = octo(torso, aluminum, 0, .245, .433);
+  const replaceTarget = group(regulator);
+  const clearTarget = group(regulator);
+  const breathTarget = group(mask);
   const hoseOrigin = v(-.35, .33, -.35);
   const hoseEnd = v(0, 0, 0);
   const updateHose = flexibleHose(torso, .04, rubber, (from, to) => [
@@ -392,9 +398,9 @@ function diver(root, recovery, reachRoute = false) {
     anchors: recovery ? {
       bubbles: [torso, v(.20, .22, .59)], sweep: [arm, v(-.14, -.40, .12)],
       reach: [torso, v(-.56, .35, -.14)], 'trace-hose': [torso, v(-.71, .12, -.07)],
-      replace: [regulator, v(-.08, -.10, .12)], purge: [regulator, v(0, .01, .115)],
-      'reg-exhale': [regulator, v(-.19, -.10, .14)],
-      'reg-breathe': [mask, v(.34, -.06, .17)]
+      replace: [replaceTarget, v(-.08, -.10, .12)], purge: [clearTarget, v(0, .01, .115)],
+      'reg-exhale': [clearTarget, v(-.19, -.10, .14)],
+      'reg-breathe': [breathTarget, v(.34, -.06, .17)]
     } : {
       'mask-breathe': [regulator, v(.16, -.03, .14)], 'mask-hold': [mask, v(.05, .27, .14)],
       'mask-exhale': [mask, v(-.13, -.15, .23)]
@@ -418,6 +424,9 @@ function diver(root, recovery, reachRoute = false) {
       const purging = interaction.active === 'purge';
       regulator.userData.purge.position.z = purging ? .057 : .071;
       const retrieved = swept || traced;
+      replaceTarget.visible = retrieved && !replaced;
+      clearTarget.visible = replaced;
+      breathTarget.visible = replaced;
       const regPosition = recovery && !replaced
         ? v(retrieved ? -.80 : -.56, retrieved ? .06 : reachRoute ? .13 : -.39, retrieved ? .41 : -.31)
         : v(0, .245, .433);
@@ -428,7 +437,7 @@ function diver(root, recovery, reachRoute = false) {
       lower.rotation.x = T.MathUtils.lerp(lower.rotation.x, reaching ? -1.26 : retrieved && !replaced ? -.70 : -.12, k);
       fingertips.visible = !recovery && held;
       mask.rotation.x = T.MathUtils.lerp(mask.rotation.x, exhaling ? -.15 : held ? -.06 : 0, k);
-      const remaining = clear ? 0 : 1 - (interaction.pressure['mask-exhale'] || 0);
+      const remaining = remainingMaskWater(lesson.maskFill ?? 0, clear, interaction.pressure['mask-exhale']);
       water.scale.y = T.MathUtils.lerp(water.scale.y, remaining, k);
       water.visible = !recovery && water.scale.y > .015;
       bubbles.visible = recovery ? purging || interaction.active === 'reg-exhale' || (done.has('bubbles') && !replaced) : exhaling;
@@ -539,8 +548,8 @@ function fins(root, inWater = false) {
 export function makeModel(root, lesson, scenario) {
   switch (lesson.scene) {
     case 'gear': return kit(root, lesson.id === 'buddy', lesson.scenarios?.[scenario] || []);
-    case 'mask': return diver(root, false);
-    case 'recovery': return diver(root, true, lesson.route?.startsWith('reach'));
+    case 'mask':
+    case 'recovery': return diver(root, lesson);
     case 'inflator': return inflator(root);
     case 'fins': return fins(root);
     default: throw new Error('Unknown practice model');
@@ -685,6 +694,8 @@ function waterBackdrop(root) {
 
 function immersionRegulator(root, reachRoute) {
   const regulator = octo(root, teal, 1.56, -.37, 1.70);
+  const replaceTarget = group(regulator);
+  const clearTarget = group(regulator);
   regulator.rotation.y = -.48;
   const torso = group(root, 0, -.82, 2.0);
   sphere(torso, .38, .39, .25, cloth);
@@ -720,8 +731,8 @@ function immersionRegulator(root, reachRoute) {
     anchors: {
       bubbles: [bubbleAnchor, v(0, 0, 0)], sweep: [motionAnchor, v(0, 0, 0)],
       ...(reachPath ? { reach: [root, hoseOrigin], 'trace-hose': [root, reachPath.getPoint(.37)] } : {}),
-      replace: [regulator, v(0, .08, .015)], purge: [regulator, v(0, .04, .10)],
-      'reg-exhale': [regulator, v(-.21, -.09, .04)], 'reg-breathe': [breathingAnchor, v(0, 0, 0)]
+      replace: [replaceTarget, v(0, .08, .015)], purge: [clearTarget, v(0, .04, .10)],
+      'reg-exhale': [clearTarget, v(-.21, -.09, .04)], 'reg-breathe': [breathingAnchor, v(0, 0, 0)]
     },
     sync() {
       if (tracing && reachPath) {
@@ -738,6 +749,9 @@ function immersionRegulator(root, reachRoute) {
     update(done, k, time, interaction) {
       const recovered = done.has('sweep') || done.has('trace-hose');
       const replaced = done.has('replace');
+      replaceTarget.visible = recovered && !replaced;
+      clearTarget.visible = replaced;
+      breathingAnchor.visible = replaced;
       if (recovered && !recoveredBefore) elapsed = time;
       recoveredBefore = recovered;
       const wave = recovered && !reachRoute && !replaced && k < 1

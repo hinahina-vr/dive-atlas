@@ -1,4 +1,4 @@
-import { needsReview, recoveryRoute } from './lessons.js';
+import { needsReview, lessonRoute } from './lessons.js';
 
 const prefix = 'dive-atlas.owd-review.v1.';
 export const reviewKey = lesson => prefix + lesson.id;
@@ -7,7 +7,7 @@ export function readReview(storage, lesson) {
   try {
     const raw = JSON.parse(storage?.getItem(reviewKey(lesson)) || 'null');
     if (!raw || !Number.isSafeInteger(raw.completedAt) || raw.completedAt < 0 || !Array.isArray(raw.steps)) return null;
-    const original = lesson.id === 'recovery' ? recoveryRoute(raw.route) : lesson;
+    const original = lessonRoute(lesson, raw.route);
     const steps = original.actions.filter(action => raw.steps.includes(action.id)).map(action => action.id);
     const record = { completedAt: raw.completedAt, steps };
     if (original.scenarios && Object.hasOwn(original.scenarios, raw.scenario)) record.scenario = raw.scenario;

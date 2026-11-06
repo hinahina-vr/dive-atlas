@@ -101,16 +101,17 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .example-timer i { display: block; height: 100%; background: #b47727; border-radius: inherit; transform: scaleX(var(--time, 0)); transform-origin: left; }
 .example-transport { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 7px; margin-bottom: 8px; }
 #example-recall { margin-right: 8px; }
-#recovery-methods {
+.lesson-settings {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 9px;
   margin: 12px 0; color: #325963; font-size: .75rem;
 }
-#recovery-methods label { display: grid; gap: 4px; font-weight: 700; }
-#recovery-methods select {
+.lesson-settings label { display: grid; gap: 4px; font-weight: 700; }
+#mask-settings label { grid-column: 1 / -1; }
+.lesson-settings select {
   width: 100%; min-height: 43px; padding: 4px 7px; border: 1px solid #9bcac1;
   border-radius: 7px; color: #17444b; background: #eefaf5; font: inherit;
 }
-#recovery-methods p { grid-column: 1 / -1; }
+.lesson-settings p { grid-column: 1 / -1; }
 #inspection-panel {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
   margin-top: 8px; padding: 11px; border: 1px solid #75b2aa; border-radius: 9px; background: #f1faf4;
@@ -216,6 +217,8 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   border-top: 2px solid #c9fff8bc; background: linear-gradient(#93f6e37d, #3185a9a6);
   backdrop-filter: blur(3px); transition: height .45s ease; border-radius: 26% 23% 0 0 / 6% 7% 0 0;
 }
+#mask-overlay.is-flooded .mask-window span { border-top-color: transparent; border-radius: 0; }
+#mask-overlay.is-clear .mask-window span { opacity: 0; }
 #perspective {
   position: absolute; z-index: 2; top: 14px; right: 14px;
   min-height: 42px; padding: 0 10px; border: 1px solid #79aaa5;
@@ -308,7 +311,9 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
   .viewport { height: clamp(280px, 39svh, 380px); }
   .panel { padding: 14px; }
   .view-title { top: 12px; left: 12px; }
-  #perspective { top: 9px; right: 9px; }
+  #mask-overlay.is-flooded .mask-window span { border-top-color: transparent; border-radius: 0; }
+#mask-overlay.is-clear .mask-window span { opacity: 0; }
+#perspective { top: 9px; right: 9px; }
   .view-controls { bottom: 9px; right: 9px; }
   #view-help { bottom: 21px; left: 12px; }
   .footnote { flex-wrap: wrap; }

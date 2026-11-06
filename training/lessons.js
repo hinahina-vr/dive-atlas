@@ -89,7 +89,8 @@ export const lessons = [
   },
   {
     id: 'mask', title: 'マスククリア', label: 'MASK CLEAR',
-    subtitle: '水中 · マスクに少し水が入った場面',
+    subtitle: 'マスクに半分ほど水が入った',
+    maskFill: .46,
     description: 'マスク内の水を鼻から吐く息で出し、口で呼吸を続ける練習です。',
     scene: 'mask', source: 'https://blog.padi.com/how-to-clear-your-mask/',
     actions: [
@@ -139,6 +140,19 @@ export const lessons = [
   }
 ];
 
+const mask = lessons.find(lesson => lesson.id === 'mask');
+const fullMask = {
+  ...mask,
+  route: 'mask-full',
+  subtitle: 'マスク全体に水が入った',
+  maskFill: 1,
+  actions: mask.actions.map(step => step.id === 'mask-exhale' ? { ...step, pressTime: 2050 } : step)
+};
+
+export function remainingMaskWater(initial, cleared, progress = 0) {
+  return cleared ? 0 : initial * (1 - progress);
+}
+
 const recovery = lessons.find(lesson => lesson.id === 'recovery');
 const [bubbles, sweep, replace, purge, breathe] = recovery.actions;
 const reach = action('reach', '右肩の後ろでホースを探す',
@@ -160,6 +174,12 @@ const recoveryRoutes = new Map([
 
 export function recoveryRoute(key) {
   return recoveryRoutes.get(key) || recovery;
+}
+
+export function lessonRoute(lesson, key) {
+  if (lesson.id === 'mask') return key === 'mask-full' ? fullMask : mask;
+  if (lesson.id === 'recovery') return recoveryRoute(key);
+  return lesson;
 }
 
 export function newPractice(lesson, mode, random = Math.random) {
