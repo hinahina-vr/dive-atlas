@@ -114,7 +114,8 @@ function closeInspection(restoreFocus = false) {
   el['inspection-panel'].hidden = true;
   el['inspection-panel'].replaceChildren();
   if (old) el.choices.hidden = false;
-  el.viewport.classList.remove('is-inspecting');
+  el.viewport.classList.remove('is-inspecting', 'has-detail');
+  if (old) view?.focusDetail();
   old?.marker?.classList.remove('is-inspection-target');
   if (restoreFocus && old?.keyboard) old.source.focus({ preventScroll: true });
 }
@@ -129,7 +130,15 @@ function openInspection(action, source, keyboard) {
   const prompt = document.createElement('p');
   prompt.textContent = action.inspection.prompt;
   panel.replaceChildren(prompt);
-  if (!view) {
+  if (action.inspection.note) {
+    const note = document.createElement('p');
+    note.className = 'inspection-note';
+    note.textContent = action.inspection.note;
+    panel.append(note);
+  }
+  const closeUp = action.inspection.closeUp && view?.focusDetail(action.id);
+  el.viewport.classList.toggle('has-detail', Boolean(closeUp));
+  if (!view || (action.inspection.closeUp && !closeUp)) {
     const evidence = document.createElement('p');
     evidence.textContent = inspectionEvidence(action, practice.lesson, practice.scenario);
     panel.append(evidence);
@@ -146,12 +155,26 @@ function openInspection(action, source, keyboard) {
   el.viewport.classList.add('is-inspecting');
   panel.hidden = false;
   el.choices.hidden = true;
-  if (panel.getBoundingClientRect().bottom > innerHeight) panel.scrollIntoView({ block: 'nearest' });
+  if (panel.getBoundingClientRect().top < 0 || panel.getBoundingClientRect().bottom > innerHeight) {
+    panel.scrollIntoView({ block: 'nearest' });
+  }
   if (keyboard) panel.querySelector('button').focus({ preventScroll: true });
 }
 
+function inspectionFault(action, lesson, scenario) {
+  return lesson.scenarios[scenario].includes(action.id);
+}
+
 function inspectionEvidence(action, lesson, scenario) {
-  return action.inspection.evidence[Number(lesson.scenarios[scenario].includes(action.id))];
+  return action.inspection.evidence[Number(inspectionFault(action, lesson, scenario))];
+}
+
+function exampleInspection(action, lesson, scenario) {
+  const { inspection } = action;
+  if (!inspection) return '';
+  const note = inspection.note ? inspection.note + '。' : '';
+  const result = inspectionFault(action, lesson, scenario) ? inspection.corrected : '';
+  return note + inspectionEvidence(action, lesson, scenario) + (result || '');
 }
 
 function apply(id, fromKeyboard = false, dock) {
@@ -282,7 +305,7 @@ function drawExample(state) {
 
 function drawExampleGuide(state, positions, docks) {
   const guide = el['example-guide'];
-  const point = state.motion >= 1 ? null : positions[state.step.anchor];
+  const point = state.motion >= 1 || state.step.inspection?.closeUp ? null : positions[state.step.anchor];
   const dock = point && state.step.attachment ? docks[state.step.attachment.dock] : null;
   guide.toggleAttribute('hidden', !point && !dock);
   if (!point && !dock) return;
@@ -439,8 +462,9 @@ function render() {
     el.instruction.hidden = false;
     el['step-label'].textContent = demo.complete ? '見本はここまで' : '見本 · ' + (demo.index + 1) + ' / ' + lesson.actions.length;
     el['step-title'].textContent = demo.complete ? '今度は自分で試す' : step.label;
-    const evidence = step.inspection ? ' ' + inspectionEvidence(step, lesson, demo.scenario) : '';
-    el['step-description'].textContent = demo.complete ? '同じ種目をヒントなしで練習できます。' : step.detail + evidence;
+    el['step-description'].textContent = demo.complete
+      ? '同じ種目をヒントなしで練習できます。'
+      : step.detail + exampleInspection(step, lesson, demo.scenario);
     el['example-caption'].firstElementChild.textContent = demo.complete ? '✓' : String(demo.index + 1).padStart(2, '0');
     el['example-caption'].lastElementChild.textContent = demo.complete ? '見本はここまで' : step.label;
     el['example-prev'].disabled = !demo.complete && demo.index === demo.first;

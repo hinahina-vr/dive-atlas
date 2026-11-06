@@ -32,6 +32,8 @@ export function createView(container, onProject) {
   const look = new T.Vector3(0, -.06, 0);
   const fog = new T.FogExp2(0x5abfc0, .098);
   const direction = new T.Vector3();
+  const detailOrbit = new T.Spherical(1, Math.PI / 2, 0);
+  let detail;
   let alternateView = false;
   let firstPerson = false;
   let model;
@@ -81,7 +83,14 @@ export function createView(container, onProject) {
     const settling = time - changed < 620;
     const k = reducedMotion.matches || !settling ? 1 : 1 - Math.exp(-delta / 79);
     model.update(done, k, reducedMotion.matches ? 240 : time, interaction);
-    if (firstPerson) {
+    if (detail) {
+      const [parent, position, distance] = detail;
+      parent.localToWorld(anchorPoint.copy(position));
+      const fit = Math.max(1, .87 / camera.aspect);
+      direction.setFromSpherical(detailOrbit).transformDirection(parent.matrixWorld);
+      camera.position.copy(anchorPoint).addScaledVector(direction, distance * fit);
+      camera.lookAt(anchorPoint);
+    } else if (firstPerson) {
       camera.position.copy(look);
       const exhaling = interaction.active === 'mask-exhale' && !reducedMotion.matches;
       const phi = orbit.phi - (exhaling ? .12 : 0);
@@ -130,8 +139,13 @@ export function createView(container, onProject) {
   canvas.addEventListener('webglcontextrestored', queue);
 
   function rotate(amount, tilt = 0) {
-    orbit.theta = firstPerson ? T.MathUtils.clamp(orbit.theta + amount, -1.42, 1.42) : orbit.theta + amount;
-    orbit.phi = T.MathUtils.clamp(orbit.phi + tilt, .40, firstPerson ? 2.64 : 1.76);
+    if (detail) {
+      detailOrbit.theta = T.MathUtils.clamp(detailOrbit.theta + amount, -.40, .40);
+      detailOrbit.phi = T.MathUtils.clamp(detailOrbit.phi + tilt, 1.2, 1.94);
+    } else {
+      orbit.theta = firstPerson ? T.MathUtils.clamp(orbit.theta + amount, -1.42, 1.42) : orbit.theta + amount;
+      orbit.phi = T.MathUtils.clamp(orbit.phi + tilt, .40, firstPerson ? 2.64 : 1.76);
+    }
     queue();
   }
 
@@ -161,22 +175,39 @@ export function createView(container, onProject) {
     }
     queue();
   }
+  function focusDetail(action) {
+    const next = model?.details?.[action];
+    if (detail === next) return Boolean(detail);
+    detail = next;
+    interaction.detail = next ? action : undefined;
+    detailOrbit.set(1, Math.PI / 2, 0);
+    changed = performance.now();
+    queue();
+    return Boolean(detail);
+  }
+
   let previous;
   let previousScenario;
   return {
     rotate,
-    resetCamera: () => resetCamera(previous),
+    resetCamera() {
+      detailOrbit.set(1, Math.PI / 2, 0);
+      resetCamera(previous);
+    },
+    focusDetail,
     focusExample(action) {
       resetCamera(previous);
+      if (focusDetail(action)) return;
       if (firstPerson && previous.scene === 'recovery' && action === 'sweep') orbit.theta = 1.32;
     },
     cameraPose: () => orbit.clone(),
     restoreCamera(pose) {
+      focusDetail();
       if (pose) orbit.copy(pose);
       queue();
     },
     interact(pressure, active) {
-      interaction = { pressure, active };
+      interaction = { pressure, active, detail: interaction.detail };
       changed = performance.now();
       queue();
     },
@@ -195,6 +226,7 @@ export function createView(container, onProject) {
     show(lesson, finished, immersive, scenario) {
       if (previous !== lesson || immersive !== alternateView || previousScenario !== scenario) {
         grip = null;
+        focusDetail();
         if (root) {
           scene.remove(root);
           root.traverse(object => {

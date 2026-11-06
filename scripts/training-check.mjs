@@ -33,38 +33,44 @@ for (const lesson of lessons) {
   assert.deepEqual(needsReview(practice), [first, second]);
   assert.equal(choose(practice, third.id), null);
 }
-const gear = newPractice(lessons[0], 'recall');
-assert.equal(choose(gear, 'inspect').ok, true);
+const gear = newPractice(lessons[0], 'recall', () => .9);
+for (const action of gear.lesson.actions.slice(0, 2)) assert.equal(attempt(gear, action).ok, true);
 assert.equal(choose(gear, 'bcd', 'valve').wrongDock, true);
-assert.equal(gear.index, 1);
+assert.equal(gear.index, 2);
 assert.deepEqual(needsReview(gear).map(action => action.id), ['bcd']);
 assert.equal(choose(gear, 'bcd', 'cylinder').ok, true);
 checks.push('All drill states: wrong order, wrong destination, hints, full run, completion and review');
 const buddy = lessons[1];
-for (const [index, scenario] of ['weight', 'buckle', 'hose', 'ready'].entries()) {
-  const run = newPractice(buddy, 'recall', () => (index + .25) / 4);
-  assert.equal(run.scenario, scenario);
-  for (const action of buddy.actions) {
-    if (action.inspection) {
-      const answer = inspectionAnswer(buddy, scenario, action);
-      const before = run.index;
-      assert.equal(choose(run, action.id), null);
-      assert.equal(choose(run, action.id, answer === 'repair' ? 'normal' : 'repair').wrongInspection, true);
-      assert.equal(run.index, before);
+for (const lesson of [gear.lesson, buddy]) {
+  const scenarios = Object.keys(lesson.scenarios).slice(1);
+  for (const [index, scenario] of scenarios.entries()) {
+    const run = newPractice(lesson, 'recall', () => (index + .25) / scenarios.length);
+    assert.equal(run.scenario, scenario);
+    for (const action of lesson.actions) {
+      if (action.inspection) {
+        const answer = inspectionAnswer(lesson, scenario, action);
+        const before = run.index;
+        assert.equal(choose(run, action.id), null);
+        assert.equal(choose(run, action.id, answer === 'repair' ? 'normal' : 'repair').wrongInspection, true);
+        assert.equal(run.index, before);
+      }
+      assert.equal(attempt(run, action).ok, true);
     }
-    assert.equal(attempt(run, action).ok, true);
+    assert.equal(run.index, lesson.actions.length);
   }
-  assert.equal(run.index, buddy.actions.length);
 }
-checks.push('Buddy diagnosis: all four recall scenarios, false positives and missed faults, correction before proceeding');
+checks.push('Gear and buddy diagnosis: all recall scenarios, false positives and missed faults, correction before proceeding');
 const reviewData = new Map();
 const storage = { getItem: key => reviewData.get(key), setItem: (key, raw) => reviewData.set(key, raw) };
 assert.equal(saveReview(storage, gear, 123), null);
 for (const action of lessons[0].actions.slice(gear.index)) assert.equal(attempt(gear, action).ok, true);
 const record = saveReview(storage, gear, 123);
-assert.deepEqual(record, { completedAt: 123, steps: ['bcd'] });
+assert.deepEqual(record, { completedAt: 123, steps: ['bcd'], scenario: 'ready' });
 assert.deepEqual(readReview(storage, lessons[0]), record);
 assert.equal(readReview(storage, lessons[1]), null);
+const legacyGearReview = { completedAt: 123, steps: ['inspect'] };
+reviewData.set(reviewKey(lessons[0]), JSON.stringify(legacyGearReview));
+assert.deepEqual(readReview(storage, lessons[0]), legacyGearReview);
 reviewData.set(reviewKey(lessons[0]), '{broken');
 assert.equal(readReview(storage, lessons[0]), null);
 assert.deepEqual(saveReview({ setItem() { throw new Error('storage is blocked'); } }, gear, 123), record);
@@ -126,6 +132,7 @@ try {
   const dock = (page, id) => page.locator('#dock-markers [data-dock="' + id + '"]');
   const dockChoice = (page, id) => page.locator('#placement-menu [data-dock-choice="' + id + '"]');
   const value = page => page.locator('#progress').getAttribute('aria-valuenow');
+  const answer = (page, id) => page.locator('#inspection-panel [data-answer="' + id + '"]');
   const center = async locator => {
     await locator.waitFor();
     const box = await locator.boundingBox();
@@ -170,6 +177,7 @@ try {
   async function operate(page, action, input) {
     await getChoice(page, action.id)[input]();
     if (action.attachment) await dockChoice(page, action.attachment.dock)[input]();
+    if (action.inspection) await answer(page, action.id === 'inspect-ring' ? 'repair' : 'normal')[input]();
   }
   const position = locator => locator.evaluate(item => [item.style.left, item.style.top].join('/'));
   async function ready(page) {
@@ -204,7 +212,17 @@ try {
   }, original);
   await desktop.screenshot({ path: join(output, 'desktop-gear.png'), fullPage: true });
   await firstMarker.click();
-  assert.equal(await desktop.locator('#progress').getAttribute('aria-valuenow'), '1');
+  assert(await desktop.locator('#viewport.has-detail').isVisible());
+  assert.match(await desktop.locator('#inspection-panel').innerText(), /2026年11月/);
+  await desktop.screenshot({ path: join(output, 'desktop-cylinder-date.png'), fullPage: true });
+  await answer(desktop, 'repair').click();
+  assert.equal(await value(desktop), '0');
+  await answer(desktop, 'normal').click();
+  await getChoice(desktop, 'inspect-ring').press('Enter');
+  assert(await desktop.locator('#viewport.has-detail').isVisible());
+  await desktop.screenshot({ path: join(output, 'desktop-cylinder-seal.png'), fullPage: true });
+  await answer(desktop, 'repair').press('Enter');
+  assert.equal(await value(desktop), '2');
   await desktop.locator('#show-example').click();
   assert(await desktop.locator('#example-controls').isVisible());
   assert(await desktop.locator('#choices').isHidden());
@@ -214,8 +232,10 @@ try {
   await desktop.waitForTimeout(300);
   assert.equal(await exampleTime(), pausedAt);
   await desktop.locator('#example-play').click();
-  await desktop.waitForFunction(() => document.querySelector('#step-title')?.textContent === 'BCDを取り付ける');
+  await desktop.waitForFunction(() => document.querySelector('#step-title')?.textContent === 'Oリングを確認');
   await desktop.locator('#example-play').click();
+  await desktop.locator('#example-next').click();
+  assert.equal(await desktop.locator('#step-title').innerText(), 'BCDを取り付ける');
   await desktop.locator('#example-guide').waitFor({ state: 'visible' });
   assert.equal(await desktop.locator('#example-guide line').getAttribute('hidden'), null);
   await desktop.screenshot({ path: join(output, 'desktop-example.png'), fullPage: true });
@@ -224,36 +244,45 @@ try {
   await desktop.locator('#example-prev').click();
   assert.equal(await desktop.locator('#step-title').innerText(), 'BCDを取り付ける');
   await desktop.locator('#example-exit').click();
-  assert.equal(await value(desktop), '1');
+  assert.equal(await value(desktop), '2');
   assert(await desktop.locator('#example-controls').isHidden());
   assert(await desktop.locator('#choices').isVisible());
   checks.push('1440 px example: autoplay, pause, 3D target overlay, seek and return to an in-progress drill');
   await movePart(desktop, 'bcd', 'valve', mouseDrag(desktop));
-  assert.equal(await value(desktop), '1');
+  assert.equal(await value(desktop), '2');
   assert.equal(await desktop.locator('#feedback').getAttribute('data-tone'), 'retry');
   assert(await desktop.locator('#scene-feedback').isVisible());
   await part(desktop, 'bcd').hover();
   await movePart(desktop, 'bcd', 'cylinder', mouseDrag(desktop), async () => {
-    assert.equal(await value(desktop), '1');
+    assert.equal(await value(desktop), '2');
     await desktop.screenshot({ path: join(output, 'desktop-placement.png'), fullPage: true });
   });
-  assert.equal(await value(desktop), '2');
-  for (const action of lessons[0].actions.slice(2)) {
+  assert.equal(await value(desktop), '3');
+  for (const action of lessons[0].actions.slice(3)) {
     if (action.attachment) {
       await part(desktop, action.id).hover();
       await movePart(desktop, action.id, action.attachment.dock, mouseDrag(desktop));
+    } else if (action.id === 'pressure') {
+      await getChoice(desktop, 'pressure').click();
+      assert(await desktop.locator('#viewport.has-detail').isVisible());
+      await desktop.waitForTimeout(650);
+      await desktop.screenshot({ path: join(output, 'desktop-pressure-gauge.png'), fullPage: true });
+      await answer(desktop, 'repair').click();
+      assert.equal(await value(desktop), String(gear.lesson.actions.length - 1));
+      await answer(desktop, 'normal').click();
     } else {
       await operate(desktop, action, 'click');
     }
   }
   assert.match(await desktop.locator('#review').innerText(), /BCDを取り付ける/);
+  checks.push('1440 px gear close-ups: date, seal, gauge, correct and incorrect answers');
   assert.equal(await desktop.locator('#result-heading').innerText(), 'もう一度見ておきたい手順');
   await desktop.locator('#next-lesson').click();
   assert.equal(await desktop.locator('#lesson-title').innerText(), 'バディチェック');
   await desktop.locator('#hotspots .is-guide:visible').waitFor();
   await desktop.screenshot({ path: join(output, 'desktop-buddy.png'), fullPage: true });
   for (const id of ['buoyancy', 'buddy-vent']) await hold(desktop, id, mouseDrag(desktop));
-  const answer = (page, id) => page.locator('#inspection-panel [data-answer="' + id + '"]');
+
   await part(desktop, 'weights').click();
   await answer(desktop, 'normal').click();
   assert.equal(await value(desktop), '2');
@@ -307,12 +336,15 @@ try {
     return [marker.style.left, marker.style.top].join('/') !== before;
   }, before);
   await getChoice(mobileDrag, 'inspect').press('Enter');
+  await answer(mobileDrag, 'normal').press('Enter');
+  await getChoice(mobileDrag, 'inspect-ring').press('Enter');
+  await answer(mobileDrag, 'repair').press('Enter');
   await mobileDrag.evaluate(() => window.scrollTo(0, 0));
   await mobileDrag.locator('#reset-view').press('Enter');
   await movePart(mobileDrag, 'bcd', 'cylinder', touchDrag(input), async () => {
     await mobileDrag.screenshot({ path: join(output, 'mobile-placement.png'), fullPage: true });
   });
-  assert.equal(await value(mobileDrag), '2');
+  assert.equal(await value(mobileDrag), '3');
   // Raw DevTools drag input and Playwright tap input use separate touch sessions.
   await mobileDrag.context().close();
   const mobile = await testPage(mobileSize, true);
@@ -331,12 +363,31 @@ try {
   await ready(mobile);
   checks.push('390 px cold start: a water lesson selected while 3D loads starts in its water view');
   await part(mobile, 'inspect').tap();
+  assert(await mobile.locator('#viewport.has-detail').isVisible());
+  await answer(mobile, 'normal').tap();
+  await getChoice(mobile, 'inspect-ring').tap();
+  await mobile.screenshot({ path: join(output, 'mobile-cylinder-seal.png'), fullPage: true });
+  await answer(mobile, 'repair').tap();
   await part(mobile, 'bcd').tap();
   await dock(mobile, 'cylinder').tap();
-  assert.equal(await value(mobile), '2');
-  await mobile.getByRole('button', { name: 'バディチェック', exact: true }).tap();
-  await mobile.evaluate(() => { window.__originalRandom = Math.random; Math.random = () => .38; });
+  assert.equal(await value(mobile), '3');
+  for (const action of gear.lesson.actions.slice(3, -1)) await operate(mobile, action, 'tap');
+  await getChoice(mobile, 'pressure').tap();
+  await mobile.screenshot({ path: join(output, 'mobile-pressure-gauge.png'), fullPage: true });
+  await answer(mobile, 'normal').tap();
+  assert.equal(await value(mobile), String(gear.lesson.actions.length));
+  await mobile.evaluate(() => { window.__originalRandom = Math.random; Math.random = () => .1; });
   await mobile.locator('#recall').tap();
+  await mobile.evaluate(() => { Math.random = window.__originalRandom; delete window.__originalRandom; });
+  await getChoice(mobile, 'inspect').tap();
+  await mobile.screenshot({ path: join(output, 'mobile-cylinder-expired.png'), fullPage: true });
+  await answer(mobile, 'normal').tap();
+  assert.equal(await value(mobile), '0');
+  await answer(mobile, 'repair').tap();
+  assert.match(await mobile.locator('#feedback').innerText(), /検査期限内のシリンダーに交換/);
+  checks.push('390 px touch: open close-ups, find a damaged seal, attach BCD, read gauge and replace an expired cylinder');
+  await mobile.evaluate(() => { window.__originalRandom = Math.random; Math.random = () => .38; });
+  await mobile.getByRole('button', { name: 'バディチェック', exact: true }).tap();
   await mobile.evaluate(() => { Math.random = window.__originalRandom; delete window.__originalRandom; });
   for (const id of ['buoyancy', 'buddy-vent']) await getChoice(mobile, id).press('Enter');
   await getChoice(mobile, 'weights').tap();
@@ -475,7 +526,7 @@ try {
   await noGl.locator('.scene-error').waitFor();
   await noGl.locator('#show-example').tap();
   await noGl.locator('#example-next').tap();
-  assert.equal(await noGl.locator('#step-title').innerText(), 'BCDを取り付ける');
+  assert.equal(await noGl.locator('#step-title').innerText(), 'Oリングを確認');
   await noGl.locator('#example-exit').tap();
   for (const action of lessons[0].actions) await operate(noGl, action, 'tap');
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');

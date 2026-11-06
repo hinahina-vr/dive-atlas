@@ -128,11 +128,15 @@ function kit(root, startAssembled, issues) {
   cyl(tank, .378, .134, rubber, 0, -1.064, 0);
   cyl(tank, .379, .1, teal, 0, .615, 0);
   textPlate(tank, 'DIVE / 01', '#163b42', .48, 0, .46, .378);
-  textPlate(tank, 'AIR', '#233d40', .21, 0, .35, .378);
+  textPlate(tank, '検査期限', '#163b42', .36, 0, .28, .378);
+  const validDate = textPlate(tank, '2028/05', '#163b42', .44, 0, .195, .378);
+  const expiredDate = textPlate(tank, '2026/08', '#163b42', .44, 0, .195, .378);
   cyl(tank, .11, .15, metal, 0, 1.04, 0);
   box(tank, .24, .14, .18, aluminum, 0, 1.15, 0);
   cyl(tank, .087, .062, metal, 0, 1.15, .104, 'z');
   const seal = ring(tank, .051, .011, rubber, 0, 1.15, .139);
+  const damagedSeal = mesh(tank, new T.TorusGeometry(.051, .011, 10, 32, 5), rubber, 0, 1.15, .139);
+  damagedSeal.rotation.z = .42;
   const knob = group(tank, .17, 1.15, 0);
   cyl(knob, .077, .12, rubber, 0, 0, 0, 'x');
   for (let i = 0; i < 10; i += 1) {
@@ -223,14 +227,22 @@ function kit(root, startAssembled, issues) {
   ]);
   cyl(gauge, .142, .083, rubber, 0, 0, 0, 'z');
   cyl(gauge, .118, .015, white, 0, 0, .048, 'z');
-  textPlate(gauge, 'bar', '#24535b', .087, 0, -.06, .06);
-  for (let i = 0; i < 9; i += 1) {
-    const a = 2.25 - i * .56;
-    const tick = box(gauge, .008, .018, .006, i < 2 ? coral : gray, Math.sin(a) * -.092, Math.cos(a) * .092, .059);
+  textPlate(gauge, 'bar', '#24535b', .10, 0, -.062, .060);
+  const gaugeAngle = bar => 2.18 * (1 - bar / 150);
+  for (let bar = 0; bar <= 300; bar += 25) {
+    const a = gaugeAngle(bar);
+    const major = bar % 100 === 0;
+    const tick = box(gauge, .0045, major ? .019 : .010, .005, bar < 50 ? coral : gray,
+      -Math.sin(a) * .101, Math.cos(a) * .101, .059);
     tick.rotation.z = a;
+    if (major) {
+      const x = -Math.sin(a) * .070;
+      const y = Math.cos(a) * .070;
+      textPlate(gauge, String(bar), '#163b42', .094, x + Math.sign(x) * .010, y - .012, .063);
+    }
   }
   const needle = group(gauge, 0, 0, .065);
-  box(needle, .011, .091, .008, coral, 0, .037, 0);
+  box(needle, .006, .091, .008, coral, 0, .037, 0);
   cyl(needle, .014, .009, rubber, 0, 0, 0, 'z');
   const clip = box(jacket, .077, .098, .048, amber, .43, -.015, .36);
   box(jacket, .077, .098, .048, aluminum, -.49, -.38, .34);
@@ -254,7 +266,8 @@ function kit(root, startAssembled, issues) {
 
   return {
     anchors: {
-      inspect: [tank, v(0, 1.25, .18)], bcd: [jacket, v(-.04, .18, .34)], lock: [bandLatch, v(.14, .02, .08)],
+      inspect: [tank, v(0, .24, .39)], 'inspect-ring': [tank, v(0, 1.23, .18)],
+      bcd: [jacket, v(-.04, .18, .34)], lock: [bandLatch, v(.14, .02, .08)],
       uncap: [dustCap, v(.04, -.01, .015)], first: [reg, v(.12, .22, .13)],
       connect: startAssembled ? [inflator, v(-.11, 0, .13)] : [coupler, v(.05, 0, .045)],
       stow: [clip, v(.18, .05, .1)], open: [knob, v(.11, .03, .07)],
@@ -267,6 +280,11 @@ function kit(root, startAssembled, issues) {
       cylinder: [tank, v(0, .02, .39)],
       valve: [tank, v(0, 1.15, .145)],
       inflator: [inflator, inlet]
+    },
+    details: {
+      inspect: [tank, v(0, .235, .38), .92],
+      'inspect-ring': [tank, v(0, 1.15, .139), .44],
+      pressure: [gauge, v(0, 0, .067), .61]
     },
     grabbable: { bcd: jacket, first: reg, connect: coupler },
     sync() {
@@ -307,9 +325,13 @@ function kit(root, startAssembled, issues) {
       secure(spare, spareClip, looseSpare ? spareLoose : spareRest, stow && !looseSpare, k);
       secure(gauge, gaugeClip, gaugeRest, stow, k);
       knob.rotation.x = T.MathUtils.lerp(knob.rotation.x, open ? 2.35 : 0, k);
-      gauge.rotation.y = T.MathUtils.lerp(gauge.rotation.y, done.has('gauge-away') && !done.has('pressure') ? 2.82 : .08, k);
-      needle.rotation.z = T.MathUtils.lerp(needle.rotation.z, open ? -.72 : 2.18, k);
-      seal.material = done.has('inspect') ? lime : rubber;
+      const gaugeAway = done.has('gauge-away') && !done.has('pressure') && interaction.detail !== 'pressure';
+      gauge.rotation.y = T.MathUtils.lerp(gauge.rotation.y, gaugeAway ? 2.82 : .08, k);
+      needle.rotation.z = T.MathUtils.lerp(needle.rotation.z, gaugeAngle(open ? 200 : 0), k);
+      expiredDate.visible = fault('inspect');
+      validDate.visible = !expiredDate.visible;
+      damagedSeal.visible = fault('inspect-ring');
+      seal.visible = !damagedSeal.visible;
       tankBand.visible = bcd;
       bandLatch.visible = bcd;
       latchHandle.rotation.y = T.MathUtils.lerp(latchHandle.rotation.y, startAssembled || done.has('lock') ? 0 : -.94, k);

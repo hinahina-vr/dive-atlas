@@ -106,6 +106,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   margin-top: 8px; padding: 11px; border: 1px solid #75b2aa; border-radius: 9px; background: #f1faf4;
 }
 #inspection-panel p { grid-column: 1 / -1; font-size: .83rem; line-height: 1.55; }
+#inspection-panel .inspection-note { color: #325963; font-size: .76rem; }
 #inspection-panel .quiet { grid-column: 1 / -1; justify-self: end; min-height: 38px; padding-inline: 8px; }
 #previous-review { margin-top: 13px; border: 1px solid var(--line); border-radius: 8px; color: #325963; font-size: .79rem; }
 #previous-review summary {
@@ -151,6 +152,8 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .is-placing #hotspots .hotspot { opacity: 0; pointer-events: none; }
 .is-inspecting .hotspot:not(.is-inspection-target) { opacity: .18; pointer-events: none; }
 .hotspot.is-inspection-target::before { inset: 7px; border-color: var(--amber); box-shadow: 0 0 0 2px #244f57; }
+.has-detail #hotspots .hotspot { opacity: 0; pointer-events: none; }
+.has-detail .view-title { visibility: hidden; }
 .dock {
   position: absolute; transform: translate(-50%, -50%); pointer-events: auto;
   width: 46px; height: 46px; border: 0; border-radius: 50%; background: transparent;
