@@ -1,12 +1,12 @@
 export const northernJapanDiveAreas = [
   {
-    id: 'onagawa-takenoura', name: '竹浦', area: '宮城・女川 竹浦沖', coordinates: [141.48779, 38.43756], difficulty: 3,
+    id: 'onagawa-takenoura', name: '竹浦', area: '宮城・女川 竹浦沖', coordinates: [141.48779, 38.43756], difficulty: 3, icon: 'nudibranch',
     highlight: '岩や海藻に目を近づけると、北の海の小さな魚やウミウシを探せます。',
     conditions: '現地ガイドと港の沖へ船で行くコース。冷たい水に合った装備と視界に応じた移動が必要です。',
     source: 'https://high-bridge1.com/diving-spot/', sourceName: '女川ダイビングサービス High bridge',
   },
   {
-    id: 'ishinomaki-kitsunezaki', name: '狐崎浜', area: '宮城・石巻 狐崎浜沖', coordinates: [141.4198, 38.35], difficulty: 3,
+    id: 'ishinomaki-kitsunezaki', name: '狐崎浜', area: '宮城・石巻 狐崎浜沖', coordinates: [141.4198, 38.35], difficulty: 3, icon: 'fish',
     highlight: '岩場や養殖棚の周りで、魚が構造物の陰に集まる様子を観察できます。',
     conditions: '現地ガイドと船で向かう海域です。漁業施設を含むコースは事業者への確認が必要です。',
     source: 'https://high-bridge1.com/diving-spot/', sourceName: '女川ダイビングサービス High bridge',

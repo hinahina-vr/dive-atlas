@@ -80,6 +80,13 @@ try {
     throw new Error('Map readiness failed: '+JSON.stringify(state),{cause:error});
    }
   };
+  async function checkOceanPalette(journalOpen) {
+   await page.waitForFunction(open => {
+    const ocean = document.querySelector('#ocean');
+    return window.__verifiedDiveMap.getPaintProperty('water-main', 'fill-color') === (open ? '#53309d' : '#08779e')
+     && getComputedStyle(ocean).mixBlendMode === (open ? 'screen' : 'soft-light');
+   }, journalOpen);
+  }
   async function waitForWaterAt(coordinates) {
    await page.waitForFunction(center => {
     const map = window.__verifiedDiveMap;
@@ -91,17 +98,30 @@ try {
   const journal = page.locator('#journal');
   const journalToggle = page.getByRole('switch',{name:'管理人のダイブログ',exact:true});
   const spotToggle = page.getByRole('switch',{name:'ダイブスポット',exact:true});
+  const soundDialog = page.getByRole('dialog',{name:'音が鳴るけどいい？',exact:true});
+  async function toggleJournal(action = 'click') {
+   if (action === 'Space') await journalToggle.press('Space');
+   else await journalToggle[action]();
+   if (!page.url().startsWith(localBase) || (await journalToggle.getAttribute('aria-checked')) === 'false') {
+    assert(await soundDialog.isHidden());
+    return;
+   }
+   assert(await soundDialog.isVisible());
+   const silent = soundDialog.getByRole('button',{name:'鳴らさない',exact:true});
+   assert(await silent.evaluate(button => document.activeElement === button));
+   await silent.click();
+   assert(await soundDialog.isHidden());
+  }
   async function checkSwitch(toggle, on) {
    assert.equal(await toggle.getAttribute('aria-checked'), String(on));
    assert((await toggle.boundingBox()).height >= 44);
    const appearance = await toggle.locator('.toggle-track').evaluate(track => ({
     color: getComputedStyle(track).backgroundColor,
-    symbol: getComputedStyle(track, '::before').width,
-    thumb: getComputedStyle(track, '::after').transform,
+    thumb: getComputedStyle(track, '::before').transform,
    }));
    assert.deepEqual(appearance, on
-    ? {color:'rgb(8, 126, 114)', symbol:'2px', thumb:'matrix(1, 0, 0, 1, 24, 0)'}
-    : {color:'rgb(89, 114, 124)', symbol:'8px', thumb:'none'});
+    ? {color:'rgb(0, 130, 119)', thumb:'matrix(1, 0, 0, 1, 20, 0)'}
+    : {color:'rgb(96, 120, 128)', thumb:'none'});
   }
   const journalBonus = page.locator('#journal-bonus');
   const lamps = page.locator('.island-flower img');
@@ -122,11 +142,13 @@ try {
   await mapReady();
   assert(await journalToggle.isVisible());
   await checkSwitch(journalToggle, false);
+  await checkOceanPalette(false);
   assert(await journal.isHidden());
   assert.equal(await page.locator('#pins .pin').count(),0);
   await checkLampsOff();
-  await journalToggle.click();
+  await toggleJournal();
   await mapReady();
+  await checkOceanPalette(true);
   assert.equal(await page.locator('.log-card').count(),privateLogs.length);
   if (pinSites.every(site=>privateLogs.some(log=>log.site===site))) {
    for (const site of pinSites) {
@@ -148,11 +170,11 @@ try {
   await mapReady();
   assert(await journal.isHidden());
   await checkLampsOff();
-  await journalToggle.click();
+  await toggleJournal();
   await mapReady();
   assert.equal(await page.locator('.log-card').count(),privateLogs.length);
   assert(!await page.evaluate(async()=> (await indexedDB.databases()).some(db=>db.name==='dive-atlas')));
-  report.checks.push(width+'px: local JSON, search, reload, no edit controls, no new journal DB');
+  report.checks.push(width+'px: local JSON, search, reload, sound prompt on each opening, no edit controls, no new journal DB');
 
   if (!mobile) {
    const localRecord = {...privateLogs[0], id:'qa-prior-journal', site:'QA prior journal edit'};
@@ -174,14 +196,14 @@ try {
    await page.evaluate(digest=>localStorage.setItem('dive-atlas:imported:'+digest,'done'),digest);
    await page.reload();
    await mapReady();
-   await journalToggle.click();
+   await toggleJournal();
    await mapReady();
    assert.equal(await page.locator('.log-card').count(),1);
    assert.match(await page.locator('.log-card').textContent(),/QA prior journal edit/);
    fs.writeFileSync(fixture,JSON.stringify(backup(privateLogs))+'\n');
    await page.reload();
    await mapReady();
-   await journalToggle.click();
+   await toggleJournal();
    await mapReady();
    assert.equal(await page.locator('.log-card').count(),privateLogs.length);
    report.checks.push('Previous browser edits visible for the old snapshot; a newly converted snapshot takes precedence');
@@ -192,14 +214,28 @@ try {
   await page.goto('http://127.0.0.1:4495'+prefix);
   await mapReady();
   assert.equal(await page.locator(updateControls).count(),0);
-  assert.equal(await page.locator('.spot-pin').count(),diveSpots.length);
+  const spotPins = page.locator('.spot-pin');
+  assert.equal(await spotPins.count(),diveSpots.length);
+  const renderedIcons = await spotPins.evaluateAll(pins => pins.map(pin => [
+   pin.dataset.spot, pin.dataset.spotIcon, pin.querySelector('svg')?.getAttribute('viewBox'),
+  ]));
+  assert.deepEqual(renderedIcons,diveSpots.map(spot => [spot.id, spot.icon, '0 0 32 32']));
   const examples = [
-   ['nagannu-north','turtle'],
-   ['ginowan-coral-garden','coral'],
-   ['toi-torizaki-wreck','wreck'],
-   ['manza-mini-dream','cave'],
+   ['chibishi','turtle'],
+   ['sunabe','coral'],
+   ['ogasawara','wreck'],
+   ['blue-cave','cave'],
    ['mikomoto-jabune','shark'],
-   ['blue-cave','goggles'],
+   ['manta-scramble','ray'],
+   ['hayakawa-beach','sand'],
+   ['nebukawa-platform','structure'],
+   ['hayama-sangashita','nudibranch'],
+   ['miura-mitohama','kelp'],
+   ['taketomi-hot-spring','vent'],
+   ['fukuura-beach','anemone'],
+   ['hachijokojima-wada','gardenEel'],
+   ['futo','squid'],
+   ['susami-underwater-post','postbox'],
   ];
   const iconMarkup = new Set();
   for (const [id,icon] of examples) {
@@ -208,6 +244,20 @@ try {
    iconMarkup.add(await pin.locator('svg').innerHTML());
   }
   assert.equal(iconMarkup.size,examples.length);
+
+  const catshark = diveSpots.find(spot=>spot.id==='usami-catshark-pipes');
+  const catsharkPin = page.locator('[data-spot="'+catshark.id+'"]');
+  await page.evaluate(center=>window.__verifiedDiveMap.jumpTo({center,zoom:18}),catshark.coordinates);
+  await waitForWaterAt(catshark.coordinates);
+  if (mobile) await catsharkPin.tap();
+  else await catsharkPin.click();
+  assert.equal(await page.locator('#detail h2').textContent(),catshark.name);
+  await page.evaluate(()=>window.__verifiedDiveMap.setZoom(13.4));
+  assert(await catsharkPin.isVisible(), 'The open spot keeps its pin when nearby pins overlap');
+  assert.equal(await catsharkPin.getAttribute('aria-pressed'),'true');
+  assert.equal(await catsharkPin.getAttribute('data-spot-icon'),'shark');
+  await page.locator('#spot-close').click();
+  assert.equal(await catsharkPin.getAttribute('aria-pressed'),'false');
 
   const turtleSpot = diveSpots.find(spot=>spot.id==='nagannu-north');
   const turtlePin = page.getByRole('button',{name:turtleSpot.name+'のスポット情報',exact:true});
@@ -258,16 +308,21 @@ try {
 
   assert.equal(await page.getByText('NO DIVE, NO LIFE.',{exact:true}).count(),0);
   await checkSwitch(spotToggle, true);
+  await page.screenshot({path:path.join(folder,'switches-default-'+width+'.png')});
   if (mobile) await spotToggle.tap();
   else await spotToggle.press('Space');
   await checkSwitch(spotToggle, false);
   assert(await page.locator('#spot-pins').isHidden());
+  await page.reload();
+  await mapReady();
+  await checkSwitch(spotToggle, false);
+  assert(await page.locator('#spot-pins').isHidden());
   const journalResponse = page.waitForResponse(response=>response.url().endsWith('/journal.json')&&response.ok());
-  if (mobile) await journalToggle.tap();
-  else await journalToggle.press('Space');
+  await toggleJournal(mobile ? 'tap' : 'Space');
   await journalResponse;
   await page.waitForFunction(()=>document.querySelector('#storage-status').textContent==='ログ閲覧専用');
   await checkSwitch(journalToggle, true);
+  await checkOceanPalette(true);
   assert(await journal.isVisible());
   await page.emulateMedia({reducedMotion:'no-preference'});
   const lamp = await page.locator('.island-flower img').evaluateAll(images=>images.map(image=>{
@@ -295,9 +350,9 @@ try {
    assert.deepEqual(await page.locator('.detail-numbers span').allTextContents(),['最大水深','潜水時間']);
    assert.equal(await page.locator('.signature,.detail-photos,.detail-notes,.detail-area,.detail-meta').count(),0);
    assert.match(await page.locator('.detail-footer').textContent(),/地図の位置は目安/);
-   await journalToggle.click();
+   await toggleJournal();
    assert.equal(await page.locator('#pins .pin').count(),0);
-   await journalToggle.click();
+   await toggleJournal();
    await mapReady();
   }
   const row = publicRows[0];
@@ -305,15 +360,16 @@ try {
   assert.equal(await publicCard.locator('time').getAttribute('datetime'),row.date);
   await publicCard.click();
   assert.equal(await page.locator('#detail h2').textContent(),row.site);
-  await journalToggle.click();
+  await toggleJournal();
   assert(await journal.isHidden());
   assert(await page.locator('#detail').isHidden());
   assert.equal(await page.locator('.log-card').count(),0);
+  await checkOceanPalette(false);
   await checkLampsOff();
 
   await page.evaluate(()=>{ window.__qaBonusRoll = 0; });
   await page.emulateMedia({reducedMotion:'no-preference'});
-  await journalToggle.click();
+  await toggleJournal();
   await journalBonus.waitFor({state:'visible'});
   assert.equal(await journalBonus.textContent(),'BIG BONUS');
   await journalToggle.locator('.toggle-track').evaluate(async track => {
@@ -321,11 +377,12 @@ try {
   });
   await journalBonus.locator('span').evaluate(title=>title.getAnimations()[0].currentTime = 520);
   await page.screenshot({path:path.join(folder,'journal-premium-'+width+'.png')});
-  await journalToggle.click();
+  await toggleJournal();
   await checkLampsOff();
-  await journalToggle.click();
+  await toggleJournal();
   await journalBonus.waitFor({state:'visible'});
   await journalBonus.waitFor({state:'hidden',timeout:5000});
+  await checkOceanPalette(true);
   assert.equal(await journalToggle.getAttribute('aria-checked'),'true');
   assert.deepEqual(await lamps.evaluateAll(images=>images.map(image=>getComputedStyle(image).animationName)),
    ['hibiscus-alternate','hibiscus-alternate']);
@@ -347,7 +404,8 @@ try {
   await mapReady();
   assert(await journal.isHidden());
   assert.equal(await journalToggle.getAttribute('aria-checked'),'false');
-  report.checks.push(width+'px: public map, world/Japan controls, off/alternating lamps and premium, opt-in journal, four public fields, separate hibiscus pins, paper-cut spot icons and interaction badges, sample, switch visuals and keyboard/touch operation');
+  await checkOceanPalette(false);
+  report.checks.push(width+'px: public map, world/Japan controls, off/alternating lamps and premium, journal water palette, opt-in journal, four public fields, separate hibiscus pins, paper-cut spot icons, selected pin stays visible on zoom-out, interaction badges, sample, switch visuals and keyboard/touch operation');
   await context.close();
  }
  assert.deepEqual(errors,[]);

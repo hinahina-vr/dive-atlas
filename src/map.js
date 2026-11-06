@@ -13,6 +13,63 @@ const wrap=n=>((n+180)%360+360)%360-180;
 const gogglesIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8c3-2 6-2 9-1 3-1 6-1 9 1l-1 5a3 3 0 0 1-3 2h-2l-3-2-3 2H7a3 3 0 0 1-3-2Z"/><path d="m7 10 2-.5m6 .5 2-.5"/></svg>';
 
 const paperSpotIcons = {
+ gardenEel: `
+  <path fill="none" stroke="#fffdf0" stroke-width="5" stroke-linecap="round" d="M8 24V13c0-2 1.4-4.6 4-4.6M16 24V7.6c0-3 2.4-4.7 5.3-4M24 24v-8c0-2 1.7-4 4-3.7"/>
+  <path fill="none" stroke="#f6a751" stroke-width="2.7" stroke-linecap="round" d="M8 24V13c0-2 1.4-4.6 4-4.6M24 24v-8c0-2 1.7-4 4-3.7"/>
+  <path fill="none" stroke="#659bab" stroke-width="2.7" stroke-linecap="round" d="M16 24V7.6c0-3 2.4-4.7 5.3-4"/>
+  <path fill="#ffd484" class="paper-edge" d="M3 25c3.6-2.3 6.9-3.3 13-3.3s9.7 1 13 3.3v2.3c-4.7 1.3-8.3 1.8-13 1.8s-8.5-.5-13-1.8z"/>
+  <g fill="#40606a"><circle cx="20.5" cy="4" r=".75"/><circle cx="11.7" cy="8.5" r=".75"/><circle cx="27.5" cy="12.4" r=".75"/></g>
+ `,
+ squid: `
+  <path fill="#dba3dd" class="paper-edge" d="M16 2.3 7.5 9.8 6.1 17l5.6-1.1c0 2 .9 3.4 1 4.9.2 2.3-3 4.1-4 6.2l2.4 1.5c1.4-2.2 4-3.2 4.9-6.2.6 2.3.6 4.6.5 7.2l2.8-.4c.1-3.7.2-4.7-.4-7.6 1.2 2.3 3.3 4.1 5.2 4.9l1.2-2.3c-3.4-1.8-4.8-4.5-4.8-8.2l5.4 1.1-1.6-7.2z"/>
+  <path fill="#f8cce9" d="M16 3.8c-4.7 4.5-6 8.3-4.3 12.1 1.3 2.5 2.9 3.5 4.3 3.5 1.7 0 3.6-1.3 4.5-3.5 1.6-4.1-.3-8-4.5-12.1z"/>
+  <path fill="#75568e" d="M13.1 14.5a1 1 0 1 0 2 0 1 1 0 0 0-2 0m4 0a1 1 0 1 0 2 0 1 1 0 0 0-2 0"/>
+ `,
+ postbox: `
+  <path fill="#f75d6c" class="paper-edge" d="M7.7 8.2c0-3.6 3.8-6 8.3-6s8.3 2.4 8.3 6v19.1c-2.7 1.4-5.4 2.2-8.3 2.2s-5.7-.8-8.3-2.2z"/>
+  <path fill="#bf415e" d="M20.1 8.4c0-2.1-.7-3.7-1.9-4.9 3 .6 5 2.2 5 4.8v18.4l-3.1 1.1z"/>
+  <path fill="#552f55" d="M10 10.5h9.5v2.2H10z"/>
+  <path fill="none" stroke="#fff3cc" stroke-width="1.6" stroke-linecap="round" d="M12 16.2h5.9M12 18.5h5.9M15 18.5v4.1"/>
+ `,
+ sand: `
+  <path fill="#ffc672" class="paper-edge" d="M2.6 22.5c4.9-4.8 8.3-9 12.4-9 3.3 0 5.6 2 8 2 2.2 0 3.8-.9 6.3-2.4v12.8c-3.4 1.8-8.1 2.8-13.6 2.8-5.1 0-9.4-1-13.1-2.8z"/>
+  <path fill="#ffe9a8" d="M3.8 23.6c5.8-.3 8.2-5.1 12-5.1 2.6 0 4.7 2.1 7.9 2.1 1.6 0 3-.4 4.4-1v3.1c-2.1 1-4.8 1-6.4.7-2.4-.6-4.1-1.6-5.9-1.6-2.8 0-5.1 2.6-8 3.3z"/>
+  <path fill="none" stroke="#80ddd6" stroke-width="2.5" stroke-linecap="round" d="M4 10.3c2.4.5 4.6-.4 6.6-2s4.1-2.4 7-1.7c2.3.6 3.7 1.9 6.1 1.5 1.2-.2 2.5-.8 3.8-1.7"/>
+ `,
+ kelp: `
+  <path fill="#5bb85f" class="paper-edge" d="M14.2 28.6 12 22.5c-6 .2-10-5.2-10-10.9 4.7.1 9.4 3.3 11.4 6.8-.4-3.5-2.4-5.7-2.3-9.2.1-3 1.5-5.9 4.9-7.6 3.3 3.3 4.2 6.6 3.1 9.4-.9 2.3-1.7 4.4-1.4 6.3 1.2-3.5 5.7-7.7 11.6-8.3.5 6.1-2.8 11.8-9.7 12.8l-1.5 6.8z"/>
+  <path fill="none" stroke="#d5e978" stroke-width="1.7" stroke-linecap="round" d="M15.9 25.9c0-3.2.9-8 .3-11-.7-3.3-1.2-5.7-.4-8.8m-1.5 16.5-7.4-5.8m10.9 6.3 7.2-8.7"/>
+  <path fill="#238e74" d="m11.5 27.2 5.2-1.1 5.4 1 1.6 2.7H9.6z"/>
+ `,
+ ufo: `
+  <path fill="#f0e0aa" class="paper-edge" d="M2 15.4c0-3 4.3-5.3 8-6.3l2.6-3.3h6.8L22 9.1c3.7 1 8 3.3 8 6.3v3.1c0 4-6.4 7.4-14 7.4S2 22.5 2 18.5z"/>
+  <path fill="#559fb5" d="M2 15.4c1.3 3.3 7 5.7 14 5.7s12.7-2.4 14-5.7v3.1c0 4-6.4 7.4-14 7.4S2 22.5 2 18.5z"/>
+  <path fill="#84d0d1" d="M2 15.4c0-3 6.3-6.2 14-6.2s14 3.2 14 6.2c-1.3 3.3-7 5.7-14 5.7s-12.7-2.4-14-5.7z"/>
+  <path fill="#e6f7eb" d="m10 9.1 2.6-3.3h6.8L22 9.1c1.4 2.6-1.5 4.2-6 4.2s-7.4-1.6-6-4.2z"/>
+  <path fill="none" stroke="#f7dea2" stroke-width="1.45" stroke-linecap="round" d="M5.7 19.2c4.9 3.5 15.7 3.7 20.6 0"/>
+ `,
+ structure: `
+  <path fill="#88b5cd" class="paper-edge" d="m4.1 9.4 11.9-6 11.9 6.1v13.8L16 29.4 4.1 23.3z"/>
+  <path fill="#d0e5e8" d="M4.1 9.4 16 3.4l11.9 6.1L16 15.6z"/>
+  <path fill="#527ca0" d="m16 15.6 11.9-6.1v13.8L16 29.4z"/>
+  <path fill="#346374" d="m8 12.5 4.8 2.5v4.1L8 16.6zm11 5.2 5.1-2.6v4.3L19 22z"/>
+  <path fill="#ffe18b" d="m8 21 4.8 2.5v1.7L8 22.7zm11 3.4 5.1-2.6v1.7L19 26z"/>
+ `,
+ nudibranch: `
+  <path fill="#fda13b" class="paper-edge" d="M3 23.3c2.2-1.8 4.8-1.3 6.1-3.1 1-1.4 1.8-2.7 3.5-3.8l-1.2-5.8 2.4-1.1 2.2 4.7 1.7-8 2.7.2.4 7.3 3-4.4 2.4 1.1-1.5 6.1c3.5 1 5.1 3.8 4 6.3-1.3 3.2-5.9 4.5-10.2 4.9-5.1.4-11.9-.9-15.5-4.4z"/>
+  <path fill="#f45e89" d="M6.4 23.8c3.1-1.5 4.6-4.5 8-5.8 4.5-1.7 8.5-.4 12 .8-2.1 3.8-6.4 5.1-10.6 5.6-3.7.5-6.4.2-9.4-.6z"/>
+  <path fill="#fff1a7" d="M13.8 21a1.2 1.2 0 1 0 2.4 0 1.2 1.2 0 0 0-2.4 0m5.4-.8a1.1 1.1 0 1 0 2.2 0 1.1 1.1 0 0 0-2.2 0"/>
+ `,
+ vent: `
+  <path fill="#af8bd8" class="paper-edge" d="M3.6 26.1 7.1 20l5.1-1.2 3-5 3.7 4.6 6.2 1.4 3.2 6.3-4.5 3H8z"/>
+  <path fill="#725a9c" d="m7.1 20 5.1-1.2 3-5 3.7 4.6 6.2 1.4-5.5 2.4-3.9-1.3-4.5 2.3z"/>
+  <g fill="#88e2e5" stroke="#fffdf0" stroke-width="1.2"><circle cx="13" cy="11.6" r="2.2"/><circle cx="20.4" cy="8.3" r="2.6"/><circle cx="15.2" cy="4.1" r="1.8"/></g>
+ `,
+ anemone: `
+  <path fill="#e67c91" class="paper-edge" d="M8.1 27.1 7 22.6 3 18.2l1-3.3 3.6.2.7-4.9 3.5-.7 2 4.6.6-8.2 3.5-.2 1.2 8.1 2.5-4.5 3.3 1.4.3 4.4 3.3-1 1.6 3.5-3.9 5-1.4 4.6z"/>
+  <path fill="#f8a56c" d="m10.7 23.5 4-6.8 2.2 3.8 4.2-4.2 1.1 7.1-5.7 3.4z"/>
+  <path fill="#fff0b5" d="m4.5 16.4 3.1.2.6 2.6zm5.1-5.2 2-.3 1.9 4.1-2.9-.6zm6.1-4 1.4-.1.9 5.5-2.3-1.1zm7.1 4 1.2.4.2 3.4-2.5 1.1z"/>
+ `,
  turtle: `
   <path class="paper-edge" fill="#80cd71" d="M12.7 9.1c-1.6-1.1-2-3.1-1-4.9 1-1.7 2.6-2.4 4.3-2.4s3.3.7 4.3 2.4c1 1.8.6 3.8-1 4.9l4-1.1 4.4-2.8 2.2 1.1-1.1 4.7-4.8 4.7-1.2 4 3.3 3.5-1.7 2.7-4.3-1-4.1 4.9-4.1-4.9-4.3 1-1.7-2.7 3.3-3.5-1.2-4-4.8-4.7-1.1-4.7 2.2-1.1L8.7 8z"/>
   <path fill="#188e72" d="m16 8.5 5.7 2.6 2.5 5.2-1.9 6.6-6.3 3.2-6.3-3.2-1.9-6.6 2.5-5.2z"/>
@@ -76,9 +133,12 @@ const paperSpotIcons = {
 export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelect,onMove}){
  const oceanView=startOcean(ocean),motion=matchMedia('(prefers-reduced-motion: reduce)');let logs=[],selected='',maskTimer=0;
  const [style,gazetteer]=await Promise.all(['./assets/map-style.json','./assets/okinawa-island-names.geojson'].map(url=>fetch(url).then(r=>{if(!r.ok)throw new Error('地図設定を読み込めませんでした。');return r.json();})));let gazetteerKey='';const nameKey=s=>String(s||'').normalize('NFKD').toLowerCase().replace(/[\u0300-\u036f]/g,'').replace(/[\s\-_.’']/g,'').replace(/(islands?|shima|jima|諸島|島)$/,'');
+ const normalWaterColor = style.layers.find(layer => layer.id === 'water-main').paint['fill-color'];
+ let journalMode = false;
  const map=new VectorMap({container:canvas,style,bounds:japanBounds,fitBoundsOptions:{padding:36},minZoom,maxZoom,attributionControl:false,localIdeographFontFamily:'sans-serif',canvasContextAttributes:{alpha:true,antialias:true},dragRotate:false,pitchWithRotate:false,fadeDuration:motion.matches?0:220});
  canvas.dataset.mapState='loading';const mask=document.createElement('canvas'),ctx=mask.getContext('2d');ocean.style.opacity='0';
  const dimensions=()=>canvas.getBoundingClientRect();
+ let lastSpotSelection;
  const spotMarkers = diveSpots.map(spot => {
   const marker = document.createElement('button');
   marker.type = 'button';
@@ -94,14 +154,18 @@ export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelec
   marker.innerHTML = icon === 'goggles' ? gogglesIcon
    : '<svg viewBox="0 0 32 32" aria-hidden="true">' + paperSpotIcons[icon] + '</svg>';
   marker.hidden = true;
-  marker.onclick = () => onSpotSelect(spot, marker);
-  return { spot, marker };
+  const entry = { spot, marker };
+  marker.onclick = () => {
+   lastSpotSelection = entry;
+   onSpotSelect(spot, marker);
+  };
+  return entry;
  });
  spotPins.append(...spotMarkers.map(({ marker }) => marker));
 
  function placeSpotPins(viewport, logPoints, centerLongitude) {
   const placed = [];
-  for (const { spot, marker } of spotMarkers) {
+  const place = ({ spot, marker }) => {
    const [longitude, latitude] = spot.coordinates;
    const visibleLongitude = map.getRenderWorldCopies() ? centerLongitude + wrap(longitude - centerLongitude) : longitude;
    const point = map.project([visibleLongitude, latitude]);
@@ -110,10 +174,17 @@ export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelec
    const y = point.y - (overlappingLog ? 32 : 0);
    const inView = point.x >= 17 && point.x <= viewport.width - 17 && y >= 17 && y <= viewport.height - 17;
    marker.hidden = !inView || placed.some(pin => Math.hypot(pin.x - point.x, pin.y - y) < 33);
-   if (marker.hidden) continue;
+   if (marker.hidden) return;
    marker.style.left = `${point.x}px`;
    marker.style.top = `${y}px`;
    placed.push({ x: point.x, y });
+  };
+  // Give the open detail card's pin first claim when zooming brings pins together.
+  const selectedSpot = lastSpotSelection?.marker.getAttribute('aria-pressed') === 'true'
+   ? lastSpotSelection : null;
+  if (selectedSpot) place(selectedSpot);
+  for (const entry of spotMarkers) {
+   if (entry !== selectedSpot) place(entry);
   }
  }
 
@@ -162,7 +233,18 @@ export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelec
   const islands=map.queryRenderedFeatures({layers:['island-names','island-local-names']}).map(f=>f.properties['name:ja']||f.properties['name:nonlatin']||f.properties.name).filter(Boolean);canvas.dataset.islandLabels=JSON.stringify([...new Set(islands)]);canvas.dataset.mapState='ready';
  }
  const scheduleMask=()=>{clearTimeout(maskTimer);maskTimer=setTimeout(updateWaterMask,70);};
- map.on('load',()=>{update();scheduleMask();});map.on('move',update);map.on('movestart',()=>{canvas.dataset.mapState='moving';ocean.style.opacity='0';});map.on('moveend',scheduleMask);map.on('idle',scheduleMask);map.on('error',e=>{canvas.dataset.mapError=e.error?.message||'Map data unavailable';});
+ function paintWater() {
+  if (map.getLayer('water-main')) {
+   map.setPaintProperty('water-main', 'fill-color', journalMode ? '#53309d' : normalWaterColor);
+  }
+ }
+ function setJournalMode(active) {
+  if (journalMode === active) return;
+  journalMode = active;
+  oceanView.setJournalMode(active);
+  paintWater();
+ }
+ map.on('load',()=>{if (journalMode) paintWater();update();scheduleMask();});map.on('move',update);map.on('movestart',()=>{canvas.dataset.mapState='moving';ocean.style.opacity='0';});map.on('moveend',scheduleMask);map.on('idle',scheduleMask);map.on('error',e=>{canvas.dataset.mapError=e.error?.message||'Map data unavailable';});
  map.on('click',e=>oceanView.ripple(e.point.x,e.point.y));
  function setLogs(next, id) {
   logs = next;
@@ -241,5 +323,5 @@ export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelec
    duration: motion.matches ? 0 : 480,
   });
  }
- return {setLogs,fit,showWorld,showJapan,focusSpot,select(log){selected=log.id;setLogs(logs,selected);if(log.lat!==null){const r=dimensions();map.easeTo({center:[log.lon,log.lat],zoom:Math.max(map.getZoom(),12.8),offset:[r.width<700?0:r.width*.13,-r.height*(r.width<700?.2:.06)],duration:motion.matches?0:1050});map.once('moveend',()=>{const p=map.project([log.lon,log.lat]);oceanView.ripple(p.x,p.y);});}},zoomBy(f){map.zoomTo(map.getZoom()+Math.log2(f),{duration:motion.matches?0:500});},pauseMotion:value=>oceanView.pause(value)};
+ return {setLogs,setJournalMode,fit,showWorld,showJapan,focusSpot,select(log){selected=log.id;setLogs(logs,selected);if(log.lat!==null){const r=dimensions();map.easeTo({center:[log.lon,log.lat],zoom:Math.max(map.getZoom(),12.8),offset:[r.width<700?0:r.width*.13,-r.height*(r.width<700?.2:.06)],duration:motion.matches?0:1050});map.once('moveend',()=>{const p=map.project([log.lon,log.lat]);oceanView.ripple(p.x,p.y);});}},zoomBy(f){map.zoomTo(map.getZoom()+Math.log2(f),{duration:motion.matches?0:500});},pauseMotion:value=>oceanView.pause(value)};
 }

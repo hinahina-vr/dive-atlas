@@ -35,6 +35,7 @@ const journalToggle = $('#public-journal-toggle');
 const journalPanel = $('#journal');
 const workspace = $('.workspace');
 const journalBonus = $('#journal-bonus');
+const journalSound = $('#journal-sound');
 $('#journal-source').textContent = localJournal
  ? 'この端末にあるログを表示します。記録の更新はローカルで行います。'
  : 'このページでは、公開ログとダイビングスポットを閲覧できます。';
@@ -127,12 +128,19 @@ function setJournalBonus(active) {
  journalBonus.hidden = !active;
  if (active) journalBonusTimer = setTimeout(() => setJournalBonus(false), 2600);
 }
+journalSound.querySelector('form').onsubmit = event => {
+ if (showJournal && event.submitter?.value === 'play') toast('BGMは準備中です。');
+};
 journalToggle.onclick = async () => {
  showJournal = !showJournal;
  journalPanel.hidden = !showJournal;
  workspace.classList.toggle('workspace--journal-open', showJournal);
+ map?.setJournalMode(showJournal);
  journalToggle.setAttribute('aria-checked', String(showJournal));
  setJournalBonus(showJournal && Math.random() < 1 / 12);
+ // Preview the confirmation locally while the soundtrack is being prepared.
+ if (showJournal && localJournal) journalSound.showModal();
+ else if (journalSound.open) journalSound.close();
  if (!showJournal) {
   demo = false;
   selected = '';
@@ -198,4 +206,4 @@ if (localJournal) {
 }
 render();
 
-try{map=await createMap({canvas:$('#map'),ocean:$('#ocean'),pins:$('#pins'),spotPins,onSelect:selectLog,onSpotSelect:selectSpot,onMove:({lat,lon})=>{$('#map-coordinate').textContent=`${Math.abs(lat).toFixed(1)}°${lat<0?'S':'N'} / ${Math.abs(lon).toFixed(1)}°${lon<0?'W':'E'}`;}});map.setLogs(shown(),selected);if(shown().some(log=>log.lat!==null))map.fit();}catch(e){toast('地図を読み込めませんでした。ログは一覧から使えます。');console.error(e);}
+try{map=await createMap({canvas:$('#map'),ocean:$('#ocean'),pins:$('#pins'),spotPins,onSelect:selectLog,onSpotSelect:selectSpot,onMove:({lat,lon})=>{$('#map-coordinate').textContent=`${Math.abs(lat).toFixed(1)}°${lat<0?'S':'N'} / ${Math.abs(lon).toFixed(1)}°${lon<0?'W':'E'}`;}});map.setJournalMode(showJournal);map.setLogs(shown(),selected);if(shown().some(log=>log.lat!==null))map.fit();}catch(e){toast('地図を読み込めませんでした。ログは一覧から使えます。');console.error(e);}
