@@ -261,10 +261,11 @@ function makePanel(lesson, following) {
       const x = hit.uv.x * 1024, y = (1 - hit.uv.y) * 346;
       return visibleControls.find(({ x: left, y: top, w, h }) => x >= left && x <= left + w && y >= top && y <= top + h)?.id;
     },
-    draw(state, hovered, placing, done, inspecting, reviewIndex, demo, finChoice) {
+    draw(state, hovered, placing, done, inspecting, reviewIndex, demo, finChoice, hasController) {
       const air = inflator ? inflatorAir(done.has('add-air'), done.has('vent'), state.pressure) : 0;
       const amount = Math.round((inflator ? air : state.water) * 100);
-      const key = demo ? ['example', reviewIndex, demo.index, demo.paused, demo.complete, demo.motion >= 1, demo.amount, hovered].join('|') :
+      const key = !hasController ? 'tracking:' + state.index : demo ?
+        ['example', reviewIndex, demo.index, demo.paused, demo.complete, demo.motion >= 1, demo.amount, hovered].join('|') :
         [state.index, state.guide, state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex, finChoice].join('|');
       if (key === previous) return;
       previous = key;
@@ -275,8 +276,15 @@ function makePanel(lesson, following) {
       const compact = next ? (inflator && next.id !== 'balance') || ((fins || gear) && !inspection && !finInput) :
         !state.review.length && !following;
       context.clearRect(0, 0, 1024, 346);
-      rect(0, 0, 1024, compact && !demo ? 246 : 346, '#f1fffd');
+      rect(0, 0, 1024, !hasController || (compact && !demo) ? 246 : 346, '#f1fffd');
       texture.needsUpdate = true;
+      if (!hasController) {
+        text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', 850);
+        text('コントローラーを確認', 32, 127, 39, '#103b49');
+        text('照準が戻ると、同じ手順を続けられます。', 32, 193, 32, '#246270');
+        visibleControls = [];
+        return;
+      }
       if (demo) { drawExample(demo, state, hovered, reviewIndex >= 0); return; }
       if (state.review[reviewIndex]) { drawReview(state, hovered, reviewIndex); return; }
       if (!next) { drawResult(state, hovered); return; }
@@ -597,6 +605,10 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
       }
     }
     function select() {
+      if (!controller.visible) {
+        end();
+        return;
+      }
       if (selected === 'exit') close();
       else if (selected === 'next-lesson') requestedRun = advanceToNext;
       else if ((selected === 'example-open' || selected === 'review-example') && !holding && !carry) {
@@ -752,8 +764,15 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
         placed = true;
       }
       rig.updateMatrixWorld(true);
+      const wasHolding = Boolean(holding);
+      let hasController = false;
+      for (const pointer of pointers) {
+        if (pointer.controller.visible) hasController = true;
+        else pointer.end();
+      }
       if (holding) press.tickHold(holding, time);
-      const current = holding ? readState() : state;
+      if (!hasController) example.pause();
+      const current = wasHolding ? readState() : state;
       const demo = example.current();
       const reviewStep = current.review[reviewIndex];
       const applied = demo && demo.motion >= 1;
@@ -790,7 +809,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
         hovered ??= hit?.id;
       }
       if (fins || gear || focusStep) targets?.highlight(hovered, Boolean(focusStep));
-      panel.draw(current, hovered, placing, completed, inspecting, reviewIndex, demo, finChoice);
+      panel.draw(current, hovered, placing, completed, inspecting, reviewIndex, demo, finChoice, hasController);
       renderer.render(scene, camera);
     },
     dispose() {

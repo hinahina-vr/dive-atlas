@@ -4,13 +4,44 @@ import {execFileSync} from 'node:child_process';
 import {join, resolve} from 'node:path';
 import {chromium} from 'playwright-core';
 
-// Run the local preview first, then pass the IWER UMD file and optionally the training URL.
+// Run the local preview first. The optional profile changes input, not browser or optics.
 const root = resolve(import.meta.dirname, '..');
-const [runtimeFile, url = 'http://127.0.0.1:4496/training/'] = process.argv.slice(2);
-if (!runtimeFile) throw new Error('Usage: node scripts/training-xr-check.mjs <iwer.min.js> [training URL]');
+const [runtimeFile, url = 'http://127.0.0.1:4496/training/', profile = 'quest3'] = process.argv.slice(2);
+if (!runtimeFile || !['quest3','pico-4'].includes(profile)) {
+  throw new Error('Usage: node scripts/training-xr-check.mjs <iwer.min.js> [training URL] [quest3|pico-4]');
+}
+// https://github.com/immersive-web/webxr-input-profiles/blob/main/packages/registry/profiles/pico/pico-4.json
+const picoLayout = (first, second) => ({
+  numHapticActuators: 1,
+  gamepad: {
+    mapping: 'xr-standard',
+    buttons: [
+      { id: 'trigger', type: 'analog', eventTrigger: 'select' },
+      { id: 'squeeze', type: 'analog', eventTrigger: 'squeeze' },
+      null,
+      ...['thumbstick', first, second].map(id => ({ id, type: 'binary' }))
+    ],
+    axes: [null, null, { id: 'thumbstick', type: 'x-axis' }, { id: 'thumbstick', type: 'y-axis' }]
+  }
+});
+const picoDevice = {
+  name: 'PICO 4 input profile',
+  controllerConfig: {
+    profileId: 'pico-4',
+    fallbackProfileIds: ['generic-trigger-squeeze-thumbstick'],
+    layout: { left: picoLayout('x-button','y-button'), right: picoLayout('a-button','b-button') }
+  },
+  supportedSessionModes: ['inline','immersive-vr'],
+  supportedFeatures: ['viewer','local'],
+  supportedFrameRates: [72,90],
+  isSystemKeyboardSupported: false,
+  internalNominalFrameRate: 72,
+  environmentBlendModes: { 'immersive-vr': 'opaque' },
+  interactionMode: 'world-space'
+};
 const revision = execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
 const dirty = execFileSync('git',['status','--short'],{cwd:root,encoding:'utf8'}).trim().length > 0;
-const folder = join(root, 'artifacts', 'xr-practice-' + (dirty ? 'draft' : revision.slice(0,7)));
+const folder = join(root, 'artifacts', 'xr-practice-' + (dirty ? 'draft' : revision.slice(0,7)) + (profile === 'pico-4' ? '-pico-4' : ''));
 await mkdir(folder,{recursive:true});
 const runtime = await readFile(runtimeFile,'utf8');
 const browser = await chromium.launch({executablePath:process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--enable-unsafe-swiftshader','--disable-gpu-shader-disk-cache']});
@@ -22,8 +53,13 @@ try {
   await page.addInitScript({content:runtime + `
     ;{
       const lib = window.IWER || window.iwer;
-      window.xrDevice = new lib.XRDevice(lib.metaQuest3);
+      const pico = ${JSON.stringify(profile === 'pico-4' ? picoDevice : null)};
+      window.xrDevice = new lib.XRDevice(pico ? { ...pico, userAgent: navigator.userAgent } : lib.metaQuest3);
       window.xrDevice.installRuntime({forceInstall:true});
+      const getPose = XRFrame.prototype.getPose;
+      XRFrame.prototype.getPose = function(space, baseSpace) {
+        return window.qaMissingRays?.has(space) ? null : getPose.call(this, space, baseSpace);
+      };
       window.xrDevice.position.set(0,1.60,0);
       window.xrDevice.quaternion.set(0,0,0,1);
       window.xrDevice.fovy = Math.PI / 2;
@@ -75,20 +111,21 @@ try {
     await page.waitForTimeout(750);
     assert(await entry.isDisabled());
   }
-  async function aim([x,y]) {
-    await page.evaluate(({x,y})=>{
-      const source = window.xrDevice.controllers.right;
+  async function aim([x,y], hand = 'right') {
+    await page.evaluate(({x,y,hand})=>{
+      const source = window.xrDevice.controllers[hand];
       source.position.set((x/1024-.5)*.99,1.60-.33+(.5-y/346)*.3345,-.25);
       source.quaternion.set(0,0,0,1);
-    },{x,y});
+    },{x,y,hand});
     await page.waitForTimeout(210);
   }
-  const trigger = value => page.evaluate(value=>window.xrDevice.controllers.right.updateButtonValue('trigger',value),value);
-  async function hold(target,ms=140) {
-    await aim(target);
-    await trigger(1);
+  const trigger = (value, hand = 'right') => page.evaluate(({value,hand})=>
+    window.xrDevice.controllers[hand].updateButtonValue('trigger',value),{value,hand});
+  async function hold(target,ms=140,hand='right') {
+    await aim(target,hand);
+    await trigger(1,hand);
     await page.waitForTimeout(ms);
-    await trigger(0);
+    await trigger(0,hand);
     await page.waitForTimeout(180);
   }
   const breathe=[184,215], seal=[512,215], exhale=[840,215], exit=[892,57];
@@ -885,8 +922,73 @@ try {
   assert.equal(await page.locator('#lesson-title').innerText(),'バディチェック');
   assert.equal(await progress(),'0');
   assert.deepEqual(await readGearReview(),gearReplayReview);
+
+  await page.reload();
+  await page.getByRole('button',{name:'マスククリア',exact:true}).click();
+  await page.locator('#recall').click();
+  await start();
+  const sources = await page.evaluate(() => [...window.qaSession.inputSources].map(source => ({
+    hand: source.handedness, profiles: source.profiles, mapping: source.gamepad?.mapping,
+    buttons: source.gamepad?.buttons.length, axes: source.gamepad?.axes.length, ray: source.targetRayMode
+  })).sort((a,b) => a.hand.localeCompare(b.hand)));
+  assert.deepEqual(sources.map(source => source.hand), ['left','right']);
+  if (profile === 'pico-4') {
+    for (const source of sources) {
+      assert.deepEqual(source.profiles,['pico-4','generic-trigger-squeeze-thumbstick']);
+      assert.deepEqual([source.mapping,source.buttons,source.axes,source.ray],['xr-standard',6,4,'tracked-pointer']);
+    }
+  }
+  const squeeze = value => page.evaluate(value => window.xrDevice.controllers.left.updateButtonValue('squeeze',value),value);
+  await aim(breathe,'left');
+  await squeeze(1);
+  await page.waitForFunction(() => [...window.qaSession.inputSources].find(source => source.handedness === 'left').gamepad.buttons[1].pressed);
+  await squeeze(0);
+  await page.waitForFunction(() => ![...window.qaSession.inputSources].find(source => source.handedness === 'left').gamepad.buttons[1].pressed);
+  assert.equal(await progress(),'0');
+  await hold(breathe,140,'left');
+  assert.equal(await progress(),'1');
+  await hold(seal);
+  assert.equal(await progress(),'2');
+
+  const loseTracking = hands => page.evaluate(hands => {
+    window.qaMissingRays = new Set(hands.map(hand => window.xrDevice.controllers[hand].inputSource.targetRaySpace));
+  },hands);
+  await aim(exhale);
+  await trigger(1);
+  await page.waitForFunction(() => parseFloat(document.querySelector('#mask-overlay').style.getPropertyValue('--mask-water')) < 39);
+  await loseTracking(['right']);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('dive-atlas.owd-draft.v1'))?.progress > 0);
+  const beforeRelease = await water();
+  assert(beforeRelease > 0 && beforeRelease < 39);
+  assert.equal(await page.evaluate(() => window.qaSession.inputSources.length),2,'The right controller remains connected');
+  await page.waitForTimeout(320);
+  assert.equal(await water(),beforeRelease);
+  await trigger(0);
+  assert.equal(await progress(),'2');
+  await page.evaluate(() => { window.xrDevice.controllers.left.connected = false; });
+  await panelHas('コントローラーを確認','照準が戻ると、同じ手順を続けられます。');
+  await capture('tracking-lost');
+  await page.evaluate(() => { window.xrDevice.controllers.left.connected = true; });
+  await panelHas('マスククリア   2 / 3','鼻から息を吐く');
+  assert.equal(await water(),beforeRelease);
+  const partialDraft = await storedDraft();
+  await hold(exampleEntry,140,'left');
+  await panelHas('見本  1 / 3','一時停止');
+  await page.evaluate(() => { window.xrDevice.controllers.left.connected = false; });
+  await panelHas('コントローラーを確認');
+  await page.evaluate(() => { window.xrDevice.controllers.left.connected = true; });
+  await panelHas('見本  1 / 3','再生');
+  await hold(exampleEntry,140,'left');
+  await panelHas('マスククリア   2 / 3');
+  assert.equal(await storedDraft(),partialDraft);
+  await hold(exhale,2250,'left');
+  assert.equal(await progress(),'3');
+  assert.equal(await water(),0);
+  await capture('left-controller-resumed');
+  await hold(exit,140,'left');
+  await page.waitForFunction(()=>window.qaEvents.includes('end'));
   assert.deepEqual(errors,[]);
-  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button available for gear and hidden during the example','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes','Surface fins accept a tracked drag or separate selections and reject the wrong dock','A partially lifted heel is saved across XR exit and reload','Loose and snug straps look different and require the matching judgement','Gear inspection reads dates and a damaged O-ring and rejects incorrect answers','Gear attaches BCD, first stage and low-pressure hose, preserves progress and requires the gauge to be turned before opening','Gear and buddy check share one XR session and the bench stays anchored when the viewer moves','Exiting right after handoff or mid-buddy-check restores the correct step and keeps the gear review','Buddy check exercises inflation, inspection, error correction and its own saved review','VR result shows the flagged mask step while leaving the completed run untouched','Gear review navigates missed steps with contextual equipment, then returns to the result without changing the record','VR example moves mask water, pauses and starts fresh unaided practice within the session','Opening and closing a VR example preserves an interrupted exercise and its exact saved water','Gear example shows the damaged seal and its replacement without changing the exercise','Fin recall shows equipment and unmarked candidate actions, and records an early attempt to put on the boot','Guided fins still indicate the next action, while recalled attachments can be canceled or carried to a dock','The missed mask exhale replays its full-water route and animates to empty, then returns to the same review item without changing results','A missed gear inspection replays the original damaged O-ring and its replacement in the headset','The BCD moves in the headset during its review replay, then returns to the same result','The headset distinguishes retry from a step that needed both retry and a desktop hint','A live session continues from a completed regulator drill to inflator, and from inflator to an operable fin scene','Buddy check, full-mask practice and the selected alternate regulator route share the session, re-anchor to the viewer, and save a zero-step draft']},null,2));
+  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, ' + (profile === 'pico-4' ? 'PICO 4 input profile' : 'Meta Quest 3 profile') + ', Chrome',profile,inputSources:sources,checks:['XR button available for gear and hidden during the example','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes','Surface fins accept a tracked drag or separate selections and reject the wrong dock','A partially lifted heel is saved across XR exit and reload','Loose and snug straps look different and require the matching judgement','Gear inspection reads dates and a damaged O-ring and rejects incorrect answers','Gear attaches BCD, first stage and low-pressure hose, preserves progress and requires the gauge to be turned before opening','Gear and buddy check share one XR session and the bench stays anchored when the viewer moves','Exiting right after handoff or mid-buddy-check restores the correct step and keeps the gear review','Buddy check exercises inflation, inspection, error correction and its own saved review','VR result shows the flagged mask step while leaving the completed run untouched','Gear review navigates missed steps with contextual equipment, then returns to the result without changing the record','VR example moves mask water, pauses and starts fresh unaided practice within the session','Opening and closing a VR example preserves an interrupted exercise and its exact saved water','Gear example shows the damaged seal and its replacement without changing the exercise','Fin recall shows equipment and unmarked candidate actions, and records an early attempt to put on the boot','Guided fins still indicate the next action, while recalled attachments can be canceled or carried to a dock','The missed mask exhale replays its full-water route and animates to empty, then returns to the same review item without changing results','A missed gear inspection replays the original damaged O-ring and its replacement in the headset','The BCD moves in the headset during its review replay, then returns to the same result','The headset distinguishes retry from a step that needed both retry and a desktop hint','A live session continues from a completed regulator drill to inflator, and from inflator to an operable fin scene','Buddy check, full-mask practice and the selected alternate regulator route share the session, re-anchor to the viewer, and save a zero-step draft','Either controller can select, squeeze does not select, and losing a ray during a hold preserves the exact progress for the other hand','The example pauses with neither controller tracked and closes back to the same saved practice']},null,2));
   console.log(folder);
 } catch(error) {
   console.log(JSON.stringify({errors, browser:await page.evaluate(()=>({iwer:!!window.xrDevice,events:window.qaEvents,session:!!window.qaSession,feedback:document.querySelector('#feedback')?.textContent}))}));
