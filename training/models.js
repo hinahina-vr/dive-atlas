@@ -3,6 +3,8 @@ import { remainingMaskWater, inflatorAir, neutralAir } from './lessons.js';
 
 const mat = (color, roughness = .55, metalness = 0) => new T.MeshStandardMaterial({ color, roughness, metalness });
 const rubber = mat(0x172933, .83);
+const webbing = mat(0x243942, .92);
+webbing.side = T.DoubleSide;
 const cloth = mat(0x234c53, .86);
 const teal = mat(0x2db6a7, .42);
 const lime = mat(0xd5e48a, .52);
@@ -173,6 +175,7 @@ function kit(root, startAssembled, issues) {
   box(jacket, .8, .09, .062, rubber, 0, -.49, .27);
   box(jacket, .20, .12, .079, rubber, 0, -.49, .32);
   box(jacket, .074, .052, .01, teal, 0, -.49, .365);
+  const looseBand = mesh(jacket, new T.CylinderGeometry(.43, .43, .12, 32, 1, true), webbing, 0, -.13, -.41);
   const tankBand = cyl(tank, .39, .12, rubber, 0, -.02, 0);
   const bandLatch = group(tank, .36, -.02, .15);
   const latchHandle = group(bandLatch, .075, 0, 0);
@@ -206,8 +209,10 @@ function kit(root, startAssembled, issues) {
   ]);
   const coupler = group(root);
   cyl(coupler, .048, .14, metal, 0, 0, 0, 'x');
+  const sleeve = group(coupler);
+  cyl(sleeve, .049, .071, metal, .004, 0, 0, 'x');
   for (let i = 0; i < 4; i += 1) {
-    const grip = ring(coupler, .047, .006, aluminum, -.024 + i * .018, 0, 0);
+    const grip = ring(sleeve, .047, .006, aluminum, -.024 + i * .018, 0, 0);
     grip.rotation.y = Math.PI / 2;
   }
   const feedStart = v(0, 0, 0);
@@ -221,6 +226,7 @@ function kit(root, startAssembled, issues) {
   const source = v(-.08, 0, .07);
   const freeEnd = v(-.38, -.32, .47);
   const couplerRest = v(0, 0, 0);
+  const couplerMounted = v(0, 0, 0);
   const gaugeRest = v(.23, -1.16, .26);
   const gauge = group(loose, ...gaugeRest);
   const gaugeOrigin = v(.04, -.055, -.05);
@@ -262,6 +268,14 @@ function kit(root, startAssembled, issues) {
       cyl(extras, .067, .017, lens, side * .086, .086, -.38);
     }
   }
+
+  const jacketRest = v(-.84, -.33, .24);
+  const jacketMounted = v(.28, 0, 0);
+  const regulatorRest = v(1.11, .11, .32);
+  const regulatorAligned = v(.28, 1.04, .15);
+  const regulatorMounted = v(.28, 1.04, -.13);
+  const ease = T.MathUtils.smoothstep;
+  const mix = T.MathUtils.lerp;
 
   function secure(part, mount, rest, stowed, k) {
     if (stowed) loose.worldToLocal(jacket.localToWorld(parked.copy(mount)));
@@ -316,8 +330,19 @@ function kit(root, startAssembled, issues) {
       const first = startAssembled || done.has('first');
       const stow = startAssembled || done.has('stow');
       const open = startAssembled || done.has('open');
-      jacket.position.lerp(v(bcd ? .28 : -.84, bcd ? 0 : -.33, bcd ? 0 : .24), k);
-      jacket.rotation.y = T.MathUtils.lerp(jacket.rotation.y, bcd ? -.10 : .35, k);
+      const jacketMotion = interaction.pressure.bcd;
+      const jacketBlend = jacketMotion === undefined ? k : 1;
+      if (!bcd && jacketMotion !== undefined) {
+        const raise = ease(jacketMotion, 0, .33);
+        const slide = ease(jacketMotion, .33, .64);
+        const lower = ease(jacketMotion, .64, 1);
+        jacket.position.lerpVectors(jacketRest, jacketMounted, slide);
+        jacket.position.y = mix(mix(jacketRest.y, 1.38, raise), jacketMounted.y, lower);
+        jacket.rotation.y = mix(.35, -.10, slide);
+      } else {
+        jacket.position.lerp(bcd ? jacketMounted : jacketRest, jacketBlend);
+        jacket.rotation.y = mix(jacket.rotation.y, bcd ? -.10 : .35, jacketBlend);
+      }
       const air = done.has('buddy-vent') ? 0 :
         done.has('buoyancy') ? 1 - (interaction.pressure['buddy-vent'] || 0) : interaction.pressure.buoyancy || 0;
       jacket.scale.lerp(v(1 + .035 * air, 1 + .07 * air, 1 + .20 * air), k);
@@ -329,8 +354,17 @@ function kit(root, startAssembled, issues) {
       const openBuckle = fault('releases');
       buckle.position.lerp(openBuckle ? v(.215, -.22, .385) : v(.046, -.14, .276), k);
       buckle.rotation.z = T.MathUtils.lerp(buckle.rotation.z, openBuckle ? .40 : 0, k);
-      reg.position.lerp(v(first ? .28 : 1.11, first ? 1.04 : .11, first ? -.13 : .32), k);
-      reg.rotation.z = T.MathUtils.lerp(reg.rotation.z, first ? 0 : -.19, k);
+      const regulatorMotion = interaction.pressure.first;
+      const regulatorBlend = regulatorMotion === undefined ? k : 1;
+      if (!first && regulatorMotion !== undefined) {
+        const align = ease(regulatorMotion, 0, .70);
+        const seat = ease(regulatorMotion, .70, 1);
+        reg.position.lerpVectors(regulatorRest, regulatorAligned, align).lerp(regulatorMounted, seat);
+        reg.rotation.z = mix(-.19, 0, align);
+      } else {
+        reg.position.lerp(first ? regulatorMounted : regulatorRest, regulatorBlend);
+        reg.rotation.z = mix(reg.rotation.z, first ? 0 : -.19, regulatorBlend);
+      }
       loose.rotation.y = T.MathUtils.lerp(loose.rotation.y, stow ? .63 : -.12, k);
       const looseSpare = fault('alternate');
       secure(spare, spareClip, looseSpare ? spareLoose : spareRest, stow && !looseSpare, k);
@@ -343,6 +377,7 @@ function kit(root, startAssembled, issues) {
       validDate.visible = !expiredDate.visible;
       damagedSeal.visible = fault('inspect-ring');
       seal.visible = !damagedSeal.visible;
+      looseBand.visible = !bcd;
       tankBand.visible = bcd;
       bandLatch.visible = bcd;
       latchHandle.rotation.y = T.MathUtils.lerp(latchHandle.rotation.y, startAssembled || done.has('lock') ? 0 : -.94, k);
@@ -351,7 +386,17 @@ function kit(root, startAssembled, issues) {
       const connected = startAssembled || done.has('connect');
       const host = connected ? inflator : loose;
       root.worldToLocal(host.localToWorld(couplerRest.copy(connected ? inlet : freeEnd)));
-      coupler.position.lerp(couplerRest, k);
+      const couplerMotion = interaction.pressure.connect;
+      sleeve.position.x = 0;
+      if (!connected && couplerMotion !== undefined) {
+        const align = ease(couplerMotion, 0, .69);
+        const seat = ease(couplerMotion, .69, .91);
+        root.worldToLocal(inflator.localToWorld(couplerMounted.copy(inlet)));
+        couplerRest.lerp(couplerMounted, align);
+        couplerRest.x -= .14 * align * (1 - seat);
+        sleeve.position.x = -.042 * ease(couplerMotion, .49, .69) * (1 - ease(couplerMotion, .91, 1));
+      }
+      coupler.position.lerp(couplerRest, couplerMotion === undefined ? k : 1);
     }
   };
 }

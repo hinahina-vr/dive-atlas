@@ -365,6 +365,8 @@ try {
   await desktop.screenshot({ path: join(output, 'desktop-cylinder-seal.png'), fullPage: true });
   await answer(desktop, 'repair').press('Enter');
   assert.equal(await value(desktop), '2');
+  await part(desktop, 'bcd').waitFor();
+  const beforeGearView = await position(part(desktop, 'bcd'));
   await desktop.locator('#show-example').click();
   assert(await desktop.locator('#example-controls').isVisible());
   assert(await desktop.locator('#choices').isHidden());
@@ -382,15 +384,44 @@ try {
   await desktop.locator('#example-guide').waitFor({ state: 'visible' });
   assert.equal(await desktop.locator('#example-guide line').getAttribute('hidden'), null);
   await desktop.screenshot({ path: join(output, 'desktop-example.png'), fullPage: true });
+  const exampleLine = desktop.locator('#example-guide line');
+  const examplePoints = () => exampleLine.evaluate(line => ['x1', 'y1', 'x2', 'y2'].map(key => Number(line.getAttribute(key))));
+  async function watchAttachment(filename) {
+    await desktop.locator('#example-guide:not([hidden]) line:not([hidden])').waitFor({ state: 'attached' });
+    const origin = await examplePoints();
+    await desktop.locator('#example-play').click();
+    await desktop.waitForFunction(([x,y]) => {
+      const line = document.querySelector('#example-guide line');
+      return !line.hasAttribute('hidden') && Math.hypot(+line.getAttribute('x1') - x, +line.getAttribute('y1') - y) > 18;
+    }, origin);
+    await desktop.locator('#example-play').click();
+    const moving = await examplePoints();
+    assert(Math.hypot(moving[0] - origin[0], moving[1] - origin[1]) > 18);
+    assert.deepEqual(moving.slice(2), origin.slice(2), 'The receiving part stays in place while the loose part moves');
+    await desktop.screenshot({ path: join(output, filename), fullPage: true });
+    assert.deepEqual(await examplePoints(), moving, 'Pausing freezes the part in transit');
+  }
+  await watchAttachment('desktop-example-bcd-moving.png');
   await desktop.locator('#example-next').click();
   assert.equal(await desktop.locator('#step-title').innerText(), 'BCDのバンドを締める');
   await desktop.locator('#example-prev').click();
   assert.equal(await desktop.locator('#step-title').innerText(), 'BCDを取り付ける');
+  for (let i = 0; i < 3; i += 1) await desktop.locator('#example-next').click();
+  assert.equal(await desktop.locator('#step-title').innerText(), 'ファーストステージを付ける');
+  await watchAttachment('desktop-example-first-moving.png');
+  await desktop.locator('#example-next').click();
+  assert.equal(await desktop.locator('#step-title').innerText(), 'インフレーターに接続');
+  await watchAttachment('desktop-example-hose-moving.png');
+  checks.push('1440 px gear demonstration: BCD, first stage and hose move toward stationary docks, and pausing holds each mid-attachment pose');
   await desktop.locator('#example-exit').click();
   assert.equal(await value(desktop), '2');
   assert(await desktop.locator('#example-controls').isHidden());
   assert(await desktop.locator('#choices').isVisible());
-  checks.push('1440 px example: autoplay, pause, 3D target overlay, seek and return to an in-progress drill');
+  await desktop.waitForFunction(previous => {
+    const marker = document.querySelector('#hotspots [data-part="bcd"]');
+    return marker && [marker.style.left, marker.style.top].join('/') === previous;
+  }, beforeGearView);
+  checks.push('1440 px example: autoplay, pause, 3D target overlay, seek and return to an in-progress drill at the same camera pose');
   await movePart(desktop, 'bcd', 'valve', mouseDrag(desktop));
   assert.equal(await value(desktop), '2');
   assert.equal(await desktop.locator('#feedback').getAttribute('data-tone'), 'retry');

@@ -613,7 +613,7 @@ function drawExample(state) {
     if (changedStep) view?.focusExample(step.id);
     stagedExample = { lesson, index, applied, view, done, scenario };
   }
-  if (step.pressTime || step.balance || changedPose) {
+  if (step.pressTime || step.balance || state.movingPart || changedPose) {
     const { pressure, active } = exampleEffects(state);
     renderEffects(lesson, stagedExample.done, pressure, active);
   }
@@ -622,8 +622,9 @@ function drawExample(state) {
 function drawExampleGuide(state, positions, docks) {
   const guide = el['example-guide'];
   const anchor = state.step.balance ? 'trim-add' : state.step.anchor;
-  const point = state.motion >= 1 || state.step.inspection?.closeUp ? null : positions[anchor];
-  const dock = point && state.step.attachment ? docks[state.step.attachment.dock] : null;
+  const showTargets = state.motion < 1 && !state.step.inspection?.closeUp;
+  const point = showTargets ? positions[anchor] : null;
+  const dock = showTargets && state.step.attachment ? docks[state.step.attachment.dock] : null;
   guide.toggleAttribute('hidden', !point && !dock);
   if (!point && !dock) return;
   const [line, sourceCircle, dockCircle] = guide.children;

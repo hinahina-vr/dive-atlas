@@ -2,9 +2,9 @@ import { neutralAir } from './lessons.js';
 
 const emptyPressure = Object.freeze({});
 
-export function exampleEffects({ step, motion, complete }) {
+export function exampleEffects({ step, motion, complete, movingPart }) {
   const pressure = step.balance ? { balance: neutralAir * Math.floor(motion * 3) / 3 } :
-    step.pressTime ? { [step.id]: motion } : emptyPressure;
+    step.pressTime || movingPart ? { [step.id]: motion } : emptyPressure;
   return { pressure, active: !complete && motion > 0 && motion < 1 ? step.id : '' };
 }
 
@@ -23,9 +23,10 @@ export function createExample({
     if (!state) return null;
     const step = state.lesson.actions[state.index];
     const time = duration(step);
-    const motion = step.pressTime || 650;
+    const movingPart = state.lesson.id === 'gear' && Boolean(step.attachment);
+    const motion = step.pressTime || (movingPart ? 1800 : 650);
     return {
-      ...state, step, time,
+      ...state, step, time, movingPart,
       motion: state.complete ? 1 : Math.max(0, Math.min(1, (state.elapsed - 850) / motion))
     };
   }

@@ -258,12 +258,20 @@ export function createView(container, onProject, onAvailabilityChange) {
     focusExample(action) {
       resetCamera(previous);
       if (focusDetail(action)) return;
+      if (previous.id === 'gear' && action === 'bcd') {
+        orbit.theta = 1.19;
+        orbit.radius = 7.3;
+        look.y = .37;
+      }
       if (firstPerson && previous.scene === 'recovery' && ['sweep', 'reach', 'trace-hose'].includes(action)) orbit.theta = 1.32;
     },
-    cameraPose: () => orbit.clone(),
+    cameraPose: () => ({ orbit: orbit.clone(), look: look.clone() }),
     restoreCamera(pose) {
       focusDetail();
-      if (pose) orbit.copy(pose);
+      if (pose) {
+        orbit.copy(pose.orbit);
+        look.copy(pose.look);
+      }
       queue();
     },
     interact(pressure, active) {
