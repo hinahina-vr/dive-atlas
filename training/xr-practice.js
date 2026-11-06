@@ -322,7 +322,8 @@ function makePanel(lesson, following) {
         inflator && placing ? '排気口を置く高さを選ぶ' :
         finChoice ? next.attachment.part + 'を持つ' :
         state.guide ? next.label : '';
-      text(note || state.message || '操作に照準を合わせてトリガーを押す', 32, 129, 34, '#246270');
+      const instruction = note || state.message || '操作に照準を合わせてトリガーを押す';
+      text(instruction, 32, 129, 34, '#246270');
       const options = inspection ? inspectionSlots.map(slot => fins ? slot : { ...slot, label: inspection[slot.id] }) : [];
       if (finGroup) {
         const choices = state.choices.filter(step => finGroup.actions[step.id]);
@@ -339,7 +340,7 @@ function makePanel(lesson, following) {
           state.retry ? state.message : inspection ? inspection.note || '' :
           finGroup ? state.message : finChoice ? '足元の目印に照準を合わせる' :
           state.guide && next.pressTime ? 'トリガーを押し続ける' : fins ? '足元の部品を選ぶ' : '器材の目印を選ぶ';
-        text(hint, finInput ? 310 : 32, compact ? 197 : 300, 32, '#246270', finInput ? 675 : 960);
+        if (hint && hint !== instruction) text(hint, finInput ? 310 : 32, compact ? 197 : 300, 32, '#246270', finInput ? 675 : 960);
       } else if (recovery) {
         const note = placing ? (state.guide ? '正面を向いて「口元」を選ぶ' : '取り付け先に照準を合わせる') :
           !state.guide ? '次の操作を思い出し、器材かボタンを選ぶ' :
@@ -380,11 +381,35 @@ const gearLabels = {
   cylinder: 'シリンダーの胴', valve: 'バルブ接合面', inflator: 'インフレーター口'
 };
 
+function gearMarkerMaterial() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  ctx.beginPath();
+  ctx.arc(32, 32, 26, 0, 2 * Math.PI);
+  ctx.fillStyle = '#123a45';
+  ctx.fill();
+  ctx.strokeStyle = '#c6fff0';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(32, 32, 10, 0, 2 * Math.PI);
+  ctx.fillStyle = '#d3fff3';
+  ctx.fill();
+  const map = new T.CanvasTexture(canvas);
+  map.colorSpace = T.SRGBColorSpace;
+  return new T.MeshBasicMaterial({ map, transparent: true, depthTest: false, depthWrite: false, toneMapped: false });
+}
+
 function spatialTargets(lesson, model, scene) {
   const inflator = lesson.scene === 'inflator';
   const fins = lesson.scene === 'fins';
   const gear = lesson.scene === 'gear';
   const labels = gear ? gearLabels : fins ? finLabels : inflator ? inflatorLabels : recoveryLabels;
+  const markerGeometry = gear ? new T.PlaneGeometry(.14, .14) : null;
+  const markerMaterial = gear ? gearMarkerMaterial() : null;
+  const markerHighlight = markerMaterial?.clone();
+  markerHighlight?.color.setHex(0x83e6d0);
   const entries = lesson.actions.map(action => action.id).filter(id => labels[id]);
   if (inflator) entries.push('trim-add', 'trim-vent');
   if (fins) entries.push(...Object.keys(finRecallGroups));
@@ -415,8 +440,16 @@ function spatialTargets(lesson, model, scene) {
     const mesh = new T.Mesh(new T.PlaneGeometry(fins || gear ? .40 : .31, fins || gear ? .125 : .097), new T.MeshBasicMaterial({
       map: texture, transparent: true, depthTest: false, depthWrite: false, toneMapped: false
     }));
-    mesh.renderOrder = 11;
+    mesh.renderOrder = gear ? 12 : 11;
     mesh.visible = false;
+    const marker = gear ? new T.Mesh(markerGeometry, markerMaterial) : null;
+    if (marker) {
+      mesh.name = 'gear-label:' + id;
+      marker.name = 'gear-marker:' + id;
+      marker.renderOrder = 11;
+      marker.visible = false;
+      scene.add(marker);
+    }
     scene.add(mesh);
     const dock = Boolean(model.docks[id]);
     const action = lesson.actions.find(step => step.id === id);
@@ -428,24 +461,24 @@ function spatialTargets(lesson, model, scene) {
     if (id === 'buddy-vent') point.z += .17;
     if (id === 'fin-part-boot') point.x -= .20;
     const trimming = id.startsWith('trim-');
-    const buttonHit = inflator && (trimming || action?.pressTime) ? new T.Sphere(new T.Vector3(), .086) : null;
+    const hitArea = gear || (inflator && (trimming || action?.pressTime)) ? new T.Sphere(new T.Vector3(), .086) : null;
     const phaseOnly = (fins && !dock) || trimming || id === 'trace-hose';
     const actionId = trimming ? 'balance' : id;
     const index = lesson.actions.findIndex(action => action.id === actionId);
     const sharedAnchor = gear ? lesson.actions.findIndex((step, i) => i < index && step.anchor === anchor) : -1;
-    return { id, dock, group, parent, point, mesh, index, phaseOnly, sharedAnchor, buttonHit };
+    return { id, dock, group, parent, point, mesh, marker, index, phaseOnly, sharedAnchor, hitArea };
   });
   const forward = new T.Vector3();
   const delta = new T.Vector3();
-  const labelOffset = new T.Vector3();
+  const right = new T.Vector3();
   const hitPoint = new T.Vector3();
   return {
     update(state, placing, eye, orientation, inspecting, focusStep, finChoice) {
       const stepIndex = focusStep && state.steps.indexOf(focusStep);
       forward.set(0, 0, -1).applyQuaternion(orientation);
-      labelOffset.set(.235, 0, 0).applyQuaternion(orientation);
-      for (const { id, dock, group, parent, point, mesh, index, phaseOnly, sharedAnchor, buttonHit } of targets) {
-        mesh.visible = false;
+      right.set(1, 0, 0).applyQuaternion(orientation);
+      for (const { id, dock, group, parent, point, mesh, marker, index, phaseOnly, sharedAnchor, hitArea } of targets) {
+        (marker || mesh).visible = false;
         if (focusStep !== undefined) {
           if (!focusStep || group || !parent.visible || (dock ? id !== focusStep.attachment?.dock : index !== stepIndex)) continue;
         } else if (fins && !state.guide) {
@@ -461,38 +494,66 @@ function spatialTargets(lesson, model, scene) {
         }
         parent.localToWorld(mesh.position.copy(point));
         if (delta.subVectors(mesh.position, eye).normalize().dot(forward) < .70) continue;
-        if (buttonHit) {
-          buttonHit.center.copy(mesh.position);
-          mesh.position.add(labelOffset);
+        if (hitArea) hitArea.center.copy(mesh.position);
+        if (marker) {
+          marker.position.copy(mesh.position);
+          marker.quaternion.copy(orientation);
+          marker.visible = true;
+          mesh.position.addScaledVector(right, delta.dot(right) > .43 ? -.26 : .26);
+        } else {
+          if (hitArea) mesh.position.addScaledVector(right, .235);
+          mesh.visible = true;
         }
         mesh.quaternion.copy(orientation);
-        mesh.scale.setScalar(gear && !dock && !state.guide && !focusStep ? .83 : 1);
         mesh.updateMatrixWorld();
-        mesh.visible = true;
       }
     },
     pick(ray) {
       let nearest;
-      for (const { id, dock, mesh, buttonHit } of targets) {
-        if (!mesh.visible) continue;
-        const physicalHit = buttonHit && ray.ray.intersectSphere(buttonHit, hitPoint);
-        const distance = physicalHit ? ray.ray.origin.distanceTo(physicalHit) : ray.intersectObject(mesh)[0]?.distance;
+      let aimedMarker;
+      let markerDistance = Infinity;
+      for (const { id, dock, mesh, marker, hitArea } of targets) {
+        if (!(marker || mesh).visible) continue;
+        const physicalHit = hitArea && ray.ray.intersectSphere(hitArea, hitPoint);
+        if (marker && physicalHit) {
+          // Nearby markers can both intersect the ray. Prefer the one the ray passes closest to.
+          const offset = ray.ray.distanceSqToPoint(hitArea.center);
+          if (offset < markerDistance) {
+            markerDistance = offset;
+            aimedMarker = { id, dock, spatial: true, distance: ray.ray.origin.distanceTo(physicalHit) };
+          }
+          continue;
+        }
+        const distance = physicalHit ? ray.ray.origin.distanceTo(physicalHit) :
+          mesh.visible ? ray.intersectObject(mesh)[0]?.distance : undefined;
         if (distance !== undefined && (!nearest || distance < nearest.distance)) nearest = { id, dock, spatial: true, distance };
       }
-      return nearest;
+      return aimedMarker || nearest;
     },
-    highlight(hovered, reviewing, guided) {
-      for (const { id, mesh } of targets) {
-        if (mesh.visible) mesh.material.color.setHex(reviewing || id === hovered || id === guided ? 0x9bf2df : 0xffffff);
+    highlight(hovered, focus, guided) {
+      const label = gear && (targets.find(target => target.marker.visible && target.id === hovered) ||
+        targets.find(target => target.marker.visible && target.id === (focus || guided)));
+      for (const { id, mesh, marker } of targets) {
+        const emphasized = id === hovered || id === guided || (marker ? id === focus : Boolean(focus));
+        if (marker) {
+          mesh.visible = label?.id === id;
+          marker.material = emphasized ? markerHighlight : markerMaterial;
+        }
+        if (mesh.visible) mesh.material.color.setHex(emphasized ? 0x9bf2df : 0xffffff);
       }
     },
     dispose() {
-      for (const { mesh } of targets) {
+      for (const { mesh, marker } of targets) {
+        marker?.removeFromParent();
         mesh.removeFromParent();
         mesh.geometry.dispose();
         mesh.material.map.dispose();
         mesh.material.dispose();
       }
+      markerGeometry?.dispose();
+      markerMaterial?.map.dispose();
+      markerMaterial?.dispose();
+      markerHighlight?.dispose();
     }
   };
 }
@@ -865,7 +926,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, followin
         hovered ??= hit?.id;
       }
       const guidedTarget = current.guide ? (placing ? next?.attachment?.dock : next?.id) : undefined;
-      targets?.highlight(hovered, Boolean(focusStep), guidedTarget);
+      targets?.highlight(hovered, focusStep?.id, guidedTarget);
       panel.draw(current, hovered, placing, completed, inspecting, reviewIndex, demo, finChoice, hasController);
       renderer.render(scene, camera);
     },

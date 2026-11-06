@@ -723,8 +723,49 @@ try {
 
   await page.reload();
   await recallScenario(.42);
+  await page.evaluate(async () => {
+    const { Scene } = await import(new URL('../vendor/three.module.js', location));
+    const add = Scene.prototype.add;
+    window.qaGearCallouts = new Map();
+    Scene.prototype.add = function(...objects) {
+      for (const object of objects) {
+        if (/^gear-(marker|label):/.test(object.name)) window.qaGearCallouts.set(object.name,object);
+      }
+      return add.apply(this,objects);
+    };
+  });
   await start();
+  const visibleGear = kind => page.evaluate(kind => [...window.qaGearCallouts.values()]
+    .filter(object => object.visible && object.name.startsWith('gear-' + kind + ':'))
+    .map(object => object.name.split(':')[1]),kind);
+  const onlyGearLabel = id => page.waitForFunction(id => {
+    const labels = [...window.qaGearCallouts.values()].filter(object => object.visible && object.name.startsWith('gear-label:'));
+    return labels.length === 1 && labels[0].name === 'gear-label:' + id;
+  },id);
+  const initialMarkers = await visibleGear('marker');
+  assert(initialMarkers.length >= 8);
+  assert(initialMarkers.includes('open') && initialMarkers.includes('inspect-ring'));
+  assert((await visibleGear('label')).length <= 1);
   await capture('gear-bench');
+  await aimAt(await gearPoint('inspect-ring',[]));
+  await onlyGearLabel('inspect-ring');
+  await capture('gear-ring-label-front');
+  await aimAt(await gearPoint('open',[]));
+  await onlyGearLabel('open');
+  await page.evaluate(() => { window.xrDevice.position.x = .23; });
+  await look(-.22);
+  await aimAt(await gearPoint('inspect-ring',[]));
+  await onlyGearLabel('inspect-ring');
+  await aimAt(await gearPoint('open',[]));
+  await onlyGearLabel('open');
+  await capture('gear-valve-label-angle');
+  await trigger(1);
+  await page.waitForTimeout(120);
+  await trigger(0);
+  await page.waitForFunction(() => document.querySelector('#feedback').dataset.tone === 'retry');
+  assert.equal(await progress(),'0');
+  await page.evaluate(() => { window.xrDevice.position.x = 0; });
+  await look(0);
   const beforeGearExample = await storedDraft();
   await use(gearPanel(678,57));
   await panelHas('見本  1 / 11','シリンダーの検査期限を確認');
@@ -1036,7 +1077,7 @@ try {
   await hold(exit,140,'left');
   await page.waitForFunction(()=>window.qaEvents.includes('end'));
   assert.deepEqual(errors,[]);
-  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, ' + (profile === 'pico-4' ? 'PICO 4 input profile' : 'Meta Quest 3 profile') + ', Chrome',profile,inputSources:sources,checks:['XR button available for gear and hidden during the example','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes','Surface fins accept a tracked drag or separate selections and reject the wrong dock','A partially lifted heel is saved across XR exit and reload','Loose and snug straps look different and require the matching judgement','Gear inspection reads dates and a damaged O-ring and rejects incorrect answers','Gear attaches BCD, first stage and low-pressure hose, preserves progress and requires the gauge to be turned before opening','Gear and buddy check share one XR session and the bench stays anchored when the viewer moves','Exiting right after handoff or mid-buddy-check restores the correct step and keeps the gear review','Buddy check exercises inflation, inspection, error correction and its own saved review','VR result shows the flagged mask step while leaving the completed run untouched','Gear review navigates missed steps with contextual equipment, then returns to the result without changing the record','VR example moves mask water, pauses and starts fresh unaided practice within the session','Opening and closing a VR example preserves an interrupted exercise and its exact saved water','Gear example shows the damaged seal and its replacement without changing the exercise','Fin recall shows equipment and unmarked candidate actions, and records an early attempt to put on the boot','Guided fins still indicate the next action, while recalled attachments can be canceled or carried to a dock','The missed mask exhale replays its full-water route and animates to empty, then returns to the same review item without changing results','A missed gear inspection replays the original damaged O-ring and its replacement in the headset','The BCD moves in the headset during its review replay, then returns to the same result','The headset exposes a hint on demand, keeps it through XR exit, and distinguishes a step that needed both retry and hint','A live session continues from a completed regulator drill to inflator, and from inflator to an operable fin scene','Buddy check, full-mask practice and the selected alternate regulator route share the session, re-anchor to the viewer, and save a zero-step draft','Either controller can select, squeeze does not select, and losing a ray during a hold preserves the exact progress for the other hand','The example pauses with neither controller tracked and closes back to the same saved practice','The mask rim accepts a direct controller ray in unaided recall and shows the sealed visor','Retrying a missed full-mask result resets the water and saves the same route in the same XR session while retaining the prior review until completion','A controller ray hits the real inflate and deflate caps during the normal drill and trim, independently of the nearby labels','Recall leaves later equipment candidates selectable and does not give away the recovery docking target']},null,2));
+  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, ' + (profile === 'pico-4' ? 'PICO 4 input profile' : 'Meta Quest 3 profile') + ', Chrome',profile,inputSources:sources,checks:['XR button available for gear and hidden during the example','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes','Surface fins accept a tracked drag or separate selections and reject the wrong dock','A partially lifted heel is saved across XR exit and reload','Loose and snug straps look different and require the matching judgement','Gear inspection reads dates and a damaged O-ring and rejects incorrect answers','Gear attaches BCD, first stage and low-pressure hose, preserves progress and requires the gauge to be turned before opening','Gear and buddy check share one XR session and the bench stays anchored when the viewer moves','Exiting right after handoff or mid-buddy-check restores the correct step and keeps the gear review','Buddy check exercises inflation, inspection, error correction and its own saved review','VR result shows the flagged mask step while leaving the completed run untouched','Gear review navigates missed steps with contextual equipment, then returns to the result without changing the record','VR example moves mask water, pauses and starts fresh unaided practice within the session','Opening and closing a VR example preserves an interrupted exercise and its exact saved water','Gear example shows the damaged seal and its replacement without changing the exercise','Fin recall shows equipment and unmarked candidate actions, and records an early attempt to put on the boot','Guided fins still indicate the next action, while recalled attachments can be canceled or carried to a dock','The missed mask exhale replays its full-water route and animates to empty, then returns to the same review item without changing results','A missed gear inspection replays the original damaged O-ring and its replacement in the headset','The BCD moves in the headset during its review replay, then returns to the same result','The headset exposes a hint on demand, keeps it through XR exit, and distinguishes a step that needed both retry and hint','A live session continues from a completed regulator drill to inflator, and from inflator to an operable fin scene','Buddy check, full-mask practice and the selected alternate regulator route share the session, re-anchor to the viewer, and save a zero-step draft','Either controller can select, squeeze does not select, and losing a ray during a hold preserves the exact progress for the other hand','The example pauses with neither controller tracked and closes back to the same saved practice','The mask rim accepts a direct controller ray in unaided recall and shows the sealed visor','Retrying a missed full-mask result resets the water and saves the same route in the same XR session while retaining the prior review until completion','A controller ray hits the real inflate and deflate caps during the normal drill and trim, independently of the nearby labels','Recall leaves later equipment candidates selectable and does not give away the recovery docking target','Nearby O-ring and valve targets show one distinct label at a time and remain selectable from front and angled views']},null,2));
   console.log(folder);
 } catch(error) {
   console.log(JSON.stringify({errors, browser:await page.evaluate(()=>({iwer:!!window.xrDevice,events:window.qaEvents,session:!!window.qaSession,feedback:document.querySelector('#feedback')?.textContent}))}));
