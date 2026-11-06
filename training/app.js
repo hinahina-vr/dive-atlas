@@ -12,7 +12,8 @@ const el = Object.fromEntries([
   'viewport', 'scene', 'scene-status', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall',
   'view-label', 'view-subtitle', 'view-help', 'view-controls',
   'rotate-left', 'rotate-right', 'reset-view', 'module-label', 'step-count', 'progress',
-  'review-overview-status', 'review-next', 'practice-draft', 'draft-description', 'resume-practice',
+  'review-overview-status', 'review-next', 'review-queue', 'review-queue-title', 'review-queue-list',
+  'practice-draft', 'draft-description', 'resume-practice',
   'lesson-title', 'lesson-description', 'instruction', 'step-label', 'step-title', 'step-description',
   'mask-settings', 'mask-fill', 'recovery-methods', 'recovery-search', 'recovery-clear',
   'buoyancy-panel', 'buoyancy-status', 'trim-add', 'trim-vent',
@@ -34,6 +35,8 @@ const marks = new Map();
 const example = createExample({ render, frame: drawExample });
 let stagedExample;
 let practiceCamera;
+let returnFromExample;
+let reviewQueueOpen = false;
 const recent = new Map();
 let storage;
 try { storage = window.localStorage; } catch { /* Practice still works without storage. */ }
@@ -300,13 +303,40 @@ function latestReview(lesson) {
   return recent.get(lesson.id);
 }
 
+const reviewGroups = lessons.map(lesson => {
+  const group = document.createElement('div');
+  const title = document.createElement('h3');
+  const list = document.createElement('ul');
+  title.textContent = lesson.title;
+  group.hidden = true;
+  group.append(title, list);
+  el['review-queue-list'].append(group);
+  return { group, list, record: null };
+});
+
 function reviewOverview() {
   const records = lessons.map(latestReview);
   const complete = records.filter(Boolean).length;
   const needsWork = records.filter(record => record?.steps.length).length;
-  const review = records.findIndex(record => record?.steps.length);
-  const next = lessons[review >= 0 ? review : records.indexOf(null)];
-  return { records, complete, needsWork, next };
+  return { records, complete, needsWork, next: lessons[records.indexOf(null)] };
+}
+
+function renderReviewQueue(records) {
+  reviewGroups.forEach((entry, i) => {
+    const record = records[i];
+    if (record === entry.record) return;
+    entry.record = record;
+    entry.group.hidden = !record?.steps.length;
+    if (entry.group.hidden) {
+      entry.list.replaceChildren();
+      return;
+    }
+    const original = lessonRoute(lessons[i], record.route);
+    const rows = original.actions
+      .filter(action => record.steps.includes(action.id))
+      .map(action => reviewRow(action, record.scenario, original, true));
+    entry.list.replaceChildren(...rows);
+  });
 }
 
 function renderReviewOverview() {
@@ -322,29 +352,30 @@ function renderReviewOverview() {
     (needsWork ? ' ・ 見直し ' + needsWork + '種目' : '');
   if (el['review-overview-status'].textContent !== summary) el['review-overview-status'].textContent = summary;
   const shortcut = el['review-next'];
-  shortcut.hidden = !next || Boolean(example.current());
-  shortcut.textContent = needsWork ? '見直す ›' : complete ? '未復習へ ›' : '自力復習を始める ›';
-  shortcut.setAttribute('aria-controls', needsWork ? 'previous-review' : 'instruction');
+  shortcut.hidden = (!needsWork && !next) || Boolean(example.current());
+  if (!needsWork) reviewQueueOpen = false;
+  const queue = el['review-queue'];
+  queue.hidden = !reviewQueueOpen || Boolean(example.current());
+  shortcut.textContent = needsWork
+    ? (queue.hidden ? '見直す ›' : '見直しを閉じる')
+    : complete ? '未復習へ ›' : '自力復習を始める ›';
+  shortcut.setAttribute('aria-controls', needsWork ? queue.id : 'instruction');
+  if (needsWork) shortcut.setAttribute('aria-expanded', String(!queue.hidden));
+  else shortcut.removeAttribute('aria-expanded');
+  if (!queue.hidden) renderReviewQueue(records);
 }
 
 el['review-next'].addEventListener('click', () => {
   const { next, needsWork } = reviewOverview();
-  if (!next) return;
-  const current = practice.lesson.id === next.id && !example.current();
-  let destination = el.instruction;
   if (needsWork) {
-    if (!current) openLesson(next);
-    renderHistory(true);
-    const history = el['previous-review'];
-    history.open = true;
-    destination = history.querySelector('summary');
-  } else if (!current || practice.mode !== 'recall') {
-    openLesson(next, 'recall');
+    reviewQueueOpen = !reviewQueueOpen;
+    renderReviewOverview();
+    if (reviewQueueOpen) el['review-queue-title'].focus();
+    return;
   }
-  destination.focus({ preventScroll: true });
-  if (destination.getBoundingClientRect().top < 0 || destination.getBoundingClientRect().bottom > innerHeight) {
-    destination.scrollIntoView({ block: 'center' });
-  }
+  if (!next) return;
+  if (practice.lesson.id !== next.id || practice.mode !== 'recall') openLesson(next, 'recall');
+  el.instruction.focus();
 });
 
 for (const mode of ['guided', 'recall']) {
@@ -409,7 +440,7 @@ el.perspective.addEventListener('click', () => {
 });
 el['show-example'].addEventListener('click', () => {
   if (example.current()) closeExample();
-  else showExample();
+  else showExample(undefined, practice.scenario);
 });
 el['example-prev'].addEventListener('click', () => example.move(-1));
 el['example-next'].addEventListener('click', () => example.move(1));
@@ -423,7 +454,8 @@ el['example-recall'].addEventListener('click', () => {
   showViewport();
 });
 
-function showExample(stepIndex, scenario = practice.scenario, lesson = practice.lesson) {
+function showExample(stepIndex, scenario, lesson = practice.lesson, returnFocus) {
+  returnFromExample = returnFocus;
   practiceCamera = view?.cameraPose();
   feedback();
   stagedExample = null;
@@ -448,7 +480,9 @@ function closeExample() {
   render();
   view?.restoreCamera(practiceCamera);
   practiceCamera = null;
-  el['show-example'].focus({ preventScroll: true });
+  if (returnFromExample?.getClientRects().length) returnFromExample.focus();
+  else el['show-example'].focus({ preventScroll: true });
+  returnFromExample = null;
 }
 
 function exampleUnderwater(lesson) {
@@ -500,19 +534,21 @@ function drawExampleGuide(state, positions, docks) {
   }
 }
 
-function reviewRow(action, scenario, lesson = practice.lesson) {
+function reviewRow(action, scenario, lesson = practice.lesson, compact = false) {
   const row = document.createElement('li');
-  const replay = button('この手順の見本を見る', 'quiet review-example', () => showExample(lesson.actions.indexOf(action), scenario, lesson));
+  const replay = button(compact ? '見本を見る' : 'この手順の見本を見る', 'quiet review-example', () => {
+    showExample(lesson.actions.indexOf(action), scenario, lesson, compact ? replay : undefined);
+  });
   replay.setAttribute('aria-label', action.label + '手順の見本を見る');
-  row.append(action.label + '。' + action.detail, replay);
+  row.append(compact ? action.label : action.label + '。' + action.detail, replay);
   return row;
 }
 
-function renderHistory(showCompleted = false) {
+function renderHistory() {
   const { lesson, index } = practice;
   const detail = el['previous-review'];
   const record = latestReview(lesson);
-  detail.hidden = !record || Boolean(example.current()) || (!showCompleted && index === lesson.actions.length);
+  detail.hidden = !record || Boolean(example.current()) || index === lesson.actions.length;
   if (detail.hidden) return;
   if (detail.dataset.lesson !== lesson.id) detail.open = false;
   detail.dataset.lesson = lesson.id;
@@ -719,7 +755,7 @@ function render() {
     const item = document.createElement('li');
     item.textContent = mode === 'recall' ? 'ヒントを使わず、すべての手順を思い出せました。' :
       '一通り試せました。自力で復習するモードでもう一度試せます。';
-    el.review.replaceChildren(...(review.length ? review.map(action => reviewRow(action)) : [item]));
+    el.review.replaceChildren(...(review.length ? review.map(action => reviewRow(action, practice.scenario)) : [item]));
     const next = lessons[lessonIndex(lesson) + 1];
     el['next-lesson'].hidden = !next;
     el['next-lesson'].textContent = lesson.id === 'gear' ? 'バディの器材を確認 ›' : next ? next.title + 'へ ›' : '';

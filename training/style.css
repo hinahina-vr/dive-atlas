@@ -60,6 +60,21 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   min-height: 40px; margin: -7px 0 2px; color: #325963; font-size: .78rem; font-weight: 700;
 }
 .review-overview .quiet { margin: 0; padding: 0 7px; min-height: 42px; color: var(--teal); font-size: inherit; }
+#review-queue {
+  margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--line);
+  border-radius: 11px; background: var(--card);
+}
+#review-queue-title { font-size: .95rem; margin: 0 0 9px; }
+#review-queue-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: 8px; }
+#review-queue-list > div { padding: 5px 9px; border: 1px solid #c4e2dd; border-radius: 8px; background: #f1fbf8; }
+#review-queue-list h3 { margin: 4px 0 0; color: #1d615b; font-size: .76rem; }
+#review-queue-list ul { list-style: none; padding: 0; margin: 0; }
+#review-queue-list li {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  color: #254e59; font-size: .8rem; line-height: 1.4;
+}
+#review-queue-list li + li { border-top: 1px solid #cce7e2; }
+#review-queue-list button { flex-shrink: 0; }
 #practice-draft {
   display: flex; align-items: center; justify-content: space-between; gap: 7px 12px; flex-wrap: wrap;
   padding: 4px 7px 4px 10px; margin: 0 0 7px; border: 1px solid #a1c8be; border-radius: 9px;
