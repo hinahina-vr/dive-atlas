@@ -29,7 +29,9 @@ const webFiles = [
  'training/view.js',
  'training/models.js',
  'training/placement.js',
- 'training/press.js'
+ 'training/press.js',
+ 'training/example.js',
+ 'training/reviews.js'
 ];
 for (const file of webFiles) {
  await mkdir(resolve(out, file, '..'), { recursive: true });

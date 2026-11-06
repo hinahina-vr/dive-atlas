@@ -5,6 +5,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { chromium } from 'playwright-core';
 import { lessons, newPractice, choose, reveal, needsReview } from '../training/lessons.js';
+import { readReview, reviewKey, saveReview } from '../training/reviews.js';
 
 const root = resolve(import.meta.dirname, '..');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
@@ -36,6 +37,18 @@ assert.equal(gear.index, 1);
 assert.deepEqual(needsReview(gear).map(action => action.id), ['bcd']);
 assert.equal(choose(gear, 'bcd', 'cylinder').ok, true);
 checks.push('All drill states: wrong order, wrong destination, hints, full run, completion and review');
+const reviewData = new Map();
+const storage = { getItem: key => reviewData.get(key), setItem: (key, raw) => reviewData.set(key, raw) };
+assert.equal(saveReview(storage, gear, 123), null);
+for (const action of lessons[0].actions.slice(gear.index)) assert.equal(attempt(gear, action).ok, true);
+const record = saveReview(storage, gear, 123);
+assert.deepEqual(record, { completedAt: 123, steps: ['bcd'] });
+assert.deepEqual(readReview(storage, lessons[0]), record);
+assert.equal(readReview(storage, lessons[1]), null);
+reviewData.set(reviewKey(lessons[0]), '{broken');
+assert.equal(readReview(storage, lessons[0]), null);
+assert.deepEqual(saveReview({ setItem() { throw new Error('storage is blocked'); } }, gear, 123), record);
+checks.push('Review storage: separate drills, invalid records and unavailable storage');
 
 const artifactBase = join(root, 'artifacts');
 await mkdir(artifactBase, { recursive: true });
@@ -74,7 +87,7 @@ try {
 
   browser = await chromium.launch({
     executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
-    headless: true, args: ['--enable-unsafe-swiftshader']
+    headless: true, args: ['--enable-unsafe-swiftshader', '--disable-gpu-shader-disk-cache', '--disk-cache-size=1048576']
   });
   const pageErrors = [];
   const testPage = async (viewport, mobile = false) => {
@@ -169,6 +182,29 @@ try {
   await desktop.screenshot({ path: join(output, 'desktop-gear.png'), fullPage: true });
   await firstMarker.click();
   assert.equal(await desktop.locator('#progress').getAttribute('aria-valuenow'), '1');
+  await desktop.locator('#show-example').click();
+  assert(await desktop.locator('#example-controls').isVisible());
+  assert(await desktop.locator('#choices').isHidden());
+  await desktop.locator('#example-play').click();
+  const exampleTime = () => desktop.locator('#example-controls').evaluate(node => node.style.getPropertyValue('--time'));
+  const pausedAt = await exampleTime();
+  await desktop.waitForTimeout(300);
+  assert.equal(await exampleTime(), pausedAt);
+  await desktop.locator('#example-play').click();
+  await desktop.waitForFunction(() => document.querySelector('#step-title')?.textContent === 'BCDを取り付ける');
+  await desktop.locator('#example-play').click();
+  await desktop.locator('#example-guide').waitFor({ state: 'visible' });
+  assert.equal(await desktop.locator('#example-guide line').getAttribute('hidden'), null);
+  await desktop.screenshot({ path: join(output, 'desktop-example.png'), fullPage: true });
+  await desktop.locator('#example-next').click();
+  assert.equal(await desktop.locator('#step-title').innerText(), 'BCDのバンドを締める');
+  await desktop.locator('#example-prev').click();
+  assert.equal(await desktop.locator('#step-title').innerText(), 'BCDを取り付ける');
+  await desktop.locator('#example-exit').click();
+  assert.equal(await value(desktop), '1');
+  assert(await desktop.locator('#example-controls').isHidden());
+  assert(await desktop.locator('#choices').isVisible());
+  checks.push('1440 px example: autoplay, pause, 3D target overlay, seek and return to an in-progress drill');
   await movePart(desktop, 'bcd', 'valve', mouseDrag(desktop));
   assert.equal(await value(desktop), '1');
   assert.equal(await desktop.locator('#feedback').getAttribute('data-tone'), 'retry');
@@ -210,6 +246,7 @@ try {
   assert.equal(await value(desktop), '3');
   assert.equal(await meterLevel(desktop), 0);
   checks.push('1440 px mask drill: seal, progressive water loss, interrupted press, resume and clear');
+  await desktop.context().close();
 
   const mobileSize = { width: 390, height: 844 };
   const mobileDrag = await testPage(mobileSize, true);
@@ -261,8 +298,25 @@ try {
   await hold(mobile, 'mask-exhale', waterInput);
   assert.equal(await mobile.locator('#review li').count(), 2);
   assert.equal(await mobile.locator('#mask-overlay').evaluate(node => node.style.getPropertyValue('--mask-water')), '0%');
-  await mobile.locator('#reset').tap();
-  assert.equal(await mobile.locator('#progress').getAttribute('aria-valuenow'), '0');
+  const maskReviewKey = reviewKey(lessons[2]);
+  const saved = await mobile.evaluate(key => localStorage.getItem(key), maskReviewKey);
+  assert.deepEqual(JSON.parse(saved).steps, ['mask-breathe', 'mask-hold']);
+  await mobile.reload();
+  await ready(mobile);
+  await mobile.getByRole('button', { name: 'マスククリア', exact: true }).tap();
+  const previous = mobile.locator('#previous-review');
+  await previous.locator('summary').tap();
+  assert.match(await previous.innerText(), /見直し 2項目/);
+  await mobile.screenshot({ path: join(output, 'mobile-review.png'), fullPage: true });
+  await previous.getByRole('button', { name: 'マスクの上側を押さえる手順の見本を見る', exact: true }).tap();
+  assert.equal(await mobile.locator('#step-title').innerText(), 'マスクの上側を押さえる');
+  await mobile.locator('#example-next').tap();
+  assert.equal(await mobile.locator('#step-title').innerText(), '今度は自分で試す');
+  await mobile.locator('#example-recall').tap();
+  assert.equal(await mobile.locator('#recall').getAttribute('aria-pressed'), 'true');
+  assert.equal(await value(mobile), '0');
+  assert.equal(await mobile.evaluate(key => localStorage.getItem(key), maskReviewKey), saved);
+  checks.push('390 px review: saved on completion, survives reload, plays one step and starts fresh recall without overwriting history');
   await mobile.locator('#guided').tap();
   await mobile.evaluate(() => window.scrollTo(0, 0));
   await mobile.locator('#hotspots .is-guide:visible').waitFor();
@@ -327,6 +381,7 @@ try {
     assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   }
   checks.push('390 px touch WebGL at /dive-atlas/: gear gestures, mask press, recovery and purge, buoyancy response, fin placement, wrong order and review');
+  await mobile.context().close();
 
   const noGl = await testPage({ width: 360, height: 800 }, true);
   await noGl.addInitScript(() => {
@@ -338,6 +393,10 @@ try {
   });
   await noGl.goto(previewUrl + 'training/');
   await noGl.locator('.scene-error').waitFor();
+  await noGl.locator('#show-example').tap();
+  await noGl.locator('#example-next').tap();
+  assert.equal(await noGl.locator('#step-title').innerText(), 'BCDを取り付ける');
+  await noGl.locator('#example-exit').tap();
   for (const action of lessons[0].actions) await operate(noGl, action, 'tap');
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
   await noGl.getByRole('button', { name: 'マスククリア', exact: true }).tap();

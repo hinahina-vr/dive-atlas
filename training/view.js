@@ -165,6 +165,15 @@ export function createView(container, onProject) {
   return {
     rotate,
     resetCamera: () => resetCamera(previous),
+    focusExample(action) {
+      resetCamera(previous);
+      if (firstPerson && previous.scene === 'recovery' && action === 'sweep') orbit.theta = 1.32;
+    },
+    cameraPose: () => orbit.clone(),
+    restoreCamera(pose) {
+      if (pose) orbit.copy(pose);
+      queue();
+    },
     interact(pressure, active) {
       interaction = { pressure, active };
       changed = performance.now();

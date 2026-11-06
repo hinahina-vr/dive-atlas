@@ -25,16 +25,20 @@
         <h1 id="title">OWD スキルラボ</h1>
         <p>次のダイブの前に、手順を思い出そう。</p>
       </div>
-      <div class="segmented" role="group" aria-label="練習モード">
-        <button type="button" id="guided" aria-pressed="true">手順を見ながら</button>
-        <button type="button" id="recall" aria-pressed="false">自力で復習</button>
+      <div class="intro-controls">
+        <button type="button" id="show-example" class="outline-control" aria-pressed="false">▷ 見本を見る</button>
+        <div class="segmented" role="group" aria-label="練習モード">
+          <button type="button" id="guided" aria-pressed="true">手順を見ながら</button>
+          <button type="button" id="recall" aria-pressed="false">自力で復習</button>
+        </div>
       </div>
     </section>
 
     <nav id="lessons" aria-label="練習メニュー"></nav>
 
     <section class="workspace" aria-label="練習">
-      <div class="viewport" id="viewport">
+      <div class="viewer">
+        <div class="viewport" id="viewport">
         <div id="scene" aria-label="3D器材モデル"></div>
         <div class="view-title">
           <p class="eyebrow" id="view-label"></p>
@@ -50,12 +54,27 @@
         <p id="scene-feedback" aria-hidden="true" hidden></p>
         <div id="hotspots"></div>
         <div id="dock-markers"></div>
+        <svg id="example-guide" aria-hidden="true" hidden>
+          <line></line><circle r="11"></circle><circle r="15"></circle>
+        </svg>
+        <div id="example-caption" aria-hidden="true" hidden><span></span><strong></strong></div>
         <div class="view-controls" role="group" aria-label="カメラ操作">
           <button type="button" id="rotate-left" aria-label="左に回す" title="左に回す">↶</button>
           <button type="button" id="reset-view" aria-label="視点を戻す" title="視点を戻す">⌖</button>
           <button type="button" id="rotate-right" aria-label="右に回す" title="右に回す">↷</button>
         </div>
         <p id="view-help">ドラッグで回転</p>
+        </div>
+        <div id="example-controls" hidden>
+          <div class="example-timer" aria-hidden="true"><i></i></div>
+          <div class="example-transport" role="group" aria-label="見本の再生">
+            <button type="button" id="example-prev" class="outline-control">‹ 前へ</button>
+            <button type="button" id="example-play" class="outline-control">一時停止</button>
+            <button type="button" id="example-next" class="outline-control">次へ ›</button>
+          </div>
+          <button type="button" id="example-recall" class="primary">ヒントなしで試す ›</button>
+          <button type="button" id="example-exit" class="quiet">練習に戻る</button>
+        </div>
       </div>
 
       <section class="panel" aria-labelledby="lesson-title">
@@ -79,7 +98,11 @@
           <ul id="review"></ul>
           <button type="button" id="next-lesson" class="primary" hidden></button>
         </div>
-        <div class="panel-footer">
+        <details id="previous-review" hidden>
+          <summary><span>前回の自力復習</span><span id="previous-review-count"></span></summary>
+          <ul id="previous-review-list"></ul>
+        </details>
+        <div class="panel-footer" id="practice-footer">
           <button type="button" id="hint" class="quiet">ヒントを見る</button>
           <button type="button" id="reset" class="quiet">最初から</button>
         </div>

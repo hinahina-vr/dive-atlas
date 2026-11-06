@@ -34,6 +34,13 @@ main { width: min(1380px, 100%); margin: 0 auto; padding: 32px max(3vw, 18px) 22
 .eyebrow { color: var(--mint); font: 700 .69rem ui-monospace, monospace; letter-spacing: .18em; }
 h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7px; letter-spacing: -.035em; }
 .intro p:last-child { color: var(--muted); font-size: .9rem; }
+.intro-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.outline-control {
+  min-height: 44px; padding: 0 12px; border: 1px solid #648583;
+  border-radius: 8px; background: #0d2a36; color: #ecfffa; font-size: .79rem; font-weight: 700;
+}
+.outline-control:hover, .outline-control[aria-pressed="true"] { background: #24555a; border-color: var(--mint); }
+.outline-control:disabled { color: #9aaeb1; border-color: #3e5b62; }
 .segmented { display: flex; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: #081c25; }
 .segmented button { min-height: 40px; border: 0; border-radius: 7px; padding: 0 15px; background: transparent; color: var(--muted); font-size: .83rem; font-weight: 700; white-space: nowrap; }
 .segmented button:hover { background: #193b45; color: #fff; }
@@ -47,6 +54,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .lesson-button:hover { border-color: #63b8a9; background: #1c424a; }
 .lesson-button[aria-current="step"] { color: #edfff9; border-color: #78d1b9; background: #1b4144; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1.72fr) minmax(325px, 1fr); gap: 12px; align-items: start; }
+.viewer { min-width: 0; }
 .viewport, .panel { border: 1px solid var(--line); border-radius: 15px; overflow: hidden; }
 .viewport {
   position: relative; isolation: isolate; min-width: 0; height: clamp(410px, 56vh, 650px);
@@ -63,6 +71,36 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   color: #fff5da; background: #102b35ed; border: 1px solid #af9062; border-radius: 8px;
   padding: 6px 10px; font-size: .74rem; line-height: 1.4; pointer-events: none;
 }
+.is-example #scene { pointer-events: none; }
+.is-example .view-controls, .is-example #view-help { display: none; }
+#example-guide {
+  position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none;
+  stroke: #ffe1a5; stroke-width: 2; filter: drop-shadow(0 0 5px #102a36);
+}
+#example-guide line { stroke-dasharray: 5 4; }
+#example-guide circle { fill: #12333e89; }
+#example-guide circle:last-child { stroke-dasharray: 4 3; }
+#example-caption {
+  position: absolute; z-index: 1; bottom: 17px; left: 16px; max-width: calc(100% - 32px);
+  display: flex; align-items: center; gap: .6rem; padding: 7px 10px;
+  border: 1px solid #8c8067; border-radius: 8px; color: #fff3d4; background: #0d2a36ef;
+  font-size: .8rem; pointer-events: none;
+}
+#example-caption span { font: 700 .68rem ui-monospace, monospace; color: var(--amber); white-space: nowrap; }
+#example-controls { margin-top: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); }
+.example-timer { height: 4px; background: #3a5960; border-radius: 4px; margin-bottom: 10px; }
+.example-timer i { display: block; height: 100%; background: var(--amber); border-radius: inherit; transform: scaleX(var(--time, 0)); transform-origin: left; }
+.example-transport { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 7px; margin-bottom: 8px; }
+#example-recall { margin-right: 8px; }
+#previous-review { margin-top: 13px; border: 1px solid var(--line); border-radius: 8px; color: #c5e1de; font-size: .79rem; }
+#previous-review summary {
+  display: flex; align-items: center; gap: .5em; min-height: 43px; padding: 0 10px; cursor: pointer; font-weight: 700;
+}
+#previous-review summary::before { content: "›"; color: var(--mint); }
+#previous-review[open] summary::before { transform: rotate(90deg); }
+#previous-review-count { margin-left: auto; color: var(--mint); }
+#previous-review-list { margin: 0; padding: 0 12px 10px 28px; line-height: 1.55; }
+.review-example { display: block; min-height: 44px; padding: 0 4px; }
 #effect-meter {
   position: absolute; z-index: 1; top: 60px; left: 17px; width: 104px;
   padding: 6px 8px; border: 1px solid #538a91; border-radius: 7px;
