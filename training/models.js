@@ -568,8 +568,8 @@ export function makeModel(root, lesson, scenario) {
 }
 
 const reefRockMaterial = mat(0xffffff, .93);
-const sandTint = new T.Color(0xe7cf9b);
-const distantSand = new T.Color(0x83c8bf);
+const sandTint = new T.Color(0xece0c3);
+const distantSand = new T.Color(0x80c9c5);
 
 const waterPlaneVertex = `
   varying vec3 waterPoint;
@@ -635,9 +635,10 @@ function waterBackdrop(root) {
         float distanceToEye = distance(cameraPosition, waterPoint);
         float clear = 1.0 - smoothstep(3.5, 15.0, distanceToEye);
         float ripples = sin(dot(bed, vec2(17.5, 5.3)) + 2.3 * sin(dot(bed, vec2(.78, 1.81))));
-        float relief = .92 + .10 * ripples * clear + .07 * sin(bed.x * .86 - bed.y * .47);
-        float dapple = lightNetwork(bed * 4.9);
-        vec3 sand = tint * relief + vec3(.41, .47, .34) * dapple * clear;
+        float swell = sin(bed.x * .86 - bed.y * .47);
+        float relief = .92 + (.08 * ripples + .06 * swell) * clear;
+        float dapple = lightNetwork(bed * 5.9) * (.74 + .26 * swell);
+        vec3 sand = tint * relief + vec3(.30, .42, .36) * dapple * clear;
         vec3 color = mix(distantSand, sand, .31 + .69 * clear);
         float fade = 1.0 - smoothstep(13.0, 23.0, distanceToEye);
         gl_FragColor = vec4(color, fade);

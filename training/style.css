@@ -3,11 +3,11 @@
   font-family: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
   font-synthesis: none;
   color: #123e50;
-  background: #f5f1df;
-  --card: #fafffe;
-  --line: #95c6c6;
-  --muted: #406772;
-  --mint: #8fe5cf;
+  background: #d4efeb;
+  --card: #faffff;
+  --line: #8ec9ca;
+  --muted: #355e6b;
+  --mint: #85e4d5;
   --teal: #146d66;
   --amber: #ffce83;
   --gold-ink: #865414;
@@ -17,8 +17,11 @@
 body {
   margin: 0; min-height: 100vh;
   background:
-    radial-gradient(ellipse at 14% -18%, #fff9dc 0%, #fff9dc00 52%),
-    linear-gradient(155deg, #d2f5ee 1%, #e9f8f3 46%, #f7f1db 100%);
+    radial-gradient(ellipse at 16% -9%, #fffceb 0%, #fffceb00 46%),
+    conic-gradient(from 112deg at 16% -10%, transparent 0deg 14deg, #f4ffff85 23deg,
+      transparent 32deg 39deg, #f5fffa83 49deg, transparent 59deg 66deg, #fdfff584 75deg,
+      transparent 88deg),
+    linear-gradient(169deg, #a1e1e7 0%, #c0efeb 32%, #e7f6ef 68%, #f6f0dc 100%);
 }
 button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 button { font: inherit; color: inherit; cursor: pointer; }
@@ -28,7 +31,7 @@ button:disabled { cursor: default; }
 p { margin: 0; }
 .masthead {
   display: flex; align-items: center; gap: 1rem; min-height: 64px;
-  padding: 0 max(4vw, 20px); border-bottom: 1px solid #b7d8d1; background: #f8fffbce;
+  padding: 0 max(4vw, 20px); border-bottom: 1px solid #a8d5d6; background: #f2ffffbf;
 }
 .brand { display: inline-flex; align-items: center; gap: .55rem; font-size: .9rem; font-weight: 850; letter-spacing: .16em; white-space: nowrap; }
 .brand svg { width: 32px; height: 32px; fill: none; stroke: var(--teal); stroke-width: 2.2; stroke-linecap: round; }
@@ -51,7 +54,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .segmented { display: flex; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: #f1fbf8; }
 .segmented button { min-height: 40px; border: 0; border-radius: 7px; padding: 0 15px; background: transparent; color: var(--muted); font-size: .83rem; font-weight: 700; white-space: nowrap; }
 .segmented button:hover { background: #d4f2ec; color: #153e50; }
-.segmented button[aria-pressed="true"] { background: var(--mint); color: #0b322e; }
+.segmented button[aria-pressed="true"] { background: linear-gradient(#a0f0e1, var(--mint)); color: #0b322e; }
 .review-overview {
   display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap;
   min-height: 40px; margin: -7px 0 2px; color: #325963; font-size: .78rem; font-weight: 700;
@@ -75,8 +78,11 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .lesson-status { grid-column: 2; font-size: .69rem; line-height: 1.25; color: #4a6871; }
 .lesson-button[data-review="done"] .lesson-status { color: #21645b; }
 .lesson-button[data-review="review"] .lesson-status { color: #885517; }
-.lesson-button:hover { border-color: #439f93; background: #def6ee; }
-.lesson-button[aria-current="step"] { color: #144b53; border-color: #489f91; background: #c8f2e4; box-shadow: inset 0 -2px #64baa9; }
+.lesson-button:hover { border-color: #439f93; background: #e1faf5; }
+.lesson-button[aria-current="step"] {
+  color: #144b53; border-color: #489f91; background: linear-gradient(165deg, #e9fff6, #afe9e0);
+  box-shadow: inset 0 1px #fff, inset 0 -2px #64baa9;
+}
 .workspace { display: grid; grid-template-columns: minmax(0, 1.72fr) minmax(325px, 1fr); gap: 12px; align-items: start; }
 .viewer { min-width: 0; }
 .viewport, .panel { border: 1px solid var(--line); border-radius: 15px; overflow: hidden; box-shadow: 0 6px 22px #245a5c12; }
@@ -207,8 +213,8 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 #placement-menu .quiet { padding-inline: 8px; }
 .viewport.is-water {
   background:
-    radial-gradient(ellipse at 27% -16%, #fdf9d9 3%, #bbf6dd 27%, #8ee6cb00 66%),
-    linear-gradient(176deg, #a0e7d6 0%, #5acbc6 47%, #6cc5bf 68%, #adcdb4 100%);
+    radial-gradient(ellipse at 23% -13%, #fffde7 2%, #c6fff0 28%, #98f6e100 66%),
+    linear-gradient(176deg, #9aeada 0%, #5ecacb 49%, #7fcec7 73%, #c4d8bd 100%);
 }
 .viewport.is-water::after { content: none; }
 .viewport.is-water::before {
@@ -220,7 +226,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 #mask-overlay {
   pointer-events: none; position: absolute; inset: 18% 7% 16%; display: grid;
   grid-template-columns: 1fr 1fr; gap: 7px; border-radius: 29% 29% 22% 22% / 40% 40% 30% 30%;
-  box-shadow: 0 0 0 80vmax #145d73ad;
+  box-shadow: 0 0 0 80vmax #175b706f;
 }
 .mask-window {
   overflow: hidden; position: relative; border: clamp(5px, 1vw, 11px) solid #1d5b67;
@@ -274,7 +280,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   margin: auto; max-width: 30ch; position: absolute; inset: 55px 14px 9px; height: max-content;
   text-align: center; color: #144859; font-size: .86rem; line-height: 1.55;
 }
-.panel { padding: 20px; background: var(--card); }
+.panel { padding: 20px; background: linear-gradient(155deg, #fbffff 48%, #effaf7); }
 .panel-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .back-to-lessons { display: none; }
 #step-count { color: #315d64; font: 700 .78rem ui-monospace, monospace; white-space: nowrap; }
