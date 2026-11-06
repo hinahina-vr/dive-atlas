@@ -30,7 +30,7 @@ export function createView(container, onProject) {
   let grip = null;
   const orbit = new T.Spherical(5.9, 1.28, .42);
   const look = new T.Vector3(0, -.06, 0);
-  const fog = new T.FogExp2(0x276772, .125);
+  const fog = new T.FogExp2(0x5abfc0, .098);
   const direction = new T.Vector3();
   let alternateView = false;
   let firstPerson = false;
@@ -162,6 +162,7 @@ export function createView(container, onProject) {
     queue();
   }
   let previous;
+  let previousScenario;
   return {
     rotate,
     resetCamera: () => resetCamera(previous),
@@ -191,8 +192,8 @@ export function createView(container, onProject) {
       changed = performance.now();
       queue();
     },
-    show(lesson, finished, immersive) {
-      if (previous !== lesson || immersive !== alternateView) {
+    show(lesson, finished, immersive, scenario) {
+      if (previous !== lesson || immersive !== alternateView || previousScenario !== scenario) {
         grip = null;
         if (root) {
           scene.remove(root);
@@ -208,9 +209,10 @@ export function createView(container, onProject) {
         alternateView = immersive;
         firstPerson = immersive && lesson.scene !== 'inflator';
         scene.fog = immersive ? fog : null;
-        model = immersive ? makeDiveModel(root, lesson) : makeModel(root, lesson);
+        model = immersive ? makeDiveModel(root, lesson) : makeModel(root, lesson, scenario);
         scene.add(root);
         previous = lesson;
+        previousScenario = scenario;
         resetCamera(lesson);
         model.update(new Set(finished), 1, 0, interaction);
       }

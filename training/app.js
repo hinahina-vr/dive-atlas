@@ -11,7 +11,7 @@ const el = Object.fromEntries([
   'lesson-title', 'lesson-description', 'instruction', 'step-label', 'step-title', 'step-description',
   'show-example', 'example-guide', 'example-caption', 'example-controls', 'example-prev', 'example-play',
   'example-next', 'example-recall', 'example-exit', 'previous-review', 'previous-review-count', 'previous-review-list', 'practice-footer',
-  'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
+  'inspection-panel', 'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
 ].map(id => [id, byId(id)]));
 
 let practice = newPractice(lessons[0], 'guided');
@@ -20,6 +20,7 @@ let view;
 let viewFailed = false;
 let immersive = false;
 let activePress = '';
+let inspecting;
 const marks = new Map();
 const example = createExample({ render, frame: drawExample });
 let stagedExample;
@@ -68,6 +69,9 @@ document.addEventListener('keydown', event => {
   if (example.current()) {
     event.preventDefault();
     closeExample();
+  } else if (inspecting) {
+    event.preventDefault();
+    closeInspection(true);
   } else if (placement.active()) {
     event.preventDefault();
     placement.clear(true);
@@ -103,11 +107,58 @@ function feedback(text = '', tone = '') {
   sceneFeedback.dataset.tone = tone;
 }
 
+function closeInspection(restoreFocus = false) {
+  const old = inspecting;
+  inspecting = null;
+  el['inspection-panel'].hidden = true;
+  el['inspection-panel'].replaceChildren();
+  if (old) el.choices.hidden = false;
+  el.viewport.classList.remove('is-inspecting');
+  old?.marker?.classList.remove('is-inspection-target');
+  if (restoreFocus && old?.keyboard) old.source.focus({ preventScroll: true });
+}
+
+function openInspection(action, source, keyboard) {
+  if (practice.lesson.actions[practice.index]?.id !== action.id) {
+    apply(action.id, keyboard, 'normal');
+    return;
+  }
+  feedback();
+  const panel = el['inspection-panel'];
+  const prompt = document.createElement('p');
+  prompt.textContent = action.inspection.prompt;
+  panel.replaceChildren(prompt);
+  if (!view) {
+    const evidence = document.createElement('p');
+    evidence.textContent = inspectionEvidence(action, practice.lesson, practice.scenario);
+    panel.append(evidence);
+  }
+  for (const answer of ['normal', 'repair']) {
+    const choice = button(action.inspection[answer], 'choice', event => apply(action.id, event.detail === 0, answer));
+    choice.dataset.answer = answer;
+    panel.append(choice);
+  }
+  panel.append(button('閉じる', 'quiet', () => closeInspection(true)));
+  const marker = marks.get(action.anchor);
+  inspecting = { source, keyboard, marker };
+  marker?.classList.add('is-inspection-target');
+  el.viewport.classList.add('is-inspecting');
+  panel.hidden = false;
+  el.choices.hidden = true;
+  if (panel.getBoundingClientRect().bottom > innerHeight) panel.scrollIntoView({ block: 'nearest' });
+  if (keyboard) panel.querySelector('button').focus({ preventScroll: true });
+}
+
+function inspectionEvidence(action, lesson, scenario) {
+  return action.inspection.evidence[Number(lesson.scenarios[scenario].includes(action.id))];
+}
+
 function apply(id, fromKeyboard = false, dock) {
   const result = choose(practice, id, dock);
   if (!result) return;
   if (!result.ok) {
-    const message = result.wrongDock ? '位置が違います。器材の位置を見直しましょう。' :
+    const message = result.wrongInspection ? '器材の状態をもう一度見てください。' :
+      result.wrongDock ? '位置が違います。器材の位置を見直しましょう。' :
       practice.mode === 'guided' ? '今の手順を先に試してみましょう。' : 'この場面では、先に別の操作があります。';
     feedback(message, 'retry');
     return;
@@ -116,7 +167,7 @@ function apply(id, fromKeyboard = false, dock) {
   if (practice.mode === 'recall' && practice.index === practice.lesson.actions.length) {
     recent.set(practice.lesson.id, saveReview(storage, practice));
   }
-  feedback(result.expected.done);
+  feedback(result.message);
   render();
   if (fromKeyboard) {
     const firstChoice = el.choices.querySelector('.is-guide') || el.choices.querySelector('.choice');
@@ -127,7 +178,7 @@ function apply(id, fromKeyboard = false, dock) {
 function start(lesson, mode) {
   example.stop();
   press.cancel();
-  if (lesson !== practice.lesson) immersive = Boolean(view) && ['mask', 'recovery', 'inflator'].includes(lesson.scene);
+  if (lesson !== practice.lesson) immersive = ['mask', 'recovery', 'inflator'].includes(lesson.scene);
   practice = newPractice(lesson, mode);
   hint = false;
   feedback();
@@ -183,11 +234,11 @@ el['example-recall'].addEventListener('click', () => {
   showViewport();
 });
 
-function showExample(stepIndex) {
+function showExample(stepIndex, scenario = practice.scenario) {
   practiceCamera = view?.cameraPose();
   feedback();
   stagedExample = null;
-  example.start(practice.lesson, stepIndex);
+  example.start(practice.lesson, stepIndex, scenario);
   el['example-play'].focus({ preventScroll: true });
   showViewport();
 }
@@ -211,16 +262,16 @@ function exampleUnderwater(lesson) {
 }
 
 function drawExample(state) {
-  const { lesson, step, index, elapsed, time, motion, complete } = state;
+  const { lesson, step, index, elapsed, time, motion, complete, scenario } = state;
   el['example-controls'].style.setProperty('--time', String(complete ? 1 : elapsed / time));
   const applied = motion >= 1;
-  const changedStep = stagedExample?.index !== index || stagedExample?.lesson !== lesson || stagedExample?.view !== view;
+  const changedStep = stagedExample?.index !== index || stagedExample?.lesson !== lesson || stagedExample?.scenario !== scenario || stagedExample?.view !== view;
   const changedPose = changedStep || stagedExample.applied !== applied;
   if (changedPose) {
     const done = lesson.actions.slice(0, index + Number(applied)).map(action => action.id);
-    view?.show(lesson, done, exampleUnderwater(lesson));
+    view?.show(lesson, done, exampleUnderwater(lesson), scenario);
     if (changedStep) view?.focusExample(step.id);
-    stagedExample = { lesson, index, applied, view, done };
+    stagedExample = { lesson, index, applied, view, done, scenario };
   }
   const moving = !complete && motion > 0 && motion < 1;
   if (step.pressTime || changedPose) {
@@ -252,9 +303,9 @@ function drawExampleGuide(state, positions, docks) {
   }
 }
 
-function reviewRow(action) {
+function reviewRow(action, scenario) {
   const row = document.createElement('li');
-  const replay = button('この手順の見本を見る', 'quiet review-example', () => showExample(practice.lesson.actions.indexOf(action)));
+  const replay = button('この手順の見本を見る', 'quiet review-example', () => showExample(practice.lesson.actions.indexOf(action), scenario));
   replay.setAttribute('aria-label', action.label + '手順の見本を見る');
   row.append(action.label + '。' + action.detail, replay);
   return row;
@@ -270,7 +321,7 @@ function renderHistory() {
   if (detail.dataset.lesson !== lesson.id) detail.open = false;
   detail.dataset.lesson = lesson.id;
   el['previous-review-count'].textContent = record.steps.length ? '見直し ' + record.steps.length + '項目' : '見直しなし';
-  const rows = lesson.actions.filter(action => record.steps.includes(action.id)).map(reviewRow);
+  const rows = lesson.actions.filter(action => record.steps.includes(action.id)).map(action => reviewRow(action, record.scenario));
   if (!rows.length) {
     const row = document.createElement('li');
     row.textContent = '前回はヒントなしですべての手順を思い出せました。';
@@ -320,13 +371,14 @@ function renderEffects(lesson, done, pressure, active) {
 }
 
 function render() {
+  closeInspection();
   press.cancel();
   placement.clear();
   const demo = example.current();
   const lesson = demo?.lesson || practice.lesson;
   const index = demo ? demo.index + Number(demo.complete) : practice.index;
   const mode = practice.mode;
-  const useWater = demo ? exampleUnderwater(lesson) : immersive;
+  const useWater = demo ? exampleUnderwater(lesson) : Boolean(view) && immersive;
   const step = demo ? demo.step : lesson.actions[index];
   const done = lesson.actions.slice(0, index).map(action => action.id);
   const showGuide = Boolean(step && (mode === 'guided' || hint));
@@ -386,7 +438,8 @@ function render() {
     el.instruction.hidden = false;
     el['step-label'].textContent = demo.complete ? '見本はここまで' : '見本 · ' + (demo.index + 1) + ' / ' + lesson.actions.length;
     el['step-title'].textContent = demo.complete ? '今度は自分で試す' : step.label;
-    el['step-description'].textContent = demo.complete ? '同じ種目をヒントなしで練習できます。' : step.detail;
+    const evidence = step.inspection ? ' ' + inspectionEvidence(step, lesson, demo.scenario) : '';
+    el['step-description'].textContent = demo.complete ? '同じ種目をヒントなしで練習できます。' : step.detail + evidence;
     el['example-caption'].firstElementChild.textContent = demo.complete ? '✓' : String(demo.index + 1).padStart(2, '0');
     el['example-caption'].lastElementChild.textContent = demo.complete ? '見本はここまで' : step.label;
     el['example-prev'].disabled = !demo.complete && demo.index === demo.first;
@@ -409,6 +462,7 @@ function render() {
     const item = button('', 'choice' + (guided ? ' is-guide' : ''), view && action.pressTime ? null : event => {
       const keyboard = event.detail === 0;
       if (action.attachment) placement.select(action, { docks: lesson.docks, guided, source: item, keyboard });
+      else if (action.inspection) openInspection(action, item, keyboard);
       else apply(action.id, keyboard);
     });
     if (view && action.pressTime) press.bind(item, action);
@@ -426,7 +480,10 @@ function render() {
     for (const action of markerActions) {
       if (marks.has(action.anchor)) continue;
       const guided = showGuide && action === step;
-      const marker = button('', 'hotspot' + (guided ? ' is-guide' : ''), action.attachment || action.pressTime ? null : () => apply(action.id));
+      const marker = button('', 'hotspot' + (guided ? ' is-guide' : ''), action.attachment || action.pressTime ? null : () => {
+        if (action.inspection) openInspection(action, marker, false);
+        else apply(action.id);
+      });
       if (action.attachment) placement.bind(marker, action, { docks: lesson.docks, guided });
       if (action.pressTime) press.bind(marker, action);
       marker.dataset.part = action.id;
@@ -446,12 +503,12 @@ function render() {
     const item = document.createElement('li');
     item.textContent = mode === 'recall' ? 'ヒントを使わず、すべての手順を思い出せました。' :
       '一通り試せました。自力で復習するモードでもう一度試せます。';
-    el.review.replaceChildren(...(review.length ? review.map(reviewRow) : [item]));
+    el.review.replaceChildren(...(review.length ? review.map(action => reviewRow(action)) : [item]));
     const next = lessons[lessons.indexOf(lesson) + 1];
     el['next-lesson'].hidden = !next;
-    el['next-lesson'].textContent = next ? next.title + 'へ ›' : '';
+    el['next-lesson'].textContent = lesson.id === 'gear' ? 'バディの器材を確認 ›' : next ? next.title + 'へ ›' : '';
   }
-  view?.show(lesson, done, immersive);
+  view?.show(lesson, done, immersive, practice.scenario);
 }
 
 render();

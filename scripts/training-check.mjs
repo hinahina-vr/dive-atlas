@@ -10,7 +10,9 @@ import { readReview, reviewKey, saveReview } from '../training/reviews.js';
 const root = resolve(import.meta.dirname, '..');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 const checks = [];
-const attempt = (practice, action) => choose(practice, action.id, action.attachment?.dock);
+const inspectionAnswer = (lesson, scenario, action) => lesson.scenarios[scenario].includes(action.id) ? 'repair' : 'normal';
+const attempt = (practice, action) => choose(practice, action.id,
+  action.inspection ? inspectionAnswer(practice.lesson, practice.scenario, action) : action.attachment?.dock);
 for (const lesson of lessons) {
   const practice = newPractice(lesson, 'recall', () => 0);
   const [first, second, third] = lesson.actions;
@@ -37,6 +39,23 @@ assert.equal(gear.index, 1);
 assert.deepEqual(needsReview(gear).map(action => action.id), ['bcd']);
 assert.equal(choose(gear, 'bcd', 'cylinder').ok, true);
 checks.push('All drill states: wrong order, wrong destination, hints, full run, completion and review');
+const buddy = lessons[1];
+for (const [index, scenario] of ['weight', 'buckle', 'hose', 'ready'].entries()) {
+  const run = newPractice(buddy, 'recall', () => (index + .25) / 4);
+  assert.equal(run.scenario, scenario);
+  for (const action of buddy.actions) {
+    if (action.inspection) {
+      const answer = inspectionAnswer(buddy, scenario, action);
+      const before = run.index;
+      assert.equal(choose(run, action.id), null);
+      assert.equal(choose(run, action.id, answer === 'repair' ? 'normal' : 'repair').wrongInspection, true);
+      assert.equal(run.index, before);
+    }
+    assert.equal(attempt(run, action).ok, true);
+  }
+  assert.equal(run.index, buddy.actions.length);
+}
+checks.push('Buddy diagnosis: all four recall scenarios, false positives and missed faults, correction before proceeding');
 const reviewData = new Map();
 const storage = { getItem: key => reviewData.get(key), setItem: (key, raw) => reviewData.set(key, raw) };
 assert.equal(saveReview(storage, gear, 123), null);
@@ -158,6 +177,7 @@ try {
       return gl instanceof WebGL2RenderingContext && !gl.isContextLost();
     }));
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'light');
   }
 
   const desktop = await testPage({ width: 1440, height: 960 });
@@ -229,9 +249,26 @@ try {
   assert.equal(await desktop.locator('#lesson-title').innerText(), 'バディチェック');
   await desktop.locator('#hotspots .is-guide:visible').waitFor();
   await desktop.screenshot({ path: join(output, 'desktop-buddy.png'), fullPage: true });
-  for (const action of lessons[1].actions) await getChoice(desktop, action.id).press('Enter');
-  assert.equal(await desktop.locator('#result-heading').innerText(), '練習完了');
-  checks.push('1440 px desktop WebGL: camera drag, invalid dock, three equipment drags, review, keyboard buddy check');
+  for (const id of ['buoyancy', 'buddy-vent']) await hold(desktop, id, mouseDrag(desktop));
+  const answer = (page, id) => page.locator('#inspection-panel [data-answer="' + id + '"]');
+  await part(desktop, 'weights').click();
+  await answer(desktop, 'normal').click();
+  assert.equal(await value(desktop), '2');
+  assert.equal(await desktop.locator('#feedback').getAttribute('data-tone'), 'retry');
+  await desktop.screenshot({ path: join(output, 'desktop-buddy-loose-weight.png'), fullPage: true });
+  await answer(desktop, 'repair').click();
+  assert.equal(await value(desktop), '3');
+  assert.match(await desktop.locator('#feedback').innerText(), /差し直して固定/);
+  await getChoice(desktop, 'releases').press('Enter');
+  await answer(desktop, 'normal').press('Enter');
+  await part(desktop, 'buddy-valve').click();
+  await hold(desktop, 'air', mouseDrag(desktop));
+  await part(desktop, 'alternate').click();
+  await answer(desktop, 'repair').click();
+  await getChoice(desktop, 'final').press('Enter');
+  assert.match(await desktop.locator('#review').innerText(), /ウエイトを確認/);
+  await desktop.screenshot({ path: join(output, 'desktop-buddy-complete.png'), fullPage: true });
+  checks.push('1440 px gear-to-buddy: inflate, vent, incorrect weight decision, two repairs, air and final check');
 
   await desktop.getByRole('button', { name: 'マスククリア', exact: true }).click();
   await part(desktop, 'mask-breathe').click();
@@ -276,12 +313,47 @@ try {
   // Raw DevTools drag input and Playwright tap input use separate touch sessions.
   await mobileDrag.context().close();
   const mobile = await testPage(mobileSize, true);
-  await mobile.goto(previewUrl + 'training/');
+  let loadScene;
+  const sceneGate = new Promise(resolve => { loadScene = resolve; });
+  await mobile.route('**/training/view.js', async route => { await sceneGate; await route.continue(); });
+  try {
+    await mobile.goto(previewUrl + 'training/', { waitUntil: 'commit' });
+    await mobile.getByRole('button', { name: 'インフレーター', exact: true }).tap();
+  } finally {
+    loadScene();
+  }
+  await mobile.locator('#viewport.is-water #scene canvas').waitFor();
+  await mobile.unroute('**/training/view.js');
+  await mobile.getByRole('button', { name: '機材セッティング', exact: true }).tap();
   await ready(mobile);
+  checks.push('390 px cold start: a water lesson selected while 3D loads starts in its water view');
   await part(mobile, 'inspect').tap();
   await part(mobile, 'bcd').tap();
   await dock(mobile, 'cylinder').tap();
   assert.equal(await value(mobile), '2');
+  await mobile.getByRole('button', { name: 'バディチェック', exact: true }).tap();
+  await mobile.evaluate(() => { window.__originalRandom = Math.random; Math.random = () => .38; });
+  await mobile.locator('#recall').tap();
+  await mobile.evaluate(() => { Math.random = window.__originalRandom; delete window.__originalRandom; });
+  for (const id of ['buoyancy', 'buddy-vent']) await getChoice(mobile, id).press('Enter');
+  await getChoice(mobile, 'weights').tap();
+  await answer(mobile, 'normal').tap();
+  await getChoice(mobile, 'releases').tap();
+  await answer(mobile, 'normal').tap();
+  assert.equal(await value(mobile), '3');
+  await mobile.screenshot({ path: join(output, 'mobile-buddy-open-buckle.png'), fullPage: true });
+  await answer(mobile, 'repair').tap();
+  assert.match(await mobile.locator('#feedback').innerText(), /胸のバックルを閉じました/);
+  await getChoice(mobile, 'buddy-valve').tap();
+  await getChoice(mobile, 'air').press('Enter');
+  await getChoice(mobile, 'alternate').tap();
+  await answer(mobile, 'normal').tap();
+  await getChoice(mobile, 'final').tap();
+  const buddySaved = await mobile.evaluate(key => JSON.parse(localStorage.getItem(key)), reviewKey(buddy));
+  assert.deepEqual(buddySaved.steps, ['releases']);
+  assert.equal(buddySaved.scenario, 'buckle');
+  checks.push('390 px buddy recall: identify and close the open buckle, save the missed step and its scenario');
+  await mobile.locator('#guided').tap();
   await mobile.getByRole('button', { name: 'マスククリア', exact: true }).tap();
   assert.equal(await mobile.locator('#lesson-title').innerText(), 'マスククリア');
   assert(await mobile.locator('#mask-overlay').isVisible());
@@ -303,6 +375,11 @@ try {
   assert.deepEqual(JSON.parse(saved).steps, ['mask-breathe', 'mask-hold']);
   await mobile.reload();
   await ready(mobile);
+  await mobile.getByRole('button', { name: 'バディチェック', exact: true }).tap();
+  await mobile.locator('#previous-review summary').tap();
+  await mobile.locator('#previous-review').getByRole('button', { name: 'バックル類を確認手順の見本を見る', exact: true }).tap();
+  assert.match(await mobile.locator('#step-description').innerText(), /両側が離れています/);
+  await mobile.locator('#example-exit').tap();
   await mobile.getByRole('button', { name: 'マスククリア', exact: true }).tap();
   const previous = mobile.locator('#previous-review');
   await previous.locator('summary').tap();
@@ -316,7 +393,7 @@ try {
   assert.equal(await mobile.locator('#recall').getAttribute('aria-pressed'), 'true');
   assert.equal(await value(mobile), '0');
   assert.equal(await mobile.evaluate(key => localStorage.getItem(key), maskReviewKey), saved);
-  checks.push('390 px review: saved on completion, survives reload, plays one step and starts fresh recall without overwriting history');
+  checks.push('390 px review: survives reload, replays the original fault and starts fresh recall without overwriting history');
   await mobile.locator('#guided').tap();
   await mobile.evaluate(() => window.scrollTo(0, 0));
   await mobile.locator('#hotspots .is-guide:visible').waitFor();

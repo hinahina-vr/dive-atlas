@@ -119,7 +119,7 @@ function inflatorHead(parent, ...point) {
   return item;
 }
 
-function kit(root, startAssembled) {
+function kit(root, startAssembled, issues) {
   stage(root);
   const tank = group(root, .28, -.11, -.41);
   cyl(tank, .376, 1.75, aluminum, 0, -.105, 0);
@@ -144,6 +144,7 @@ function kit(root, startAssembled) {
   const shell = [[-.68, -.68], [-.76, -.38], [-.57, .08], [-.44, .55], [-.24, .66], [-.15, .38],
     [.15, .38], [.24, .66], [.44, .55], [.57, .08], [.76, -.38], [.68, -.68], [.39, -.78], [-.39, -.78]];
   plate(jacket, shell, .14, .07, cloth, 0, 0, -.12);
+  const weight = group(jacket, .53, -.45, .317);
   for (const side of [-1, 1]) {
     const strap = [[.24, .59], [.35, .59], [.45, -.03], [.37, -.42], [.23, -.39], [.25, -.05]]
       .map(([x, y]) => [x * side, y]);
@@ -151,11 +152,16 @@ function kit(root, startAssembled) {
     plate(jacket, [[-.20, -.17], [-.19, .15], [.13, .19], [.20, .12], [.19, -.13], [.13, -.2]],
       .20, .045, rubber, .47 * side, -.40, .06);
     box(jacket, .30, .031, .028, teal, .48 * side, -.28, .303);
-    box(jacket, .13, .049, .04, amber, .53 * side, -.45, .317);
+    if (side < 0) box(jacket, .13, .049, .04, amber, .53 * side, -.45, .317);
   }
-  box(jacket, .81, .071, .046, rubber, 0, -.14, .244);
-  box(jacket, .18, .106, .068, aluminum, 0, -.14, .276);
-  box(jacket, .041, .068, .012, rubber, 0, -.14, .312);
+  box(weight, .205, .137, .11, rubber, 0, 0, -.053);
+  box(weight, .141, .053, .035, amber, 0, 0, .028);
+  box(jacket, .33, .071, .046, rubber, -.229, -.14, .244);
+  box(jacket, .097, .106, .068, aluminum, -.045, -.14, .276);
+  const buckle = group(jacket, .046, -.14, .276);
+  box(buckle, .092, .084, .058, aluminum, 0, 0, 0);
+  box(buckle, .287, .071, .046, rubber, .176, 0, -.032);
+  box(buckle, .023, .038, .032, gray, -.036, 0, .039);
   box(jacket, .8, .09, .062, rubber, 0, -.49, .27);
   box(jacket, .20, .12, .079, rubber, 0, -.49, .32);
   box(jacket, .074, .052, .01, teal, 0, -.49, .365);
@@ -184,7 +190,8 @@ function kit(root, startAssembled) {
   const spare = octo(loose, amber, ...spareRest);
   spare.scale.setScalar(.85);
   const spareOrigin = v(-.06, -.07, .07);
-  const spareClip = v(.57, -.34, .47);
+  const spareClip = v(.43, -.09, .49);
+  const spareLoose = v(.49, -1.58, .54);
   const spareEnd = v(0, 0, 0);
   const updateSpare = flexibleHose(loose, .029, amber, (from, to) => [
     v(from.x - .29, from.y - .17, from.z + .11), v(to.x - .36, to.y + .20, to.z + .15)
@@ -225,9 +232,20 @@ function kit(root, startAssembled) {
   const needle = group(gauge, 0, 0, .065);
   box(needle, .011, .091, .008, coral, 0, .037, 0);
   cyl(needle, .014, .009, rubber, 0, 0, 0, 'z');
-  const clip = box(jacket, .077, .098, .048, amber, .57, -.26, .36);
+  const clip = box(jacket, .077, .098, .048, amber, .43, -.015, .36);
   box(jacket, .077, .098, .048, aluminum, -.49, -.38, .34);
   const parked = v(0, 0, 0);
+  const extras = group(root, -.93, -.97, .54);
+  if (startAssembled) {
+    for (const side of [-1, 1]) {
+      const blade = box(extras, .18, .051, .51, teal, .11 * side, 0, .05);
+      blade.rotation.y = .18 * side;
+      box(extras, .137, .076, .19, rubber, .11 * side, .023, -.17);
+      const glass = ring(extras, .079, .022, rubber, side * .086, .081, -.38);
+      glass.rotation.x = -Math.PI / 2;
+      cyl(extras, .067, .017, lens, side * .086, .086, -.38);
+    }
+  }
 
   function secure(part, mount, rest, stowed, k) {
     if (stowed) loose.worldToLocal(jacket.localToWorld(parked.copy(mount)));
@@ -240,7 +258,10 @@ function kit(root, startAssembled) {
       uncap: [dustCap, v(.04, -.01, .015)], first: [reg, v(.12, .22, .13)],
       connect: startAssembled ? [inflator, v(-.11, 0, .13)] : [coupler, v(.05, 0, .045)],
       stow: [clip, v(.18, .05, .1)], open: [knob, v(.11, .03, .07)],
-      pressure: [gauge, v(.07, -.09, .13)], weights: [jacket, v(-.48, -.41, .45)], releases: [jacket, v(.02, -.14, .39)]
+      pressure: [gauge, v(.07, -.09, .13)],
+      buoyancy: [inflator.userData.supply, v(0, .018, .051)], 'buddy-vent': [inflator.userData.exhaust, v(0, -.02, .048)],
+      weights: [weight, v(.005, .03, .08)], releases: [buckle, v(-.035, .02, .075)],
+      air: [gauge, v(.07, .05, .12)], alternate: [spare, v(.04, .07, .10)], final: [extras, v(0, .26, -.2)]
     },
     docks: {
       cylinder: [tank, v(0, .02, .39)],
@@ -260,18 +281,30 @@ function kit(root, startAssembled) {
       gaugeEnd.y += .13;
       updateGauge(gaugeOrigin, gaugeEnd);
     },
-    update(done, k) {
+    update(done, k, _time, interaction) {
+      const fault = id => issues.includes(id) && !done.has(id);
       const bcd = startAssembled || done.has('bcd');
       const first = startAssembled || done.has('first');
       const stow = startAssembled || done.has('stow');
       const open = startAssembled || done.has('open');
       jacket.position.lerp(v(bcd ? .28 : -.84, bcd ? 0 : -.33, bcd ? 0 : .24), k);
       jacket.rotation.y = T.MathUtils.lerp(jacket.rotation.y, bcd ? -.10 : .35, k);
-      jacket.scale.lerp(v(1, done.has('buoyancy') ? 1.06 : 1, done.has('buoyancy') ? 1.1 : 1), k);
+      const air = done.has('buddy-vent') ? 0 :
+        done.has('buoyancy') ? 1 - (interaction.pressure['buddy-vent'] || 0) : interaction.pressure.buoyancy || 0;
+      jacket.scale.lerp(v(1 + .035 * air, 1 + .07 * air, 1 + .20 * air), k);
+      inflator.userData.supply.position.z = interaction.active === 'buoyancy' ? .070 : .084;
+      inflator.userData.exhaust.position.z = interaction.active === 'buddy-vent' ? .067 : .081;
+      const looseWeight = fault('weights');
+      weight.position.lerp(looseWeight ? v(.66, -.47, .55) : v(.53, -.45, .317), k);
+      weight.rotation.y = T.MathUtils.lerp(weight.rotation.y, looseWeight ? -.24 : 0, k);
+      const openBuckle = fault('releases');
+      buckle.position.lerp(openBuckle ? v(.215, -.22, .385) : v(.046, -.14, .276), k);
+      buckle.rotation.z = T.MathUtils.lerp(buckle.rotation.z, openBuckle ? .40 : 0, k);
       reg.position.lerp(v(first ? .28 : 1.11, first ? 1.04 : .11, first ? -.13 : .32), k);
       reg.rotation.z = T.MathUtils.lerp(reg.rotation.z, first ? 0 : -.19, k);
       loose.rotation.y = T.MathUtils.lerp(loose.rotation.y, stow ? .63 : -.12, k);
-      secure(spare, spareClip, spareRest, stow, k);
+      const looseSpare = fault('alternate');
+      secure(spare, spareClip, looseSpare ? spareLoose : spareRest, stow && !looseSpare, k);
       secure(gauge, gaugeClip, gaugeRest, stow, k);
       knob.rotation.x = T.MathUtils.lerp(knob.rotation.x, open ? 2.35 : 0, k);
       gauge.rotation.y = T.MathUtils.lerp(gauge.rotation.y, done.has('gauge-away') && !done.has('pressure') ? 2.82 : .08, k);
@@ -280,7 +313,7 @@ function kit(root, startAssembled) {
       tankBand.visible = bcd;
       bandLatch.visible = bcd;
       latchHandle.rotation.y = T.MathUtils.lerp(latchHandle.rotation.y, startAssembled || done.has('lock') ? 0 : -.94, k);
-      clip.material = stow ? teal : amber;
+      clip.material = stow && !looseSpare ? teal : amber;
       dustCap.visible = !startAssembled && !done.has('uncap');
       const connected = startAssembled || done.has('connect');
       const host = connected ? inflator : loose;
@@ -474,9 +507,9 @@ function fins(root, inWater = false) {
   };
 }
 
-export function makeModel(root, lesson) {
+export function makeModel(root, lesson, scenario) {
   switch (lesson.scene) {
-    case 'gear': return kit(root, lesson.id === 'buddy');
+    case 'gear': return kit(root, lesson.id === 'buddy', lesson.scenarios?.[scenario] || []);
     case 'mask': return diver(root, false);
     case 'recovery': return diver(root, true);
     case 'inflator': return inflator(root);
@@ -485,9 +518,9 @@ export function makeModel(root, lesson) {
   }
 }
 
-const seaRock = mat(0x35666b, .95);
-const reef = mat(0x498d82, .88);
-const sandTint = new T.Color(0x326b72);
+const seaRock = mat(0x5c918b, .95);
+const reef = mat(0x68a99a, .88);
+const sandTint = new T.Color(0xe9dbab);
 
 function waterBackdrop(root) {
   const water = group(root);
@@ -510,15 +543,15 @@ function waterBackdrop(root) {
       uniform float tide;
       uniform vec3 tint;
       void main() {
-        float haze = 1.0 - smoothstep(3.0, 18.0, depth);
+        float haze = 1.0 - smoothstep(4.0, 20.0, depth);
         vec2 drift = seabed * vec2(2.7, 3.1);
         float weave = sin(drift.x + cos(drift.y + tide)) + sin(drift.y - tide * .7 + sin(drift.x * 1.3));
         float caustic = pow(clamp(1.0 - abs(weave), 0.0, 1.0), 5.0);
-        float light = .78 + .21 * caustic * haze;
-        gl_FragColor = vec4(tint * light, haze * .87);
+        float light = .79 + .38 * caustic * haze;
+        gl_FragColor = vec4(tint * light, haze * .91);
         #include <colorspace_fragment>
       }`
-  }), 0, -2.7, -2);
+  }), 0, -1.88, -2);
   floor.rotation.x = -Math.PI / 2;
   floor.renderOrder = -1;
   for (let i = 0; i < 16; i += 1) {
@@ -527,18 +560,18 @@ function waterBackdrop(root) {
     const x = Math.sin(bearing) * radius;
     const z = Math.cos(bearing) * radius;
     const r = .26 + (i % 5) * .18;
-    const rock = mesh(water, new T.IcosahedronGeometry(r, 0), i % 2 ? seaRock : reef, x, -2.58, z);
+    const rock = mesh(water, new T.IcosahedronGeometry(r, 0), i % 2 ? seaRock : reef, x, -1.85, z);
     rock.rotation.y = i * .77;
-    rock.scale.set(1.65, .79 + i % 3 * .35, 1.4);
+    rock.scale.set(1.52, .56 + i % 3 * .18, 1.31);
     if (i % 3 !== 0) continue;
     for (let leaf = 0; leaf < 4; leaf += 1) {
       const side = (leaf - 1.5) * .21;
-      hose(water, [[x, -2.3, z], [x + side * .3, -2.08, z + .06], [x + side, -1.75 + leaf * .034, z + .16]], .025, reef);
+      hose(water, [[x, -1.72, z], [x + side * .3, -1.55, z + .06], [x + side, -1.20 + leaf * .034, z + .16]], .021, reef);
     }
   }
   for (const [x, z, size] of [[-2.2, -1.6, 1.16], [-1.6, -2.4, .98], [1.8, -2.3, 1.1], [2.3, -3.5, 1.3]]) {
-    const bank = mesh(water, new T.IcosahedronGeometry(size, 1), reef, x, -2.34, z);
-    bank.scale.set(.82, 1.52, 1.18);
+    const bank = mesh(water, new T.IcosahedronGeometry(size, 1), reef, x, -1.82, z);
+    bank.scale.set(.72, .67, .99);
     bank.rotation.y = x * .78;
   }
   const specks = new Float32Array(116 * 3);
@@ -589,7 +622,7 @@ function waterBackdrop(root) {
         float b = sin(q.y * 3.0 - cos(q.x * 2.3 - tide) * 1.4);
         float caustic = pow(clamp(1.0 - abs(a + b), 0.0, 1.0), 5.0);
         float distanceFade = 1.0 - smoothstep(2.0, 14.0, length(plane));
-        gl_FragColor = vec4(mix(vec3(.04,.38,.48), vec3(.52,.94,.91), caustic), (.24 + .34 * caustic) * distanceFade);
+        gl_FragColor = vec4(mix(vec3(.17,.65,.68), vec3(.95,1.0,.81), caustic), (.16 + .48 * caustic) * distanceFade);
       }`
   }), 0, 1.65, 0);
   surface.rotation.x = -Math.PI / 2;

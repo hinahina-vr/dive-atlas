@@ -3,6 +3,7 @@ const attach = (id, label, detail, done, part, dock, prompt) => ({
   ...action(id, label, detail, done), attachment: { part, dock, prompt }
 });
 const press = (id, label, detail, done, pressTime) => ({ ...action(id, label, detail, done), pressTime });
+const inspect = (id, label, detail, done, inspection) => ({ ...action(id, label, detail, done), inspection });
 
 export const lessons = [
   {
@@ -30,15 +31,37 @@ export const lessons = [
   },
   {
     id: 'buddy', title: 'バディチェック', label: 'BUDDY CHECK',
-    subtitle: '組み立てた器材 · BWRAF',
-    description: 'バディと互いの器材を確認する場面です。BWRAFの順番で練習します。',
+    subtitle: 'バディの器材 · BWRAF',
+    description: 'バディの器材を確認します。器材を回して、ゆるみや外れがないか見てください。',
+    scenarios: { walkthrough: ['weights', 'alternate'], weight: ['weights'], buckle: ['releases'], hose: ['alternate'], ready: [] },
     scene: 'gear', source: 'https://blog.padi.com/how-do-you-say-bwraf/',
     actions: [
-      action('buoyancy', 'BCDの給排気を確認', '給気と排気を試し、バディの操作位置も確認します。', 'B — BCDの給排気を確認しました。', 'connect'),
-      action('weights', 'ウエイトを確認', 'ウエイトが固定され、外し方を互いに分かっているか確かめます。', 'W — ウエイトを確認しました。'),
-      action('releases', 'バックル類を確認', '留め具が閉じているか、バディの器材はどこから外すか確認します。', 'R — 留め具を確認しました。'),
-      action('air', '空気を確認', '残圧を見ながら実際に呼吸し、予備のセカンドステージの場所と動作も確認します。', 'A — 残圧とセカンドステージを確認しました。', 'pressure'),
-      action('final', '装着品を見渡す', 'マスクやフィンを含め、身につける物とホース類を互いに見渡します。', 'F — 最後の確認ができました。', 'stow')
+      press('buoyancy', 'BCDに給気する', 'インフレーターとホースの接続を見て、給気ボタンでBCDがふくらむか確かめます。', 'BCDに空気が入りました。', 370),
+      press('buddy-vent', 'BCDから排気する', '給気したBCDから空気が抜けるか確かめます。バディの排気弁の場所も確認します。', 'B — BCDの給排気を確認しました。', 510),
+      inspect('weights', 'ウエイトを確認', 'ウエイトのポケットを軽く引いて固定を確認します。互いに外し方も確かめます。', 'W — ウエイトを確認しました。', {
+        prompt: 'ウエイトのポケットは固定されていますか？',
+        normal: '固定されている',
+        repair: '浮いているので固定する',
+        evidence: ['ポケットは受け口の奥まで入っています。', '片側のポケットが受け口から浮いています。'],
+        corrected: 'W — ウエイトのポケットを差し直して固定しました。'
+      }),
+      inspect('releases', 'バックル類を確認', 'シリンダーバンド、肩・胸・腰の留め具を確認します。互いに開け方も確かめます。', 'R — 留め具を確認しました。', {
+        prompt: '胸のバックルは閉じていますか？',
+        normal: '閉じている',
+        repair: '開いているので閉じる',
+        evidence: ['胸のバックルの両側がつながっています。', '胸のバックルの両側が離れています。'],
+        corrected: 'R — 胸のバックルを閉じました。'
+      }),
+      action('buddy-valve', 'バルブの開き具合を確認', 'シリンダーのバルブが全開になっていることを確かめます。', 'バルブの開き具合を確認しました。', 'open'),
+      press('air', '残圧を見ながら呼吸を確認', '数回呼吸し、残圧計の針が呼吸に合わせて振れないか確かめます。', '呼吸の間、残圧計の針は安定しています。', 850),
+      inspect('alternate', '予備のセカンドステージを確認', '予備のセカンドステージが胸元に固定され、バディが場所を分かっているか確認します。', 'A — 空気と予備のセカンドステージを確認しました。', {
+        prompt: '予備のセカンドステージは胸元に固定されていますか？',
+        normal: '胸元に固定されている',
+        repair: 'ぶら下がっているので留める',
+        evidence: ['黄色いセカンドステージは胸元のホルダーにあります。', '黄色いセカンドステージが胸元のホルダーから外れて下にあります。'],
+        corrected: 'A — 予備のセカンドステージを胸元に留めました。'
+      }),
+      action('final', '装着品を見渡す', 'マスクやフィンを含め、身につける物とホース類を互いに見渡します。', 'F — 最後の確認ができました。')
     ]
   },
   {
@@ -101,19 +124,26 @@ export function newPractice(lesson, mode, random = Math.random) {
       [choices[i], choices[j]] = [choices[j], choices[i]];
     }
   }
-  return { lesson, mode, choices, index: 0, missed: new Set(), assisted: new Set(), pressure: {} };
+  const scenarios = lesson.scenarios ? Object.keys(lesson.scenarios).slice(1) : [];
+  const scenario = scenarios.length ? (mode === 'guided' ? 'walkthrough' : scenarios[Math.floor(random() * scenarios.length)]) : undefined;
+  return { lesson, mode, choices, index: 0, missed: new Set(), assisted: new Set(), pressure: {}, scenario };
 }
 
 export function choose(practice, id, dock) {
   const expected = practice.lesson.actions[practice.index];
   const action = practice.choices.find(choice => choice.id === id);
-  if (!expected || !action || (action.attachment && !Object.hasOwn(practice.lesson.docks, dock))) return null;
-  if (id !== expected.id || (action.attachment && action.attachment.dock !== dock)) {
+  if (!expected || !action) return null;
+  if (action.attachment && !Object.hasOwn(practice.lesson.docks, dock)) return null;
+  if (action.inspection && dock !== 'normal' && dock !== 'repair') return null;
+  const fault = action.inspection && practice.lesson.scenarios[practice.scenario].includes(id);
+  const wrongDock = Boolean(action.attachment && action.attachment.dock !== dock);
+  const wrongInspection = Boolean(action.inspection && Boolean(fault) !== (dock === 'repair'));
+  if (id !== expected.id || wrongDock || wrongInspection) {
     practice.missed.add(expected.id);
-    return { ok: false, expected, wrongDock: id === expected.id };
+    return { ok: false, expected, wrongDock: id === expected.id && wrongDock, wrongInspection: id === expected.id && wrongInspection };
   }
   practice.index += 1;
-  return { ok: true, expected };
+  return { ok: true, expected, message: fault ? action.inspection.corrected : action.done };
 }
 
 export function reveal(practice) {

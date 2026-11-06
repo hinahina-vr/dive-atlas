@@ -57,10 +57,10 @@ export function createExample({ render, frame }) {
 
   return {
     current,
-    start(lesson, singleStep) {
+    start(lesson, singleStep, scenario) {
       stopFrames();
       const first = singleStep === undefined ? 0 : singleStep;
-      state = { lesson, first, index: first, end: singleStep ?? lesson.actions.length - 1, paused: false, complete: false, elapsed: 0 };
+      state = { lesson, first, index: first, end: singleStep ?? lesson.actions.length - 1, paused: false, complete: false, elapsed: 0, scenario };
       render();
       queue();
     },
