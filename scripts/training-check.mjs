@@ -623,12 +623,20 @@ try {
     const box = node.getBoundingClientRect();
     return box.top >= 0 && box.bottom <= innerHeight;
   }));
-  await part(portrait, 'mask-hold').tap();
+  const maskMarker = part(portrait, 'mask-hold');
+  await maskMarker.waitFor();
+  assert(await maskMarker.evaluate(node => {
+    const marker = node.getBoundingClientRect();
+    return document.querySelector('.view-title').getBoundingClientRect().right <= marker.left + 8;
+  }));
+  await maskMarker.tap();
   assert.equal(await value(portrait), '2');
   await portrait.getByRole('button', { name: 'インフレーター', exact: true }).tap();
-  assert(await portrait.evaluate(() =>
-    document.querySelector('.view-title').getBoundingClientRect().right <=
-    document.querySelector('#perspective').getBoundingClientRect().left));
+  assert(await portrait.evaluate(() => {
+    const title = document.querySelector('.view-title').getBoundingClientRect();
+    return title.right <= document.querySelector('#perspective').getBoundingClientRect().left &&
+      title.bottom <= document.querySelector('#effect-meter').getBoundingClientRect().top;
+  }));
   await portrait.screenshot({ path: join(output, 'mobile-narrow-inflator.png') });
   await portrait.context().close();
   checks.push('320 × 568: a hint reveals the 3D control, and the scene title fits beside the view switch');

@@ -167,7 +167,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 #previous-review-list { margin: 0; padding: 0 12px 10px 28px; line-height: 1.55; }
 .review-example { display: block; min-height: 44px; padding: 0 4px; }
 #effect-meter {
-  position: absolute; z-index: 1; top: 60px; left: 17px; width: 104px;
+  width: min(104px, 100%);
   padding: 6px 8px; border: 1px solid #538a91; border-radius: 7px;
   background: #0d2a36e8; color: #e2f6f4; font-size: .68rem; pointer-events: none;
 }
@@ -261,6 +261,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   position: absolute; z-index: 2; top: 14px; inset-inline: 16px 14px; pointer-events: none;
   display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
 }
+.view-readout { display: grid; justify-items: start; gap: 4px; min-width: 0; }
 .view-modes { display: flex; gap: 5px; flex: none; pointer-events: auto; }
 .view-mode {
   min-height: 42px; padding: 0 10px; border: 1px solid #79aaa5;
@@ -272,7 +273,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   .mask-window span { transition: none; }
 }
 .view-title {
-  min-width: 0; overflow-wrap: anywhere;
+  min-width: 0; max-width: 100%; overflow-wrap: anywhere;
   border: 1px solid #b4dfd5; background: #f6fffaea; padding: 6px 8px; border-radius: 7px;
 }
 .view-title p+p { margin-top: .22rem; color: #345d69; font-size: .73rem; }

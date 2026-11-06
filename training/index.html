@@ -65,9 +65,12 @@
           <p id="scene-status" class="scene-status" role="status">3Dを準備しています。下の選択肢で先に練習できます。</p>
         </div>
         <div class="view-header">
-          <div class="view-title">
-            <p class="eyebrow" id="view-label"></p>
-            <p id="view-subtitle"></p>
+          <div class="view-readout">
+            <div class="view-title">
+              <p class="eyebrow" id="view-label"></p>
+              <p id="view-subtitle"></p>
+            </div>
+            <div id="effect-meter" aria-hidden="true" hidden><span></span><i></i></div>
           </div>
           <div class="view-modes">
             <button type="button" id="vr-mask" class="view-mode" hidden>VRで試す</button>
@@ -79,7 +82,6 @@
           <div class="mask-window"><span></span></div>
         </div>
         <p id="grip-label" hidden></p>
-        <div id="effect-meter" aria-hidden="true" hidden><span></span><i></i></div>
         <p id="scene-feedback" aria-hidden="true" hidden></p>
         <div id="hotspots"></div>
         <div id="dock-markers"></div>
