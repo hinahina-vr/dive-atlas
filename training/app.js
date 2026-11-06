@@ -282,10 +282,14 @@ function start(lesson, mode) {
   render();
 }
 
-function openLesson(lesson, mode = practice.mode) {
+function configuredLesson(lesson) {
   const route = lesson.id === 'mask' ? el['mask-fill'].value :
     lesson.id === 'recovery' ? el['recovery-search'].value + '-' + el['recovery-clear'].value : undefined;
-  start(lessonRoute(lesson, route), mode);
+  return lessonRoute(lesson, route);
+}
+
+function openLesson(lesson, mode = practice.mode) {
+  start(configuredLesson(lesson), mode);
 }
 
 for (const control of ['mask-fill', 'recovery-search', 'recovery-clear']) {
@@ -485,18 +489,19 @@ el['vr-practice'].addEventListener('click', async () => {
   xrBusy = true;
   renderXREntry();
   let run = practice;
+  const followingLesson = () => lessons[lessonIndex(run.lesson) + 1];
+  const currentRun = () => ({ lesson: run.lesson, scenario: run.scenario, following: followingLesson() });
   function switchRun(lesson, mode = run.mode) {
     start(lesson, mode);
     run = practice;
     saveCurrentDraft({ resumeAtStart: true });
-    return { lesson: run.lesson, scenario: run.scenario };
+    return currentRun();
   }
   let session;
   try {
     session = await navigator.xr.requestSession('immersive-vr');
     await view.enterPracticeXR(session, {
-      lesson: run.lesson,
-      scenario: run.scenario,
+      ...currentRun(),
       readState() {
         if (practice !== run || example.current()) return null;
         const finished = run.index === run.lesson.actions.length;
@@ -515,10 +520,10 @@ el['vr-practice'].addEventListener('click', async () => {
           water: remainingMaskWater(run.lesson.maskFill, finished, run.pressure['mask-exhale'])
         };
       },
-      advanceToBuddy() {
-        if (practice !== run || example.current() || run.lesson.id !== 'gear' ||
-          run.index !== run.lesson.actions.length) return;
-        return switchRun(lessons[lessonIndex(run.lesson) + 1]);
+      advanceToNext() {
+        const next = followingLesson();
+        if (practice !== run || example.current() || !next || run.index !== run.lesson.actions.length) return;
+        return switchRun(configuredLesson(next));
       },
       recallAfterExample() {
         if (practice !== run || example.current()) return;

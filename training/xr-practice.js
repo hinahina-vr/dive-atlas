@@ -22,7 +22,7 @@ const inflatorControls = [
   maskControls.at(-1)
 ];
 
-const nextBuddyControl = { id: 'next-buddy', label: 'バディチェックへ ›', x: 538, y: 173, w: 454, h: 85 };
+const nextLessonControl = { id: 'next-lesson', x: 538, y: 173, w: 454, h: 85 };
 const reviewControl = { id: 'review-open', label: '見直す手順を見る', x: 32, y: 173, w: 454, h: 85 };
 const reviewControls = [
   { id: 'review-prev', label: '‹ 前の手順', x: 32, y: 268, w: 284, h: 60 },
@@ -135,7 +135,7 @@ function makeVisor() {
   return lens;
 }
 
-function makePanel(lesson) {
+function makePanel(lesson, following) {
   const recovery = lesson.scene === 'recovery';
   const inflator = lesson.scene === 'inflator';
   const fins = lesson.scene === 'fins';
@@ -249,9 +249,11 @@ function makePanel(lesson) {
     const count = state.review.length;
     text(count ? '見直す手順は' + count + 'つ' : '練習完了 · 見直す手順なし', 32, 129, 39, '#246270');
     const options = [];
-    if (count) options.push(lesson.id === 'gear' ? reviewControl : { ...reviewControl, w: 960 });
-    if (lesson.id === 'gear') options.push(count ? nextBuddyControl : { ...nextBuddyControl, x: 32, w: 960 });
-    drawControls([...options, exit], state, hovered, lesson.id === 'gear' ? 'next-buddy' : 'review-open');
+    if (count) options.push(following ? reviewControl : { ...reviewControl, w: 960 });
+    if (following) {
+      options.push({ ...nextLessonControl, ...(count ? {} : { x: 32, w: 960 }), label: (following.tab || following.title) + 'へ ›' });
+    }
+    drawControls([...options, exit], state, hovered, count ? 'review-open' : 'next-lesson');
   }
   return {
     mesh,
@@ -271,7 +273,7 @@ function makePanel(lesson) {
       const finGroup = finRecallGroups[finChoice];
       const finInput = fins && !state.guide && (finChoice || placing);
       const compact = next ? (inflator && next.id !== 'balance') || ((fins || gear) && !inspection && !finInput) :
-        !state.review.length && lesson.id !== 'gear';
+        !state.review.length && !following;
       context.clearRect(0, 0, 1024, 346);
       rect(0, 0, 1024, compact && !demo ? 246 : 346, '#f1fffd');
       texture.needsUpdate = true;
@@ -450,28 +452,16 @@ function spatialTargets(lesson, model, scene) {
   };
 }
 
-export function createPracticeXR(renderer, session, { lesson, scenario, lights, readState, advanceToBuddy, recallAfterExample, press, trim, apply }) {
+export function createPracticeXR(renderer, session, { lesson, scenario, following, lights, readState, advanceToNext, recallAfterExample, press, trim, apply }) {
   const scene = new T.Scene();
-  const gear = lesson.scene === 'gear';
-  const atmosphere = gear ? 0xd6ede6 : 0x79cec8;
-  scene.background = new T.Color(atmosphere);
-  scene.fog = new T.FogExp2(atmosphere, gear ? .085 : .10);
+  scene.background = new T.Color();
+  scene.fog = new T.FogExp2();
   scene.add(...lights);
-  const mask = lesson.scene === 'mask';
-  const inflator = lesson.scene === 'inflator';
-  const fins = lesson.scene === 'fins';
   const stage = new T.Group();
   const root = new T.Group();
   const equipment = new T.Group();
   stage.add(root);
   root.add(equipment);
-  const floor = gear ? new T.Mesh(new T.PlaneGeometry(30, 30), new T.MeshStandardMaterial({ color: 0xa7c8bf, roughness: .90 })) : null;
-  if (floor) {
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -1.397;
-    root.add(floor);
-    root.scale.setScalar(.70);
-  }
   const completed = new Set();
   const reviewPressure = {};
   const example = createExample({
@@ -481,32 +471,51 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const rig = new T.Group();
   const camera = new T.PerspectiveCamera(45, 1, .05, 40);
-  if (gear) rig.position.set(0, .18, 2.05);
-  else if (fins) rig.position.set(0, 1.53, 1.25);
-  else rig.position.set(0, .17, 2.43);
   const visor = new T.Group();
-  const lens = mask ? makeVisor() : null;
   const station = new T.Group();
-  if (lens) visor.add(lens);
   rig.add(camera, visor, station);
   scene.add(stage, rig);
 
-  function mount(nextLesson, nextScenario) {
-    const model = gear ? makeModel(equipment, nextLesson, nextScenario) : makeDiveModel(equipment, nextLesson, nextScenario);
-    const targets = mask ? null : spatialTargets(nextLesson, model, scene);
-    const panel = makePanel(nextLesson);
+  function mount({ lesson, scenario, following }) {
+    const gear = lesson.scene === 'gear';
+    const fins = lesson.scene === 'fins';
+    const inflator = lesson.scene === 'inflator';
+    const lens = lesson.scene === 'mask' ? makeVisor() : null;
+    const floor = gear ? new T.Mesh(new T.PlaneGeometry(30, 30), new T.MeshStandardMaterial({ color: 0xa7c8bf, roughness: .90 })) : null;
+    if (floor) {
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -1.397;
+      root.add(floor);
+    }
+    if (lens) visor.add(lens);
+    root.scale.setScalar(gear ? .70 : 1);
+    scene.background.setHex(gear ? 0xd6ede6 : 0x79cec8);
+    scene.fog.color.copy(scene.background);
+    scene.fog.density = gear ? .085 : .10;
+    if (gear) rig.position.set(0, .18, 2.05);
+    else if (fins) rig.position.set(0, 1.53, 1.25);
+    else rig.position.set(0, .17, 2.43);
+    const model = gear ? makeModel(equipment, lesson, scenario) : makeDiveModel(equipment, lesson, scenario);
+    const targets = lens ? null : spatialTargets(lesson, model, scene);
+    const panel = makePanel(lesson, following);
     const preview = gear ? makeInspectionPreview(model, station) : null;
     station.add(panel.mesh);
-    return { model, targets, panel, preview, lesson: nextLesson, scenario: nextScenario };
+    return { lesson, scenario, gear, fins, inflator, model, targets, panel, preview, floor, lens };
   }
-  let presentation = mount(lesson, scenario);
+  let presentation = mount({ lesson, scenario, following });
 
   function unmount() {
     if (presentation) {
-      const { targets, panel, preview } = presentation;
+      const { targets, panel, preview, floor, lens } = presentation;
       presentation = null;
       targets?.dispose();
       preview?.dispose();
+      for (const surface of [floor, lens]) {
+        if (!surface) continue;
+        surface.removeFromParent();
+        surface.geometry.dispose();
+        surface.material.dispose();
+      }
       const { mesh } = panel;
       mesh.removeFromParent();
       mesh.geometry.dispose();
@@ -573,7 +582,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
       const hit = aim(controller);
       selected = hit?.id;
       const step = state?.steps.find(action => action.id === selected);
-      const part = (fins || gear) && presentation?.model.grabbable[selected];
+      const part = (presentation?.fins || presentation?.gear) && presentation.model.grabbable[selected];
       if (part && hit?.spatial && !carry && !holding && step && step === state.steps[state.index]) {
         finChoice = undefined;
         placing = selected;
@@ -589,7 +598,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     }
     function select() {
       if (selected === 'exit') close();
-      else if (selected === 'next-buddy') requestedRun = advanceToBuddy;
+      else if (selected === 'next-lesson') requestedRun = advanceToNext;
       else if ((selected === 'example-open' || selected === 'review-example') && !holding && !carry) {
         const state = readState();
         const step = selected === 'review-example' ? state?.review[reviewIndex] : undefined;
@@ -628,7 +637,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
         const expected = state.steps[state.index];
         const fromFinMenu = finRecallGroups[finChoice]?.actions[selected];
         if (fromFinMenu) finChoice = undefined;
-        if (fins && !state.guide && finRecallGroups[selected]) {
+        if (presentation.fins && !state.guide && finRecallGroups[selected]) {
           finChoice = selected;
         } else if (inspecting && (selected === 'normal' || selected === 'repair')) {
           apply(inspecting, selected);
@@ -644,7 +653,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
           const adding = selected === 'trim-add';
           if (trim(adding ? 1 : -1)) pulse = { action: adding ? 'add-air' : 'vent', until: performance.now() + 220 };
         } else {
-          const action = (gear || fromFinMenu) && state.steps.find(step => step.id === selected);
+          const action = (presentation.gear || fromFinMenu) && state.steps.find(step => step.id === selected);
           apply(selected, action?.attachment?.dock || (action?.inspection ? 'normal' : undefined));
         }
       }
@@ -717,8 +726,9 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
             cancelInputs();
             inspecting = null;
             reviewIndex = -1;
+            if (next.lesson.scene !== presentation.lesson.scene) placed = false;
             unmount();
-            presentation = mount(next.lesson, next.scenario);
+            presentation = mount(next);
             state = readState();
           }
         } catch {
@@ -727,7 +737,7 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
         }
       }
       if (!presentation || !state) { close(); return; }
-      const { model, targets, panel, preview } = presentation;
+      const { lesson, gear, fins, inflator, lens, model, targets, panel, preview } = presentation;
       visor.position.copy(pose.transform.position);
       visor.quaternion.copy(pose.transform.orientation);
       if (!placed) {
@@ -796,10 +806,6 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
         line.material.dispose();
       }
       unmount();
-      floor?.geometry.dispose();
-      floor?.material.dispose();
-      lens?.geometry.dispose();
-      lens?.material.dispose();
     }
   };
 }

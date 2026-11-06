@@ -209,7 +209,7 @@ try {
   await capture('cleared');
   await panelHas('見直す手順は2つ','見直す手順を見る');
   const maskReviewBefore = await page.evaluate(() => localStorage.getItem('dive-atlas.owd-review.v1.mask'));
-  await hold([512,215]);
+  await hold([260,215]);
   await panelHas('見直し  1 / 2','口で呼吸する','結果に戻る','やり直し');
   await hold([850,298]);
   await panelHas('見直し  2 / 2','鼻から息を吐く','見本を再生','やり直し・ヒント');
@@ -333,13 +333,18 @@ try {
   assert.equal(await progress(),'5');
   await use(resumeBreathing);
   assert.equal(await progress(),'6');
-  await use(leaveRecovery);
-  await page.waitForFunction(()=>window.qaEvents.includes('end'));
   const reachReview = await page.evaluate(()=>JSON.parse(localStorage.getItem('dive-atlas.owd-review.v1.recovery')));
   assert.equal(reachReview.route,'reach-exhale');
   assert.deepEqual(reachReview.steps,[]);
+  const rememberSession = () => page.evaluate(() => { window.sessionBeforeNext = window.qaSession; });
+  const sameSession = () => page.evaluate(() => window.qaSession === window.sessionBeforeNext && !window.qaEvents.includes('end'));
+  await rememberSession();
+  await panelHas('インフレーターへ ›');
+  await use(recoveryPanel(512,215));
+  await panelHas('パワーインフレーター   0 / 4','BCDのふくらみ');
+  assert(await sameSession());
+  assert.equal(await progress(),'0');
 
-  await page.getByRole('button',{name:'インフレーター',exact:true}).click();
   const inflatorPanel = (x,y) => [-.52+(x/1024-.5)*.99,1.60-.94+(.5-y/346)*.3345,-1.28];
   const height = air => .20 + 1.08 * (air - .48);
   const buttonPoint = (air, raised, x, y, z) => {
@@ -359,7 +364,6 @@ try {
   const airLevel = () => page.locator('#effect-meter').evaluate(node => Number(node.style.getPropertyValue('--level')));
   const balanceCue = () => page.locator('#buoyancy-status').innerText();
 
-  await start();
   const beforeAir = await capture('inflator-empty');
   await use(addPoint,460);
   assert.equal(await progress(),'1');
@@ -406,11 +410,14 @@ try {
   assert(!(await capture('inflator-steady')).equals(high));
   await use(confirmHeight);
   assert.equal(await progress(),'4');
-  await use(leaveInflator);
-  await page.waitForFunction(()=>window.qaEvents.includes('end'));
+  await rememberSession();
+  await panelHas('見直す手順は2つ','フィンの履き方へ ›');
+  await use(inflatorPanel(766,215));
+  await panelHas('フィンの履き方   0 / 5','足元の部品を選ぶ');
+  assert(await sameSession());
+  assert.equal(await progress(),'0');
   const inflatorReview = await page.evaluate(()=>JSON.parse(localStorage.getItem('dive-atlas.owd-review.v1.inflator')));
   assert.deepEqual(inflatorReview.steps,['raise','balance']);
-  await page.getByRole('button',{name:'フィンの履き方',exact:true}).click();
   const setupFins = async sample => {
     await page.locator('#guided').click();
     await page.evaluate(sample => {
@@ -466,8 +473,15 @@ try {
     const { x, y } = await page.evaluate(text => window.qaPanelPoints[text],label);
     await use(finsPanel(x+22,y),ms);
   };
-  await page.locator('#guided').click();
+  await pitch(-.65);
+  await capture('fins-from-inflator');
+  await chooseFin('strap','外側へよける',[]);
+  assert.equal(await progress(),'1');
+  assert(await sameSession());
   await pitch(0);
+  await use(leaveFins);
+  await page.waitForFunction(()=>window.qaEvents.includes('end'));
+  await page.locator('#guided').click();
   await start();
   await pitch(-.65);
   await panelHas('ストラップを外側へ');
@@ -775,6 +789,11 @@ try {
   await leaveBench();
   await page.waitForFunction(() => document.activeElement?.id === 'vr-practice');
   await page.reload();
+  await page.getByRole('button',{name:'マスククリア',exact:true}).click();
+  await page.locator('#mask-fill').selectOption('mask-full');
+  await page.getByRole('button',{name:'レギュレーター回収',exact:true}).click();
+  await page.locator('#recovery-search').selectOption('reach');
+  await page.locator('#recovery-clear').selectOption('exhale');
   await page.locator('#resume-practice').click();
   assert.equal(await page.locator('#lesson-title').innerText(),'バディチェック');
   assert.equal(await progress(),'1');
@@ -809,10 +828,46 @@ try {
   await use(await buddyPoint('final'));
   assert.equal(await progress(),'8');
   await capture('buddy-checked');
-  await leaveBench();
-  const buddyReview = await page.evaluate(() => JSON.parse(localStorage.getItem('dive-atlas.owd-review.v1.buddy')));
+  const readBuddyReview = () => page.evaluate(() => JSON.parse(localStorage.getItem('dive-atlas.owd-review.v1.buddy')));
+  const buddyReview = await readBuddyReview();
   assert.equal(buddyReview.scenario,buddyStart.scenario);
   assert.deepEqual(buddyReview.steps,['releases']);
+  await rememberSession();
+  const stance = { x: .22, yaw: -.35 };
+  await page.evaluate(x => { window.xrDevice.position.x = x; }, stance.x);
+  await look(stance.yaw);
+  await panelHas('マスククリアへ ›');
+  await use(gearPanel(766,215));
+  await panelHas('マスククリア   0 / 3','マスク内の水 100%');
+  assert(await sameSession());
+  assert.equal(await progress(),'0');
+  assert.equal(await water(),100);
+  const inNewStance = ([x,y,z]) => {
+    const c = Math.cos(stance.yaw), s = Math.sin(stance.yaw);
+    return [stance.x + c*x + s*z,y,c*z - s*x];
+  };
+  const maskPanel = (x,y) => inNewStance([(x/1024-.5)*.99,1.60-.33+(.5-y/346)*.3345,-1.22]);
+  await capture('mask-from-buddy');
+  await use(maskPanel(...breathe));
+  await use(maskPanel(...seal));
+  await use(maskPanel(...exhale),2250);
+  assert.equal(await progress(),'3');
+  await panelHas('レギュレーター回収へ ›');
+  await use(maskPanel(512,215));
+  await panelHas('レギュレーター回収   0 / 6','細く息を吐く');
+  assert(await sameSession());
+  assert.equal(await progress(),'0');
+  assert.deepEqual(await readBuddyReview(),buddyReview);
+  await capture('recovery-from-mask');
+  await use(inNewStance(leaveRecovery));
+  await page.waitForFunction(()=>window.qaEvents.includes('end'));
+  await page.reload();
+  await page.locator('#resume-practice').click();
+  assert.equal(await page.locator('#lesson-title').innerText(),'レギュレーター回収');
+  assert.equal(await progress(),'0');
+  assert.equal(await page.locator('#recovery-search').inputValue(),'reach');
+  assert.equal(await page.locator('#recovery-clear').inputValue(),'exhale');
+  assert.equal(await page.locator('#recall').getAttribute('aria-pressed'),'true');
 
   // Replay the saved final gear step, then exit before doing anything in buddy check.
   await page.evaluate(saved => localStorage.setItem('dive-atlas.owd-draft.v1',saved),gearBeforePressure);
@@ -831,7 +886,7 @@ try {
   assert.equal(await progress(),'0');
   assert.deepEqual(await readGearReview(),gearReplayReview);
   assert.deepEqual(errors,[]);
-  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button available for gear and hidden during the example','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes','Surface fins accept a tracked drag or separate selections and reject the wrong dock','A partially lifted heel is saved across XR exit and reload','Loose and snug straps look different and require the matching judgement','Gear inspection reads dates and a damaged O-ring and rejects incorrect answers','Gear attaches BCD, first stage and low-pressure hose, preserves progress and requires the gauge to be turned before opening','Gear and buddy check share one XR session and the bench stays anchored when the viewer moves','Exiting right after handoff or mid-buddy-check restores the correct step and keeps the gear review','Buddy check exercises inflation, inspection, error correction and its own saved review','VR result shows the flagged mask step while leaving the completed run untouched','Gear review navigates missed steps with contextual equipment, then returns to the result without changing the record','VR example moves mask water, pauses and starts fresh unaided practice within the session','Opening and closing a VR example preserves an interrupted exercise and its exact saved water','Gear example shows the damaged seal and its replacement without changing the exercise','Fin recall shows equipment and unmarked candidate actions, and records an early attempt to put on the boot','Guided fins still indicate the next action, while recalled attachments can be canceled or carried to a dock','The missed mask exhale replays its full-water route and animates to empty, then returns to the same review item without changing results','A missed gear inspection replays the original damaged O-ring and its replacement in the headset','The BCD moves in the headset during its review replay, then returns to the same result','The headset distinguishes retry from a step that needed both retry and a desktop hint']},null,2));
+  await writeFile(folder+'/report.json',JSON.stringify({revision,dirty,runtime:'IWER 2.8.0, Meta Quest 3 profile, Chrome',checks:['XR button available for gear and hidden during the example','Session denial keeps the desktop practice available','Tracked controller ray and trigger enforce step order','Press and release preserve partly cleared water','Head pose changes rendered view','In-world exit restores 2D at same step','Reload resumes exact water level','Stereo renders two eye views','System exit during a hold preserves partial progress','Reenter VR and finish','Recall saves the expected review and exiting focuses the result','Facing the hose unlocks the XR sweep and a partial hold moves the arm','Leaving XR and reloading resumes the same recovery hold','World-space selection checks the mouth dock before purge and saves mistakes','Shoulder trace and exhale complete the alternate recovery route','Spatial inflator controls expand the BCD, reject the low dock and require raising the exhaust','Partial VR venting survives leaving and reloading','Small spatial trim pulses overshoot, correct to neutral, and save mistakes','Surface fins accept a tracked drag or separate selections and reject the wrong dock','A partially lifted heel is saved across XR exit and reload','Loose and snug straps look different and require the matching judgement','Gear inspection reads dates and a damaged O-ring and rejects incorrect answers','Gear attaches BCD, first stage and low-pressure hose, preserves progress and requires the gauge to be turned before opening','Gear and buddy check share one XR session and the bench stays anchored when the viewer moves','Exiting right after handoff or mid-buddy-check restores the correct step and keeps the gear review','Buddy check exercises inflation, inspection, error correction and its own saved review','VR result shows the flagged mask step while leaving the completed run untouched','Gear review navigates missed steps with contextual equipment, then returns to the result without changing the record','VR example moves mask water, pauses and starts fresh unaided practice within the session','Opening and closing a VR example preserves an interrupted exercise and its exact saved water','Gear example shows the damaged seal and its replacement without changing the exercise','Fin recall shows equipment and unmarked candidate actions, and records an early attempt to put on the boot','Guided fins still indicate the next action, while recalled attachments can be canceled or carried to a dock','The missed mask exhale replays its full-water route and animates to empty, then returns to the same review item without changing results','A missed gear inspection replays the original damaged O-ring and its replacement in the headset','The BCD moves in the headset during its review replay, then returns to the same result','The headset distinguishes retry from a step that needed both retry and a desktop hint','A live session continues from a completed regulator drill to inflator, and from inflator to an operable fin scene','Buddy check, full-mask practice and the selected alternate regulator route share the session, re-anchor to the viewer, and save a zero-step draft']},null,2));
   console.log(folder);
 } catch(error) {
   console.log(JSON.stringify({errors, browser:await page.evaluate(()=>({iwer:!!window.xrDevice,events:window.qaEvents,session:!!window.qaSession,feedback:document.querySelector('#feedback')?.textContent}))}));
