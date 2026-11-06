@@ -31,6 +31,8 @@ const reviewControls = [
 
 const exampleOpen = { id: 'example-open', label: '見本を見る', x: 585, y: 25, w: 183, h: 65 };
 const exampleBack = { ...exampleOpen, id: 'example-back', label: '練習に戻る' };
+const reviewExample = { ...exampleOpen, id: 'review-example', label: '見本を再生' };
+const reviewExampleBack = { ...exampleBack, label: '見直しに戻る' };
 const exampleControls = [
   { id: 'example-prev', label: '‹ 前の手順', x: 32, y: 268, w: 206, h: 60 },
   { id: 'example-play', label: '一時停止', x: 256, y: 268, w: 226, h: 60 },
@@ -198,10 +200,11 @@ function makePanel(lesson) {
     if (line) text(line, 32, y, bodySize, '#246270');
   }
 
-  function drawExample(demo, state, hovered) {
+  function drawExample(demo, state, hovered, reviewing) {
     const { step, index, complete, paused, first, lesson: source, scenario, motion, amount } = demo;
-    text(complete ? '見本はここまで' : '見本  ' + (index + 1) + ' / ' + source.actions.length, 32, 58, 46, '#103b49', 520);
-    if (complete) {
+    const title = reviewing ? '見直しの見本' : complete ? '見本はここまで' : '見本  ' + (index + 1) + ' / ' + source.actions.length;
+    text(title, 32, 58, 46, '#103b49', 520);
+    if (complete && !reviewing) {
       text('今度は自分で試す', 32, 115, 43, '#103b49');
       drawDescription('自力復習では、次の手順を自分で選びます。');
     } else {
@@ -215,21 +218,23 @@ function makePanel(lesson) {
       }
     }
     const options = exampleControls.filter(control =>
+      (!reviewing || control.id === 'example-play') &&
       (control.id !== 'example-prev' || index > first || complete) &&
       (control.id !== 'example-next' || !complete)).map(control => control.id === 'example-play' ?
-        { ...control, label: complete ? 'もう一度見る' : paused ? '再生' : '一時停止' } : control);
-    drawControls([...options, exampleBack, exit], state, hovered, complete ? 'example-recall' : undefined);
+        { ...control, ...(reviewing ? { x: 352, w: 320 } : {}), label: complete ? 'もう一度見る' : paused ? '再生' : '一時停止' } : control);
+    drawControls([...options, reviewing ? reviewExampleBack : exampleBack, exit], state, hovered,
+      reviewing ? 'example-back' : complete ? 'example-recall' : undefined);
   }
 
   function drawReview(state, hovered, reviewIndex) {
     const step = state.review[reviewIndex];
-    text('見直し  ' + (reviewIndex + 1) + ' / ' + state.review.length, 32, 58, 46, '#103b49', 700);
+    text('見直し  ' + (reviewIndex + 1) + ' / ' + state.review.length, 32, 58, 46, '#103b49', 520);
     text(step.label, 32, 115, 43, '#103b49');
     drawDescription(step.detail);
     const options = reviewControls.filter(control =>
       (control.id !== 'review-prev' || reviewIndex > 0) &&
       (control.id !== 'review-next' || reviewIndex + 1 < state.review.length));
-    drawControls([...options, exit], state, hovered);
+    drawControls([...options, reviewExample, exit], state, hovered, 'review-example');
   }
 
   function drawResult(state, hovered) {
@@ -250,7 +255,7 @@ function makePanel(lesson) {
     draw(state, hovered, placing, done, inspecting, reviewIndex, demo, finChoice) {
       const air = inflator ? inflatorAir(done.has('add-air'), done.has('vent'), state.pressure) : 0;
       const amount = Math.round((inflator ? air : state.water) * 100);
-      const key = demo ? ['example', demo.index, demo.paused, demo.complete, demo.motion >= 1, demo.amount, hovered].join('|') :
+      const key = demo ? ['example', reviewIndex, demo.index, demo.paused, demo.complete, demo.motion >= 1, demo.amount, hovered].join('|') :
         [state.index, state.guide, state.message, state.retry, state.review.length, amount, hovered, placing, inspecting, reviewIndex, finChoice].join('|');
       if (key === previous) return;
       previous = key;
@@ -263,7 +268,7 @@ function makePanel(lesson) {
       context.clearRect(0, 0, 1024, 346);
       rect(0, 0, 1024, compact && !demo ? 246 : 346, '#f1fffd');
       texture.needsUpdate = true;
-      if (demo) { drawExample(demo, state, hovered); return; }
+      if (demo) { drawExample(demo, state, hovered, reviewIndex >= 0); return; }
       if (state.review[reviewIndex]) { drawReview(state, hovered, reviewIndex); return; }
       if (!next) { drawResult(state, hovered); return; }
       text(lesson.title + '   ' + state.index + ' / ' + state.steps.length, 32, 58, 46, '#103b49', 530);
@@ -578,10 +583,13 @@ export function createPracticeXR(renderer, session, { lesson, scenario, lights, 
     function select() {
       if (selected === 'exit') close();
       else if (selected === 'next-buddy') requestedRun = advanceToBuddy;
-      else if (selected === 'example-open' && !holding && !carry) {
+      else if ((selected === 'example-open' || selected === 'review-example') && !holding && !carry) {
+        const state = readState();
+        const step = selected === 'review-example' ? state?.review[reviewIndex] : undefined;
+        if (selected === 'review-example' && !step) return;
         cancelInputs();
         inspecting = null;
-        example.start(presentation.lesson, undefined, presentation.scenario);
+        example.start(presentation.lesson, step ? state.steps.indexOf(step) : undefined, presentation.scenario);
       } else if (selected === 'example-back') {
         example.stop();
         previousTime = undefined;
