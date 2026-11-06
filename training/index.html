@@ -43,7 +43,7 @@
       <p><strong>練習の続き</strong> <span id="draft-description"></span></p>
       <button type="button" id="resume-practice" class="outline-control" aria-describedby="draft-description">続きから</button>
     </div>
-    <nav id="lessons" aria-label="練習メニュー"></nav>
+    <nav id="lessons" aria-label="練習メニュー" tabindex="-1"></nav>
 
     <section class="workspace" aria-label="練習">
       <div class="viewer">
@@ -93,6 +93,7 @@
         <div class="panel-top">
           <p class="eyebrow" id="module-label"></p>
           <span id="step-count"></span>
+          <a class="back-to-lessons" href="#lessons">種目一覧</a>
         </div>
         <div class="progress" id="progress" role="progressbar" aria-label="練習の進み具合" aria-valuemin="0"></div>
         <h2 id="lesson-title"></h2>

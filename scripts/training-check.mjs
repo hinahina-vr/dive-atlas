@@ -477,6 +477,38 @@ try {
     await mobileDrag.screenshot({ path: join(output, 'mobile-placement.png'), fullPage: true });
   });
   assert.equal(await value(mobileDrag), '3');
+  await mobileDrag.setViewportSize({ width: 844, height: 390 });
+  await mobileDrag.waitForFunction(() => {
+    const scene = document.querySelector('#viewport').getBoundingClientRect();
+    const instruction = document.querySelector('#instruction').getBoundingClientRect();
+    return scene.top >= 0 && scene.bottom <= innerHeight + 1 && instruction.top >= 0 &&
+      instruction.bottom <= innerHeight && scene.right < instruction.left;
+  });
+  assert(await mobileDrag.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  assert.equal(await value(mobileDrag), '3');
+  await getChoice(mobileDrag, 'lock').press('Enter');
+  await getChoice(mobileDrag, 'uncap').press('Enter');
+  await movePart(mobileDrag, 'first', 'valve', touchDrag(input), async () => {
+    await mobileDrag.screenshot({ path: join(output, 'mobile-landscape-placement.png') });
+  });
+  assert.equal(await value(mobileDrag), '6');
+  await mobileDrag.locator('.back-to-lessons').press('Enter');
+  await mobileDrag.waitForFunction(() => {
+    const menu = document.querySelector('#lessons').getBoundingClientRect();
+    return menu.top >= 0 && menu.bottom <= innerHeight;
+  });
+  await mobileDrag.locator('#show-example').press('Enter');
+  assert(await mobileDrag.locator('#example-controls').isVisible());
+  assert(await mobileDrag.locator('#example-controls').evaluate(node =>
+    node.getBoundingClientRect().left > document.querySelector('#viewport').getBoundingClientRect().right));
+  await mobileDrag.locator('#example-exit').press('Enter');
+  await mobileDrag.setViewportSize(mobileSize);
+  await mobileDrag.evaluate(() => window.scrollTo(0, 0));
+  assert.equal(await value(mobileDrag), '6');
+  assert(await mobileDrag.locator('.back-to-lessons').isHidden());
+  await mobileDrag.waitForFunction(() =>
+    document.querySelector('.panel').getBoundingClientRect().top >= document.querySelector('#viewport').getBoundingClientRect().bottom);
+  checks.push('844 × 390 mobile landscape: visible model and instructions, touch placement, menu and example, then back to portrait with progress');
   // Raw DevTools drag input and Playwright tap input use separate touch sessions.
   await mobileDrag.context().close();
   const mobile = await testPage(mobileSize, true);

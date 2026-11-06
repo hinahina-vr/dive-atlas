@@ -7,6 +7,7 @@ import { draftKey, readDraft, saveDraft, clearDraft } from './drafts.js';
 import { prepareOffline } from './offline.js';
 
 const byId = id => document.getElementById(id);
+const landscapeLayout = matchMedia('(orientation: landscape) and (max-height: 520px) and (min-width: 560px)');
 const el = Object.fromEntries([
   'viewport', 'scene', 'scene-status', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall',
   'view-label', 'view-subtitle', 'view-help', 'view-controls',
@@ -272,6 +273,7 @@ const lessonIndex = lesson => lessons.findIndex(item => item.id === lesson.id);
 const lessonButtons = lessons.map((lesson, i) => {
   const item = button('', 'lesson-button', () => {
     if (practice.lesson.id !== lesson.id) openLesson(lesson);
+    if (landscapeLayout.matches) showViewport();
   });
   const number = document.createElement('span');
   number.className = 'lesson-number';
@@ -345,6 +347,7 @@ el['review-next'].addEventListener('click', () => {
 for (const mode of ['guided', 'recall']) {
   el[mode].addEventListener('click', () => {
     if (mode !== practice.mode || example.current()) start(practice.lesson, mode);
+    if (landscapeLayout.matches) showViewport();
   });
 }
 el.hint.addEventListener('click', () => {
@@ -418,6 +421,11 @@ function showViewport() {
     el.viewport.scrollIntoView({ block: 'start' });
   }
 }
+
+landscapeLayout.addEventListener('change', event => {
+  const midPractice = practice.index > 0 && practice.index < practice.lesson.actions.length;
+  if (event.matches && (midPractice || example.current())) requestAnimationFrame(showViewport);
+});
 
 function closeExample() {
   example.stop();

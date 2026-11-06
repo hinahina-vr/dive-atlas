@@ -276,6 +276,7 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 }
 .panel { padding: 20px; background: var(--card); }
 .panel-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.back-to-lessons { display: none; }
 #step-count { color: #315d64; font: 700 .78rem ui-monospace, monospace; white-space: nowrap; }
 .progress { display: flex; height: 4px; gap: 4px; margin: 11px 0 17px; }
 .progress span { flex: 1; background: #d2e4de; border-radius: 4px; }
@@ -333,10 +334,43 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
   .viewport { height: clamp(280px, 39svh, 380px); }
   .panel { padding: 14px; }
   .view-title { top: 12px; left: 12px; }
-  #mask-overlay.is-flooded .mask-window span { border-top-color: transparent; border-radius: 0; }
-#mask-overlay.is-clear .mask-window span { opacity: 0; }
-#perspective { top: 9px; right: 9px; }
+  #perspective { top: 9px; right: 9px; }
   .view-controls { bottom: 9px; right: 9px; }
   #view-help { bottom: 21px; left: 12px; }
   .footnote { flex-wrap: wrap; }
+}
+@media (orientation: landscape) and (max-height: 520px) and (min-width: 560px) {
+  .masthead { min-height: 44px; padding-inline: 16px; }
+  main { padding: 11px 14px 15px; }
+  .intro { align-items: end; flex-direction: row; gap: 10px; margin-bottom: 11px; }
+  h1 { font-size: clamp(1.4rem, 4vw, 2.1rem); }
+  .intro p:last-child { font-size: .77rem; }
+  .review-overview { margin-top: 0; }
+  #lessons { scroll-margin-top: 7px; }
+  .lesson-button { min-height: 48px; padding: 5px 6px; column-gap: 4px; font-size: .74rem; }
+  .workspace {
+    grid-template-columns: minmax(0, 1.25fr) minmax(235px, 1fr);
+    grid-template-rows: min-content 1fr;
+    grid-template-areas: "scene details" "scene controls";
+    gap: 8px;
+  }
+  .viewer { display: contents; }
+  .viewport {
+    grid-area: scene; position: sticky; top: 7px;
+    height: clamp(222px, calc(100svh - 15px), 495px);
+    scroll-margin-top: 7px;
+  }
+  .panel { grid-area: details; padding: 11px 12px; }
+  #inspection-panel, #example-controls { grid-area: controls; margin-top: 0; }
+  .back-to-lessons {
+    display: inline-flex; align-items: center; min-height: 40px; padding: 0 6px;
+    margin-block: -4px; color: var(--teal); font-size: .75rem; text-decoration: underline;
+    text-underline-offset: 2px; white-space: nowrap;
+  }
+  .progress { margin: 6px 0 10px; }
+  #instruction { margin: 8px 0; padding: 8px 9px; min-height: 0; }
+  .view-title { top: 9px; left: 10px; }
+  #perspective { top: 9px; right: 9px; }
+  .view-controls { bottom: 9px; right: 9px; }
+  #view-help { bottom: 18px; left: 12px; }
 }
