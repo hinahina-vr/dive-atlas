@@ -782,6 +782,13 @@ try {
   await portrait.screenshot({ path: join(output, 'mobile-narrow-inflator-hint.png') });
   checks.push('320 px inflator: recall shows neutral interaction help, marks long presses per candidate, and reveals the next action only after a hint');
   checks.push('320 px inflator recall: both physical buttons and the grip on the hose remain available when the shuffled list puts the hose first');
+  for (const lesson of lessons) {
+    await portrait.getByRole('button', { name: lesson.tab || lesson.title, exact: true }).tap();
+    assert.equal(await portrait.locator('#step-title').innerText(), '次は何をする？');
+    assert.match(await portrait.locator('#view-help').innerText(), /^ドラッグで(?:回転|見回す)$/);
+    assert.equal(await portrait.locator('#hotspots .is-guide').count(), 0);
+  }
+  checks.push('All six drills start unaided recall with the same neutral instructions and no highlighted target');
   await portrait.context().close();
   checks.push('320 × 568: a hint reveals the 3D control, and the scene title fits beside the view switch');
 
