@@ -997,7 +997,7 @@ export function makeDiveModel(root, lesson, scenario) {
     const bubbles = Array.from({ length: 15 }, () => sphere(root, .024, .026, .021, lens));
     model = {
       anchors: {},
-      fixedTargets: { 'mask-breathe': [.51, .74], 'mask-hold': [.63, .185], 'mask-exhale': [.50, .61] },
+      fixedTargets: { 'mask-breathe': [.51, .74], 'mask-hold': [.63, .275], 'mask-exhale': [.50, .61] },
       update(_done, _k, time, interaction) {
         for (let i = 0; i < bubbles.length; i += 1) {
           const f = (i / bubbles.length + time * .00059) % 1;

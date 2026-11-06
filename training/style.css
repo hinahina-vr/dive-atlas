@@ -197,10 +197,10 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 #mask-overlay.is-pressed .mask-window span { transition: none; }
 #mask-overlay.is-sealed .mask-window { border-top-color: #659f9b; }
 .mask-fingertip {
-  position: absolute; top: 0; left: 24%; width: clamp(38px, 12%, 94px); height: auto;
+  position: absolute; top: 0; left: var(--mask-contact); width: clamp(38px, 12%, 94px); height: auto;
   opacity: 0; transform: translate(-64%, -82%);
 }
-.mask-fingertip-right { left: 76%; transform: translate(-36%, -82%) scaleX(-1); }
+.mask-fingertip-right { left: calc(100% - var(--mask-contact)); transform: translate(-36%, -82%) scaleX(-1); }
 #mask-overlay.is-sealed .mask-fingertip { opacity: 1; }
 #scene-feedback {
   position: absolute; z-index: 1; bottom: 58px; left: 16px; max-width: 75%;
@@ -250,7 +250,8 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   filter: blur(11px); opacity: .75; mix-blend-mode: screen;
 }
 #mask-overlay {
-  pointer-events: none; position: absolute; inset: 18% 7% 16%; display: grid;
+  --mask-contact: 24%;
+  pointer-events: none; position: absolute; inset: 27% 7% 16%; display: grid;
   grid-template-columns: 1fr 1fr; gap: 7px; border-radius: 29% 29% 22% 22% / 40% 40% 30% 30%;
   box-shadow: 0 0 0 80vmax #175b706f;
 }
@@ -402,6 +403,7 @@ h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); margin: 0 0 5px; }
   .lesson-status { font-size: .65rem; }
   .viewport { height: clamp(280px, 39svh, 380px); }
   .panel { padding: 14px; }
+  #mask-overlay { --mask-contact: 36%; }
   .view-header { top: 9px; inset-inline: 12px 9px; }
   .view-controls { bottom: 9px; right: 9px; }
   #view-help { bottom: 21px; left: 12px; }

@@ -747,6 +747,16 @@ try {
   await maskMarker.tap();
   assert.equal(await value(portrait), '2');
   assert.deepEqual(await fingers(portrait), ['1', '1']);
+  assert(await portrait.locator('.mask-fingertip').evaluateAll(nodes => {
+    const readouts = [...document.querySelectorAll('.view-title, #effect-meter, #perspective')]
+      .map(node => node.getBoundingClientRect());
+    return nodes.every((node, index) => {
+      const finger = node.getBoundingClientRect();
+      const x = finger.left + finger.width * (index ? .15 : .85);
+      const y = finger.bottom - finger.height * .1;
+      return readouts.every(rect => x < rect.left || x > rect.right || y < rect.top || y > rect.bottom);
+    });
+  }), 'Both fingertips remain readable outside the scene labels and buttons');
   await portrait.screenshot({ path: join(output, 'mobile-narrow-mask-sealed.png') });
   await portrait.getByRole('button', { name: 'インフレーター', exact: true }).tap();
   assert(await portrait.evaluate(() => {
