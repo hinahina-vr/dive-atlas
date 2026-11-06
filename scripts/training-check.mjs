@@ -386,7 +386,11 @@ try {
   await desktop.screenshot({ path: join(output, 'desktop-example.png'), fullPage: true });
   const exampleLine = desktop.locator('#example-guide line');
   const examplePoints = () => exampleLine.evaluate(line => ['x1', 'y1', 'x2', 'y2'].map(key => Number(line.getAttribute(key))));
+  // Seeking and pausing set the replay state before the 3D view paints it.
+  const afterReplayPaint = () => desktop.evaluate(() =>
+    new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   async function watchAttachment(filename) {
+    await afterReplayPaint();
     await desktop.locator('#example-guide:not([hidden]) line:not([hidden])').waitFor({ state: 'attached' });
     const origin = await examplePoints();
     await desktop.locator('#example-play').click();
@@ -395,6 +399,7 @@ try {
       return !line.hasAttribute('hidden') && Math.hypot(+line.getAttribute('x1') - x, +line.getAttribute('y1') - y) > 18;
     }, origin);
     await desktop.locator('#example-play').click();
+    await afterReplayPaint();
     const moving = await examplePoints();
     assert(Math.hypot(moving[0] - origin[0], moving[1] - origin[1]) > 18);
     assert.deepEqual(moving.slice(2), origin.slice(2), 'The receiving part stays in place while the loose part moves');
