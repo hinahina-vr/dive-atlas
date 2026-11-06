@@ -101,6 +101,16 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
 .example-timer i { display: block; height: 100%; background: #b47727; border-radius: inherit; transform: scaleX(var(--time, 0)); transform-origin: left; }
 .example-transport { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 7px; margin-bottom: 8px; }
 #example-recall { margin-right: 8px; }
+#recovery-methods {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 9px;
+  margin: 12px 0; color: #325963; font-size: .75rem;
+}
+#recovery-methods label { display: grid; gap: 4px; font-weight: 700; }
+#recovery-methods select {
+  width: 100%; min-height: 43px; padding: 4px 7px; border: 1px solid #9bcac1;
+  border-radius: 7px; color: #17444b; background: #eefaf5; font: inherit;
+}
+#recovery-methods p { grid-column: 1 / -1; }
 #inspection-panel {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
   margin-top: 8px; padding: 11px; border: 1px solid #75b2aa; border-radius: 9px; background: #f1faf4;

@@ -198,7 +198,7 @@ export function createView(container, onProject) {
     focusExample(action) {
       resetCamera(previous);
       if (focusDetail(action)) return;
-      if (firstPerson && previous.scene === 'recovery' && action === 'sweep') orbit.theta = 1.32;
+      if (firstPerson && previous.scene === 'recovery' && ['sweep', 'reach', 'trace-hose'].includes(action)) orbit.theta = 1.32;
     },
     cameraPose: () => orbit.clone(),
     restoreCamera(pose) {

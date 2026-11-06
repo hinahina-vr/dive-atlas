@@ -345,7 +345,7 @@ function kit(root, startAssembled, issues) {
   };
 }
 
-function diver(root, recovery) {
+function diver(root, recovery, reachRoute = false) {
   const torso = group(root, 0, -.08, 0);
   sphere(torso, .64, .84, .30, cloth, 0, -.64, -.15);
   sphere(torso, .38, .46, .33, rubber, 0, .53, 0);
@@ -391,7 +391,9 @@ function diver(root, recovery) {
   return {
     anchors: recovery ? {
       bubbles: [torso, v(.20, .22, .59)], sweep: [arm, v(-.14, -.40, .12)],
+      reach: [torso, v(-.56, .35, -.14)], 'trace-hose': [torso, v(-.71, .12, -.07)],
       replace: [regulator, v(-.08, -.10, .12)], purge: [regulator, v(0, .01, .115)],
+      'reg-exhale': [regulator, v(-.19, -.10, .14)],
       'reg-breathe': [mask, v(.34, -.06, .17)]
     } : {
       'mask-breathe': [regulator, v(.16, -.03, .14)], 'mask-hold': [mask, v(.05, .27, .14)],
@@ -407,24 +409,29 @@ function diver(root, recovery) {
     },
     update(done, k, time, interaction) {
       const swept = done.has('sweep');
+      const traced = done.has('trace-hose');
+      const reaching = done.has('reach') && !traced;
       const replaced = done.has('replace');
       const clear = done.has('mask-exhale');
       const held = done.has('mask-hold') && !clear;
       const exhaling = interaction.active === 'mask-exhale';
       const purging = interaction.active === 'purge';
       regulator.userData.purge.position.z = purging ? .057 : .071;
-      const regPosition = recovery && !replaced ? v(swept ? -.80 : -.56, swept ? .06 : -.39, swept ? .41 : -.31) : v(0, .245, .433);
+      const retrieved = swept || traced;
+      const regPosition = recovery && !replaced
+        ? v(retrieved ? -.80 : -.56, retrieved ? .06 : reachRoute ? .13 : -.39, retrieved ? .41 : -.31)
+        : v(0, .245, .433);
       regulator.position.lerp(regPosition, k);
       torso.rotation.z = T.MathUtils.lerp(torso.rotation.z, swept && !replaced ? -.16 : 0, k);
-      arm.rotation.z = T.MathUtils.lerp(arm.rotation.z, swept && !replaced ? -.62 : .08, k);
-      arm.rotation.x = T.MathUtils.lerp(arm.rotation.x, swept && !replaced ? -1.13 : 0, k);
-      lower.rotation.x = T.MathUtils.lerp(lower.rotation.x, swept && !replaced ? -.70 : -.12, k);
+      arm.rotation.z = T.MathUtils.lerp(arm.rotation.z, retrieved && !replaced ? -.62 : .08, k);
+      arm.rotation.x = T.MathUtils.lerp(arm.rotation.x, reaching ? -2.44 : retrieved && !replaced ? -1.13 : 0, k);
+      lower.rotation.x = T.MathUtils.lerp(lower.rotation.x, reaching ? -1.26 : retrieved && !replaced ? -.70 : -.12, k);
       fingertips.visible = !recovery && held;
       mask.rotation.x = T.MathUtils.lerp(mask.rotation.x, exhaling ? -.15 : held ? -.06 : 0, k);
       const remaining = clear ? 0 : 1 - (interaction.pressure['mask-exhale'] || 0);
       water.scale.y = T.MathUtils.lerp(water.scale.y, remaining, k);
       water.visible = !recovery && water.scale.y > .015;
-      bubbles.visible = recovery ? purging || (done.has('bubbles') && !replaced) : exhaling;
+      bubbles.visible = recovery ? purging || interaction.active === 'reg-exhale' || (done.has('bubbles') && !replaced) : exhaling;
       bubbles.position.set(0, exhaling ? .43 : .24, .59);
       bubbleParts.forEach((bubble, i) => {
         const phase = (time * .00038 + i / bubbleParts.length) % 1;
@@ -533,7 +540,7 @@ export function makeModel(root, lesson, scenario) {
   switch (lesson.scene) {
     case 'gear': return kit(root, lesson.id === 'buddy', lesson.scenarios?.[scenario] || []);
     case 'mask': return diver(root, false);
-    case 'recovery': return diver(root, true);
+    case 'recovery': return diver(root, true, lesson.route?.startsWith('reach'));
     case 'inflator': return inflator(root);
     case 'fins': return fins(root);
     default: throw new Error('Unknown practice model');
@@ -676,7 +683,7 @@ function waterBackdrop(root) {
   return time => { tide.value = time * .0007; };
 }
 
-function immersionRegulator(root) {
+function immersionRegulator(root, reachRoute) {
   const regulator = octo(root, teal, 1.56, -.37, 1.70);
   regulator.rotation.y = -.48;
   const torso = group(root, 0, -.82, 2.0);
@@ -685,48 +692,71 @@ function immersionRegulator(root) {
   const palm = sphere(arm, .105, .061, .14, rubber);
   const cuff = cyl(arm, .081, .5, cloth, 0, -.14, .18);
   cuff.rotation.x = -.91;
-  const hoseOrigin = v(.39, -.73, 2.27);
+  const hoseOrigin = reachRoute ? v(.69, -.23, 2.18) : v(.39, -.73, 2.27);
   const hoseEnd = v(0, 0, 0);
-  const updateHose = flexibleHose(root, .033, rubber, (from, to) => [
-    v(.66, -.62, 2.11), v(to.x * .82 + .15, to.y - .15, to.z + .24)
-  ]);
+  const route = (from, to) => reachRoute
+    ? [v(.91, -.18, 2.12), v(Math.max(.67, to.x * .83), to.y - .07, to.z + .27)]
+    : [v(.66, -.62, 2.11), v(to.x * .82 + .15, to.y - .15, to.z + .24)];
+  const updateHose = flexibleHose(root, .033, rubber, route);
   const motionAnchor = group(root, 1.60, -.33, 1.63);
+  const restEnd = v(1.41, -.37, 1.70);
+  const reachPath = reachRoute ? new T.CatmullRomCurve3([hoseOrigin, ...route(hoseOrigin, restEnd), restEnd]) : null;
+  if (reachRoute) {
+    const shoulder = group(root, .55, -.45, 2.19);
+    sphere(shoulder, .33, .25, .27, cloth);
+    cyl(shoulder, .090, .16, aluminum, .065, .21, 0, 'x');
+    cyl(shoulder, .044, .087, metal, .13, .22, -.009, 'x');
+  }
   const bubbleAnchor = group(root, -.24, -.19, 1.15);
   const breathingAnchor = group(root, .16, -.30, 1.1);
   sphere(root, .14, .16, .10, cloth, -.38, -.49, 1.48);
   const bubbles = Array.from({ length: 11 }, () => sphere(root, .026, .028, .024, lens));
   let elapsed = 0;
-  let swept = false;
+  let recoveredBefore = false;
+  let tracing = 0;
   return {
     docks: { mouth: [root, v(.02, -.27, 1.56)], chest: [root, v(-.38, -.40, 1.41)] },
     grabbable: { replace: regulator },
     anchors: {
       bubbles: [bubbleAnchor, v(0, 0, 0)], sweep: [motionAnchor, v(0, 0, 0)],
+      ...(reachPath ? { reach: [root, hoseOrigin], 'trace-hose': [root, reachPath.getPoint(.37)] } : {}),
       replace: [regulator, v(0, .08, .015)], purge: [regulator, v(0, .04, .10)],
-      'reg-breathe': [breathingAnchor, v(0, 0, 0)]
+      'reg-exhale': [regulator, v(-.21, -.09, .04)], 'reg-breathe': [breathingAnchor, v(0, 0, 0)]
     },
     sync() {
-      arm.position.copy(regulator.position).add(v(.08, -.12, .16));
+      if (tracing && reachPath) {
+        reachPath.getPoint(tracing, arm.position);
+        arm.position.y -= .053;
+        arm.position.z += .062;
+      } else {
+        arm.position.copy(regulator.position).add(v(.08, -.12, .16));
+      }
       hoseEnd.copy(regulator.position);
       hoseEnd.x -= .15;
       updateHose(hoseOrigin, hoseEnd);
     },
     update(done, k, time, interaction) {
-      const hasSwept = done.has('sweep');
+      const recovered = done.has('sweep') || done.has('trace-hose');
       const replaced = done.has('replace');
-      if (hasSwept && !swept) elapsed = time;
-      swept = hasSwept;
-      const wave = hasSwept && !replaced && k < 1 ? Math.sin(Math.min((time - elapsed) / 540, 1) * Math.PI) : 0;
-      const target = replaced ? v(.02, -.27, 1.53) : hasSwept ? v(.24 + wave * .76, -.36 - wave * .32, 1.07 + wave * .31) : v(1.56, -.37, 1.70);
+      if (recovered && !recoveredBefore) elapsed = time;
+      recoveredBefore = recovered;
+      const wave = recovered && !reachRoute && !replaced && k < 1
+        ? Math.sin(Math.min((time - elapsed) / 540, 1) * Math.PI) : 0;
+      const target = replaced ? v(.02, -.27, 1.53)
+        : recovered ? v(.24 + wave * .76, -.36 - wave * .32, 1.07 + wave * .31)
+        : v(1.56, -.37, 1.70);
       regulator.position.lerp(target, k);
-      arm.visible = hasSwept && !replaced;
-      palm.rotation.y = -wave;
+      tracing = done.has('reach') && !recovered ? .035 + .93 * (interaction.pressure['trace-hose'] || 0) : 0;
+      arm.visible = !replaced && (recovered || tracing > 0);
+      palm.rotation.y = tracing ? -.46 : -wave;
       const purging = interaction.active === 'purge';
+      const exhaling = interaction.active === 'reg-exhale';
       regulator.userData.purge.position.z = purging ? .057 : .071;
       for (let i = 0; i < bubbles.length; i += 1) {
         const f = (i / bubbles.length + time * .0006) % 1;
-        bubbles[i].visible = purging || (done.has('bubbles') && !replaced);
-        bubbles[i].position.set(Math.sin(i * 1.6 + f * 8) * .12, -.24 + f * .96, (purging ? 1.48 : 1.27) - f * .29);
+        bubbles[i].visible = purging || exhaling || (done.has('bubbles') && !replaced);
+        const x = exhaling ? -.18 - f * .28 : 0;
+        bubbles[i].position.set(x + Math.sin(i * 1.6 + f * 8) * .12, -.24 + f * .96, (purging || exhaling ? 1.48 : 1.27) - f * .29);
       }
     }
   };
@@ -736,7 +766,7 @@ export function makeDiveModel(root, lesson) {
   const updateWater = waterBackdrop(root);
   let model;
   if (lesson.scene === 'recovery') {
-    model = immersionRegulator(root);
+    model = immersionRegulator(root, lesson.route?.startsWith('reach'));
   } else if (lesson.scene === 'fins') {
     const equipment = group(root, 0, .70, -.66);
     equipment.rotation.y = Math.PI;

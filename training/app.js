@@ -1,4 +1,4 @@
-import { lessons, newPractice, choose, reveal, needsReview } from './lessons.js';
+import { lessons, newPractice, choose, reveal, needsReview, recoveryRoute } from './lessons.js';
 import { createPlacement } from './placement.js';
 import { createPress } from './press.js';
 import { createExample } from './example.js';
@@ -10,6 +10,7 @@ const el = Object.fromEntries([
   'viewport', 'scene', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall', 'view-label', 'view-subtitle', 'view-help',
   'rotate-left', 'rotate-right', 'reset-view', 'module-label', 'step-count', 'progress',
   'lesson-title', 'lesson-description', 'instruction', 'step-label', 'step-title', 'step-description',
+  'recovery-methods', 'recovery-search', 'recovery-clear',
   'show-example', 'example-guide', 'example-caption', 'example-controls', 'example-prev', 'example-play',
   'example-next', 'example-recall', 'example-exit', 'previous-review', 'previous-review-count', 'previous-review-list', 'practice-footer',
   'inspection-panel', 'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
@@ -59,7 +60,9 @@ const press = createPress({
   interrupted(action) {
     const messages = {
       'mask-exhale': '水が残っています。もう一度、鼻から息を吐きましょう。',
-      'add-air': '少しふくらみました。もう一度、給気ボタンを短く押します。'
+      'add-air': '少しふくらみました。もう一度、給気ボタンを短く押します。',
+      'trace-hose': 'ホースの途中です。そのままたどりましょう。',
+      'reg-exhale': '中に水が残っています。口からもう一度息を吐きましょう。'
     };
     feedback(messages[action.id] || '途中で止まりました。ボタンを押して続けましょう。');
   }
@@ -202,16 +205,34 @@ function apply(id, fromKeyboard = false, dock) {
 function start(lesson, mode) {
   example.stop();
   press.cancel();
-  if (lesson !== practice.lesson) immersive = ['mask', 'recovery', 'inflator'].includes(lesson.scene);
+  if (lesson.id !== practice.lesson.id) immersive = ['mask', 'recovery', 'inflator'].includes(lesson.scene);
+  if (lesson.id === 'recovery') {
+    const [search, clear] = (lesson.route || 'sweep-purge').split('-');
+    el['recovery-search'].value = search;
+    el['recovery-clear'].value = clear;
+  }
   practice = newPractice(lesson, mode);
   hint = false;
   feedback();
   render();
 }
 
+function selectedRecovery() {
+  return recoveryRoute(el['recovery-search'].value + '-' + el['recovery-clear'].value);
+}
+
+function openLesson(lesson) {
+  start(lesson.id === 'recovery' ? selectedRecovery() : lesson, practice.mode);
+}
+
+for (const control of ['recovery-search', 'recovery-clear']) {
+  el[control].addEventListener('change', () => start(selectedRecovery(), practice.mode));
+}
+
+const lessonIndex = lesson => lessons.findIndex(item => item.id === lesson.id);
 const lessonButtons = lessons.map((lesson, i) => {
   const item = button('', 'lesson-button', () => {
-    if (practice.lesson !== lesson) start(lesson, practice.mode);
+    if (practice.lesson.id !== lesson.id) openLesson(lesson);
   });
   const number = document.createElement('span');
   number.textContent = String(i + 1).padStart(2, '0');
@@ -234,7 +255,7 @@ el.hint.addEventListener('click', () => {
   el.choices.querySelector('.is-guide')?.focus({ preventScroll: true });
 });
 el.reset.addEventListener('click', () => start(practice.lesson, practice.mode));
-el['next-lesson'].addEventListener('click', () => start(lessons[lessons.indexOf(practice.lesson) + 1], practice.mode));
+el['next-lesson'].addEventListener('click', () => openLesson(lessons[lessonIndex(practice.lesson) + 1]));
 el['rotate-left'].addEventListener('click', () => view?.rotate(-.44));
 el['rotate-right'].addEventListener('click', () => view?.rotate(.44));
 el['reset-view'].addEventListener('click', () => view?.resetCamera());
@@ -258,11 +279,11 @@ el['example-recall'].addEventListener('click', () => {
   showViewport();
 });
 
-function showExample(stepIndex, scenario = practice.scenario) {
+function showExample(stepIndex, scenario = practice.scenario, lesson = practice.lesson) {
   practiceCamera = view?.cameraPose();
   feedback();
   stagedExample = null;
-  example.start(practice.lesson, stepIndex, scenario);
+  example.start(lesson, stepIndex, scenario);
   el['example-play'].focus({ preventScroll: true });
   showViewport();
 }
@@ -327,9 +348,9 @@ function drawExampleGuide(state, positions, docks) {
   }
 }
 
-function reviewRow(action, scenario) {
+function reviewRow(action, scenario, lesson = practice.lesson) {
   const row = document.createElement('li');
-  const replay = button('この手順の見本を見る', 'quiet review-example', () => showExample(practice.lesson.actions.indexOf(action), scenario));
+  const replay = button('この手順の見本を見る', 'quiet review-example', () => showExample(lesson.actions.indexOf(action), scenario, lesson));
   replay.setAttribute('aria-label', action.label + '手順の見本を見る');
   row.append(action.label + '。' + action.detail, replay);
   return row;
@@ -345,7 +366,8 @@ function renderHistory() {
   if (detail.dataset.lesson !== lesson.id) detail.open = false;
   detail.dataset.lesson = lesson.id;
   el['previous-review-count'].textContent = record.steps.length ? '見直し ' + record.steps.length + '項目' : '見直しなし';
-  const rows = lesson.actions.filter(action => record.steps.includes(action.id)).map(action => reviewRow(action, record.scenario));
+  const original = lesson.id === 'recovery' ? recoveryRoute(record.route) : lesson;
+  const rows = original.actions.filter(action => record.steps.includes(action.id)).map(action => reviewRow(action, record.scenario, original));
   if (!rows.length) {
     const row = document.createElement('li');
     row.textContent = '前回はヒントなしですべての手順を思い出せました。';
@@ -410,13 +432,13 @@ function render() {
 
   for (const option of ['guided', 'recall']) el[option].setAttribute('aria-pressed', String(!demo && mode === option));
   lessonButtons.forEach((item, i) => {
-    if (lessons[i] === lesson) item.setAttribute('aria-current', 'step');
+    if (lessons[i].id === lesson.id) item.setAttribute('aria-current', 'step');
     else item.removeAttribute('aria-current');
   });
   el['view-label'].textContent = lesson.label;
   const waterLabels = {
     mask: done.includes('mask-exhale') ? 'マスク内の水が抜けた' : 'マスク内に水が入った',
-    recovery: '水中 · レギュレーター回収',
+    recovery: lesson.subtitle,
     inflator: '水中 · 目盛りを目安に浮き沈みを見る',
     fins: '水面 · 足元を見る'
   };
@@ -427,6 +449,7 @@ function render() {
   el['show-example'].textContent = demo ? '見本を閉じる' : '▷ 見本を見る';
   el['view-help'].textContent = step?.pressTime ? (step.id === 'add-air' ? '目印を短く押す' : '目印を押し続ける') :
     step?.attachment ? 'ドラッグ／器材→目印をタップ' :
+    immersive && ['sweep', 'reach'].includes(step?.id) ? 'ドラッグで右肩側を見る' :
     immersive && lesson.scene !== 'inflator' ? 'ドラッグで見回す' : 'ドラッグで回転';
   el.perspective.hidden = Boolean(demo) || !view || lesson.scene === 'gear';
   el.perspective.textContent = lesson.scene === 'inflator'
@@ -440,7 +463,7 @@ function render() {
   el['example-controls'].hidden = !demo;
   el['practice-footer'].hidden = Boolean(demo);
   el.choices.hidden = Boolean(demo);
-  el['module-label'].textContent = 'DRILL ' + String(lessons.indexOf(lesson) + 1).padStart(2, '0');
+  el['module-label'].textContent = 'DRILL ' + String(lessonIndex(lesson) + 1).padStart(2, '0');
   const shownCount = demo && !demo.complete ? index + 1 : index;
   el['step-count'].textContent = String(shownCount).padStart(2, '0') + ' / ' + String(lesson.actions.length).padStart(2, '0');
   el.progress.setAttribute('aria-valuemax', lesson.actions.length);
@@ -452,6 +475,7 @@ function render() {
   }));
   el['lesson-title'].textContent = lesson.title;
   el['lesson-description'].textContent = lesson.description;
+  el['recovery-methods'].hidden = lesson.id !== 'recovery' || Boolean(demo);
   el['source-link'].href = lesson.source;
   el.hotspots.replaceChildren();
   marks.clear();
@@ -529,7 +553,7 @@ function render() {
     item.textContent = mode === 'recall' ? 'ヒントを使わず、すべての手順を思い出せました。' :
       '一通り試せました。自力で復習するモードでもう一度試せます。';
     el.review.replaceChildren(...(review.length ? review.map(action => reviewRow(action)) : [item]));
-    const next = lessons[lessons.indexOf(lesson) + 1];
+    const next = lessons[lessonIndex(lesson) + 1];
     el['next-lesson'].hidden = !next;
     el['next-lesson'].textContent = lesson.id === 'gear' ? 'バディの器材を確認 ›' : next ? next.title + 'へ ›' : '';
   }

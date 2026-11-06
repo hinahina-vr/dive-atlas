@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { chromium } from 'playwright-core';
-import { lessons, newPractice, choose, reveal, needsReview } from '../training/lessons.js';
+import { lessons, newPractice, choose, reveal, needsReview, recoveryRoute } from '../training/lessons.js';
 import { readReview, reviewKey, saveReview } from '../training/reviews.js';
 import { writeTrainingWorker } from './training-offline.mjs';
 
@@ -75,6 +75,27 @@ reviewData.set(reviewKey(lessons[0]), '{broken');
 assert.equal(readReview(storage, lessons[0]), null);
 assert.deepEqual(saveReview({ setItem() { throw new Error('storage is blocked'); } }, gear, 123), record);
 checks.push('Review storage: separate drills, invalid records and unavailable storage');
+const recovery = recoveryRoute('sweep-purge');
+for (const search of ['sweep', 'reach']) {
+  for (const clear of ['purge', 'exhale']) {
+    const lesson = recoveryRoute(search + '-' + clear);
+    const run = newPractice(lesson, 'recall', () => .3);
+    const routeSteps = search === 'sweep' ? ['sweep'] : ['reach', 'trace-hose'];
+    const clearing = clear === 'purge' ? 'purge' : 'reg-exhale';
+    assert.deepEqual(lesson.actions.map(action => action.id), ['bubbles', ...routeSteps, 'replace', clearing, 'reg-breathe']);
+    for (const action of lesson.actions) {
+      if (action.id === clearing) {
+        assert.equal(choose(run, 'reg-breathe').ok, false);
+        assert.equal(reveal(run), action);
+      }
+      assert.equal(attempt(run, action).ok, true);
+    }
+    const saved = saveReview(storage, run, 234);
+    assert.deepEqual(saved.steps, [clearing]);
+    assert.deepEqual(readReview(storage, recovery), saved);
+  }
+}
+checks.push('All four recovery routes: correct order, clearing before breathing and compatible saved reviews');
 
 const artifactBase = join(root, 'artifacts');
 await mkdir(artifactBase, { recursive: true });
@@ -328,6 +349,25 @@ try {
   assert(!(await waterCanvas.screenshot()).equals(firstWaterFrame), 'Water light keeps moving after the exercise settles');
   await desktop.screenshot({ path: join(output, 'desktop-shallows.png'), fullPage: true });
   checks.push('1440 px shallow-water view: mask clears, camera can look down and water light continues moving');
+  await desktop.locator('#next-lesson').click();
+  await desktop.locator('#recovery-search').selectOption('reach');
+  await desktop.locator('#show-example').click();
+  await desktop.locator('#example-play').click();
+  await desktop.locator('#example-next').click();
+  assert.equal(await desktop.locator('#step-title').innerText(), '右肩の後ろでホースを探す');
+  await desktop.locator('#example-guide').waitFor({ state: 'visible' });
+  await desktop.locator('#example-next').click();
+  assert.equal(await desktop.locator('#step-title').innerText(), 'ホースをたどる');
+  await desktop.locator('#example-exit').click();
+  await getChoice(desktop, 'bubbles').press('Enter');
+  await getChoice(desktop, 'reach').press('Enter');
+  await getChoice(desktop, 'trace-hose').press('Enter');
+  await getChoice(desktop, 'replace').press('Enter');
+  await dockChoice(desktop, 'mouth').press('Enter');
+  await getChoice(desktop, 'purge').press('Enter');
+  await getChoice(desktop, 'reg-breathe').press('Enter');
+  assert.equal(await desktop.locator('#result-heading').innerText(), '練習完了');
+  checks.push('1440 px recovery: reach demonstration aims toward the shoulder and the drill completes by keyboard');
   await desktop.context().close();
 
   const mobileSize = { width: 390, height: 844 };
@@ -498,6 +538,56 @@ try {
       });
       assert.equal(await value(mobile), '4');
       await part(mobile, 'reg-breathe').tap();
+      assert.equal(await value(mobile), '5');
+      await mobile.locator('#recovery-search').selectOption('reach');
+      await mobile.locator('#recovery-clear').selectOption('exhale');
+      assert.equal(await value(mobile), '0');
+      assert.equal(await mobile.locator('#progress').getAttribute('aria-valuemax'), '6');
+      await mobile.locator('#recall').tap();
+      await getChoice(mobile, 'bubbles').tap();
+      await mobile.evaluate(() => window.scrollTo(0, 0));
+      for (let i = 0; i < 3; i += 1) await mobile.locator('#rotate-right').tap();
+      await part(mobile, 'reach').tap();
+      await hold(mobile, 'trace-hose', waterInput, .30);
+      assert.equal(await value(mobile), '2');
+      assert.match(await mobile.locator('#feedback').innerText(), /ホースの途中/);
+      await mobile.screenshot({ path: join(output, 'mobile-reach-hose.png'), fullPage: true });
+      await hold(mobile, 'trace-hose', waterInput);
+      assert.equal(await value(mobile), '3');
+      await mobile.locator('#reset-view').tap();
+      await part(mobile, 'replace').tap();
+      await dock(mobile, 'mouth').tap();
+      await getChoice(mobile, 'reg-breathe').tap();
+      assert.equal(await value(mobile), '4');
+      assert.equal(await mobile.locator('#feedback').getAttribute('data-tone'), 'retry');
+      await hold(mobile, 'reg-exhale', waterInput, 1, async () => {
+        await mobile.screenshot({ path: join(output, 'mobile-regulator-exhale.png'), fullPage: true });
+      });
+      await getChoice(mobile, 'reg-breathe').tap();
+      assert.equal(await value(mobile), '6');
+      const savedRecovery = await mobile.evaluate(key => JSON.parse(localStorage.getItem(key)), reviewKey(recovery));
+      assert.deepEqual(savedRecovery.steps, ['reg-exhale']);
+      assert.equal(savedRecovery.route, 'reach-exhale');
+      await mobile.reload();
+      await mobile.getByRole('button', { name: 'レギュレーター回収', exact: true }).tap();
+      await mobile.locator('#recovery-search').selectOption('sweep');
+      await mobile.locator('#recovery-clear').selectOption('purge');
+      const recoveryHistory = mobile.locator('#previous-review');
+      await recoveryHistory.locator('summary').tap();
+      await recoveryHistory.getByRole('button', { name: '口から息を吐いて水を出す手順の見本を見る' }).tap();
+      assert.equal(await mobile.locator('#step-title').innerText(), '口から息を吐いて水を出す');
+      await mobile.locator('#example-exit').tap();
+      assert.equal(await mobile.locator('#recovery-clear').inputValue(), 'purge');
+      assert.equal(await value(mobile), '0');
+      await mobile.locator('#recovery-clear').selectOption('exhale');
+      await getChoice(mobile, 'bubbles').tap();
+      await getChoice(mobile, 'sweep').tap();
+      await getChoice(mobile, 'replace').tap();
+      await dockChoice(mobile, 'mouth').tap();
+      await getChoice(mobile, 'reg-exhale').press('Enter');
+      await getChoice(mobile, 'reg-breathe').tap();
+      assert.equal(await value(mobile), '5');
+      checks.push('390 px recovery: shoulder and hose touch, interrupted trace, alternative clear, replay after reload and independent method selection');
     } else if (lesson.id === 'inflator') {
       const initial = await center(part(mobile, 'add-air'));
       await hold(mobile, 'add-air', waterInput, 1, async () => {
@@ -551,7 +641,12 @@ try {
   await noGl.getByRole('button', { name: 'マスククリア', exact: true }).tap();
   for (const action of lessons[2].actions) await operate(noGl, action, 'tap');
   assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
-  checks.push('360 px WebGL-unavailable fallback: gear and mask drills still complete');
+  await noGl.getByRole('button', { name: 'レギュレーター回収', exact: true }).tap();
+  await noGl.locator('#recovery-search').selectOption('reach');
+  await noGl.locator('#recovery-clear').selectOption('exhale');
+  for (const action of recoveryRoute('reach-exhale').actions) await operate(noGl, action, 'tap');
+  assert.equal(await noGl.locator('#result-heading').innerText(), '練習完了');
+  checks.push('360 px WebGL-unavailable fallback: gear, mask and alternate recovery drills still complete');
   await noGl.context().close();
 
   const offlineUrl = previewUrl + 'training/';

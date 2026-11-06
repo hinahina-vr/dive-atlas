@@ -101,14 +101,14 @@ export const lessons = [
   {
     id: 'recovery', title: 'レギュレーター回収', label: 'REGULATOR RECOVERY',
     subtitle: '水中 · 右腕でホースをすくう方法',
-    description: '右肩の後ろに外れたレギュレーターを、腕でホースをすくって回収します。',
+    description: '右肩の後ろに外れたレギュレーターを回収し、中の水を出してから呼吸に戻ります。',
     scene: 'recovery', source: 'https://blog.padi.com/how-to-recover-your-regulator-when-diving/',
     docks: { mouth: '口元', chest: '胸元' },
     actions: [
       action('bubbles', '細く息を吐き続ける', '口から外れている間は、息を止めずに少しずつ吐きます。', '口から小さな泡が出ています。'),
       action('sweep', '右腕でホースをすくう', '右に体を傾け、右腕を太ももの横から後ろへ回し、外側を通って前へ戻します。', 'ホースが右腕に掛かりました。正面に戻ると口元に運べます。'),
       attach('replace', 'レギュレーターをくわえ直す', '回収したセカンドステージを口元に運びます。', 'レギュレーターをくわえ直しました。', 'セカンドステージ', 'mouth', 'セカンドステージを戻す位置を選んでください。'),
-      press('purge', 'パージボタンで水を出す', 'くわえ直したら中の水を出します。この練習では、正面のパージボタンを使います。', '水が抜けました。', 530),
+      press('purge', 'パージボタンで水を出す', 'くわえ直し、舌でマウスピースの穴を覆ってから、正面のパージボタンを押します。', '水が抜けました。', 530),
       action('reg-breathe', '慎重に吸って確かめる', '最初の息を慎重に吸い、呼吸できることを確かめます。', 'レギュレーターでの呼吸に戻りました。')
     ]
   },
@@ -138,6 +138,29 @@ export const lessons = [
     ]
   }
 ];
+
+const recovery = lessons.find(lesson => lesson.id === 'recovery');
+const [bubbles, sweep, replace, purge, breathe] = recovery.actions;
+const reach = action('reach', '右肩の後ろでホースを探す',
+  '右手を右肩の後ろへ伸ばし、ファーストステージから出るレギュレーターのホースを探します。',
+  'レギュレーターにつながるホースに触れました。');
+const trace = press('trace-hose', 'ホースをたどる',
+  'ホースに沿って手を滑らせ、先にあるセカンドステージをつかみます。',
+  'セカンドステージをつかみました。正面を向いて口元に運びます。', 950);
+const blast = press('reg-exhale', '口から息を吐いて水を出す',
+  'くわえ直したら、吸う前にレギュレーターに向けて口から息を吐き、中の水を出します。',
+  '吐いた息で中の水が抜けました。', 710);
+
+const recoveryRoutes = new Map([
+  ['sweep-purge', recovery],
+  ['sweep-exhale', { ...recovery, route: 'sweep-exhale', actions: [bubbles, sweep, replace, blast, breathe] }],
+  ['reach-purge', { ...recovery, route: 'reach-purge', subtitle: '水中 · ホースをたどる方法', actions: [bubbles, reach, trace, replace, purge, breathe] }],
+  ['reach-exhale', { ...recovery, route: 'reach-exhale', subtitle: '水中 · ホースをたどる方法', actions: [bubbles, reach, trace, replace, blast, breathe] }]
+]);
+
+export function recoveryRoute(key) {
+  return recoveryRoutes.get(key) || recovery;
+}
 
 export function newPractice(lesson, mode, random = Math.random) {
   const choices = [...lesson.actions];
