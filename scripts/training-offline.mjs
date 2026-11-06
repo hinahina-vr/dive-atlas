@@ -23,4 +23,5 @@ export async function writeTrainingWorker(out) {
   const marker = '/* OFFLINE_MANIFEST */ null';
   if (!template.includes(marker)) throw new Error('Missing the training worker manifest marker.');
   await writeFile(resolve(out, 'training/offline-worker.js'), template.replace(marker, JSON.stringify({ version, entries })));
+  return version;
 }

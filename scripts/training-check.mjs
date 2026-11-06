@@ -815,7 +815,7 @@ try {
   const nextHtml = join(updated, 'training', 'index.html');
   const baselineHtml = await readFile(nextHtml, 'utf8');
   await writeFile(nextHtml, baselineHtml.replace('id="title"', 'id="title" data-update="second"'));
-  await writeTrainingWorker(updated);
+  const nextVersion = await writeTrainingWorker(updated);
 
   servedPages = updated;
   const updatedStyle = join(updated, 'training', 'style.css');
@@ -837,16 +837,20 @@ try {
   await writeFile(updatedStyle, validStyle);
   await offPc.evaluate(async () => { await (await navigator.serviceWorker.getRegistration()).update(); });
   await offPc.waitForFunction(async () => Boolean((await navigator.serviceWorker.getRegistration())?.waiting));
+  const waitingWorker = await observer.evaluateHandle(async scope => {
+    return (await navigator.serviceWorker.getRegistration(scope)).waiting;
+  }, offlineUrl);
+  assert(await waitingWorker.evaluate(worker => worker?.state === 'installed'));
   await offPc.reload();
   assert.equal(await offPc.locator('#title').getAttribute('data-update'), null);
   const oldKeys = await observer.evaluate(() => caches.keys());
   assert.equal(oldKeys.filter(key => key.startsWith('dive-atlas-training@')).length, 2);
   await offPc.close();
-  await observer.waitForFunction(async scope => {
-    const registration = await navigator.serviceWorker.getRegistration(scope);
-    return registration?.active?.state === 'activated' && !registration.waiting &&
-      (await caches.keys()).filter(key => key.startsWith('dive-atlas-training@' + scope + '#')).length === 1;
-  }, offlineUrl);
+  await observer.waitForFunction(worker => worker.state === 'activated', waitingWorker);
+  await waitingWorker.dispose();
+  const activeKeys = await observer.evaluate(() => caches.keys());
+  assert.deepEqual(activeKeys.filter(key => key.startsWith('dive-atlas-training@' + offlineUrl + '#')),
+    ['dive-atlas-training@' + offlineUrl + '#' + nextVersion]);
   assert((await observer.evaluate(() => caches.keys())).includes('test-unrelated-cache'));
   await updateContext.setOffline(true);
   const newPc = await updateContext.newPage();
