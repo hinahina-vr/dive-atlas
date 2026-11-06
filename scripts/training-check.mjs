@@ -6,6 +6,7 @@ import { extname, join, resolve, sep } from 'node:path';
 import { chromium } from 'playwright-core';
 import { lessons, newPractice, choose, reveal, needsReview, lessonRoute, remainingMaskWater, recoveryRoute } from '../training/lessons.js';
 import { readReview, reviewKey, saveReview } from '../training/reviews.js';
+import { readDraft, draftKey, saveDraft, clearDraft } from '../training/drafts.js';
 import { writeTrainingWorker } from './training-offline.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -109,6 +110,36 @@ for (const search of ['sweep', 'reach']) {
   }
 }
 checks.push('All four recovery routes: correct order, clearing before breathing and compatible saved reviews');
+const draftData = new Map();
+const draftStorage = {
+  getItem: key => draftData.get(key),
+  setItem: (key, value) => draftData.set(key, value),
+  removeItem: key => draftData.delete(key)
+};
+const draftRun = newPractice(fullMask, 'recall', () => .4);
+assert.equal(saveDraft(draftStorage, 'mask-draft', draftRun, true), false);
+assert.equal(choose(draftRun, 'mask-hold').ok, false);
+assert.equal(attempt(draftRun, draftRun.lesson.actions[0]).ok, true);
+assert.equal(reveal(draftRun).id, 'mask-hold');
+assert.equal(attempt(draftRun, draftRun.lesson.actions[1]).ok, true);
+draftRun.pressure['mask-exhale'] = .37;
+assert.equal(saveDraft(draftStorage, 'mask-draft', draftRun, true), true);
+clearDraft(draftStorage, 'other-run');
+assert.deepEqual(readDraft(draftStorage), { id: 'mask-draft', practice: draftRun, immersive: true });
+const rawDraft = draftData.get(draftKey);
+const incompatible = JSON.parse(rawDraft);
+incompatible.done.reverse();
+draftData.set(draftKey, JSON.stringify(incompatible));
+assert.equal(readDraft(draftStorage), null);
+draftData.set(draftKey, rawDraft);
+clearDraft(draftStorage, 'mask-draft');
+assert.equal(readDraft(draftStorage), null);
+assert.equal(saveDraft({ setItem() { throw new Error('storage is blocked'); } }, 'mask-draft', draftRun, true), false);
+const buddyDraft = newPractice(buddy, 'recall', () => .38);
+assert.equal(attempt(buddyDraft, buddy.actions[0]).ok, true);
+assert.equal(saveDraft(draftStorage, 'buddy-draft', buddyDraft, false), true);
+assert.deepEqual(readDraft(draftStorage), { id: 'buddy-draft', practice: buddyDraft, immersive: false });
+checks.push('Draft storage: preserves route, order, scenario, water and review flags, rejects changed steps and protects another run');
 
 const artifactBase = join(root, 'artifacts');
 await mkdir(artifactBase, { recursive: true });
@@ -154,12 +185,13 @@ try {
   const pageErrors = [];
   const testPage = async (viewport, mobile = false, serviceWorkers = 'block') => {
     const context = await browser.newContext({ viewport, isMobile: mobile, hasTouch: mobile, serviceWorkers, reducedMotion: mobile ? 'reduce' : 'no-preference' });
-    const page = await context.newPage();
-    page.on('pageerror', error => pageErrors.push(error.message));
-    page.on('console', message => {
-      if (message.type() === 'error' && /WebGLProgram|shader error/i.test(message.text())) pageErrors.push(message.text());
+    context.on('page', page => {
+      page.on('pageerror', error => pageErrors.push(error.message));
+      page.on('console', message => {
+        if (message.type() === 'error' && /WebGLProgram|shader error/i.test(message.text())) pageErrors.push(message.text());
+      });
     });
-    return page;
+    return context.newPage();
   };
   const getChoice = (page, id) => page.locator('[data-action="' + id + '"]');
   const part = (page, id) => page.locator('#hotspots [data-part="' + id + '"]');
@@ -847,21 +879,44 @@ try {
     assert(await page.evaluate(() => navigator.serviceWorker.controller?.scriptURL.endsWith('/training/offline-worker.js')));
   }
 
-  const offPhone = await testPage(mobileSize, true, 'allow');
+  let offPhone = await testPage(mobileSize, true, 'allow');
   await preparePage(offPhone);
   await offPhone.getByRole('button', { name: 'マスククリア', exact: true }).tap();
+  await offPhone.locator('#mask-fill').selectOption('mask-full');
   await offPhone.locator('#recall').tap();
   await getChoice(offPhone, 'mask-exhale').tap();
   await getChoice(offPhone, 'mask-breathe').tap();
   await getChoice(offPhone, 'mask-hold').tap();
-  await getChoice(offPhone, 'mask-exhale').press('Enter');
-  assert.match(await offPhone.locator('#review').innerText(), /口で呼吸する/);
+  const firstInput = touchDrag(await offPhone.context().newCDPSession(offPhone));
+  await offPhone.evaluate(() => window.scrollTo(0, 0));
+  await hold(offPhone, 'mask-exhale', firstInput, .30);
+  const beforeClose = await maskLevel(offPhone);
+  assert(beforeClose > 0 && beforeClose < 90);
+  await offPhone.getByRole('button', { name: 'フィンの履き方', exact: true }).tap();
+  assert.match(await offPhone.locator('#draft-description').innerText(), /マスククリア.*2 \/ 3手順/);
   const offlineContext = offPhone.context();
+  await offPhone.close();
   await offlineContext.setOffline(true);
-  const offlineNavigation = await offPhone.reload();
+  offPhone = await offlineContext.newPage();
+  const offlineNavigation = await offPhone.goto(offlineUrl);
   assert(offlineNavigation?.fromServiceWorker());
   await ready(offPhone);
   await offPhone.locator('#offline-status[data-state="offline"]').waitFor();
+  assert(await offPhone.locator('#resume-practice').isVisible());
+  await offPhone.screenshot({ path: join(output, 'mobile-resume-offline.png'), fullPage: true });
+  await offPhone.locator('#resume-practice').tap();
+  assert.equal(await value(offPhone), '2');
+  assert.equal(await maskLevel(offPhone), beforeClose);
+  assert.equal(await offPhone.locator('#mask-fill').inputValue(), 'mask-full');
+  assert.equal(await offPhone.locator('#recall').getAttribute('aria-pressed'), 'true');
+  assert(await offPhone.locator('#resume-practice').isHidden());
+  await getChoice(offPhone, 'mask-exhale').press('Enter');
+  assert.match(await offPhone.locator('#review').innerText(), /口で呼吸する/);
+  assert.equal(await offPhone.evaluate(key => localStorage.getItem(key), draftKey), null);
+  const finishedNavigation = await offPhone.reload();
+  assert(finishedNavigation?.fromServiceWorker());
+  await ready(offPhone);
+  assert(await offPhone.locator('#resume-practice').isHidden());
   const savedFiles = await offPhone.evaluate(async scope => {
     const [name] = (await caches.keys()).filter(key => key.startsWith('dive-atlas-training@' + scope + '#'));
     const cache = await caches.open(name);
@@ -869,6 +924,7 @@ try {
   }, offlineUrl);
   assert(savedFiles.includes('/dive-atlas/vendor/three.module.js'));
   assert(savedFiles.includes('/dive-atlas/vendor/three.core.js'));
+  assert(savedFiles.includes('/dive-atlas/training/drafts.js'));
   assert(savedFiles.every(path => /^\/dive-atlas\/(training\/|vendor\/three\.)/.test(path)));
   assert(await offPhone.evaluate(async () => {
     try { await fetch('../journal.json'); return false; } catch { return true; }
@@ -879,8 +935,15 @@ try {
   assert.equal(await offPhone.locator('#step-title').innerText(), '口で呼吸する');
   await offPhone.locator('#example-exit').tap();
   await offPhone.screenshot({ path: join(output, 'mobile-offline.png'), fullPage: true });
+  await getChoice(offPhone, 'mask-breathe').tap();
+  assert.equal(await value(offPhone), '1');
+  assert(await offPhone.evaluate(key => Boolean(localStorage.getItem(key)), draftKey));
+  await offPhone.locator('#reset').tap();
+  assert.equal(await value(offPhone), '0');
+  assert.equal(await offPhone.evaluate(key => localStorage.getItem(key), draftKey), null);
+  assert.equal(await offPhone.locator('#review-state-mask').innerText(), '見直し 1項目');
   await offlineContext.close();
-  checks.push('390 px static build: offline reload, real WebGL, saved review and example, with no logbook assets cached');
+  checks.push('390 px static build: resume full-mask draft after closing offline, restore exact water level, save and replay review, reset without erasing review');
 
   const offPc = await testPage({ width: 1440, height: 960 }, false, 'allow');
   await preparePage(offPc);

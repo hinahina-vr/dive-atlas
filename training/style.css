@@ -57,6 +57,13 @@ h1 { font-size: clamp(1.7rem, 3.9vw, 3.2rem); line-height: 1.12; margin: 8px 0 7
   min-height: 40px; margin: -7px 0 2px; color: #325963; font-size: .78rem; font-weight: 700;
 }
 .review-overview .quiet { margin: 0; padding: 0 7px; min-height: 42px; color: var(--teal); font-size: inherit; }
+#practice-draft {
+  display: flex; align-items: center; justify-content: space-between; gap: 7px 12px; flex-wrap: wrap;
+  padding: 4px 7px 4px 10px; margin: 0 0 7px; border: 1px solid #a1c8be; border-radius: 9px;
+  background: #f8fcef; color: #325963; font-size: .75rem;
+}
+#practice-draft strong { margin-right: .5em; color: #1d5f54; }
+#practice-draft button { min-height: 40px; padding-inline: 10px; }
 #lessons { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; margin: 0 0 12px; }
 .lesson-button {
   min-height: 56px; padding: 6px 10px; display: grid; align-items: center; align-content: center;

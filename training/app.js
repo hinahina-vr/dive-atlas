@@ -3,6 +3,7 @@ import { createPlacement } from './placement.js';
 import { createPress } from './press.js';
 import { createExample } from './example.js';
 import { reviewKey, readReview, saveReview } from './reviews.js';
+import { draftKey, readDraft, saveDraft, clearDraft } from './drafts.js';
 import { prepareOffline } from './offline.js';
 
 const byId = id => document.getElementById(id);
@@ -10,7 +11,7 @@ const el = Object.fromEntries([
   'viewport', 'scene', 'scene-status', 'hotspots', 'mask-overlay', 'perspective', 'lessons', 'guided', 'recall',
   'view-label', 'view-subtitle', 'view-help', 'view-controls',
   'rotate-left', 'rotate-right', 'reset-view', 'module-label', 'step-count', 'progress',
-  'review-overview-status', 'review-next',
+  'review-overview-status', 'review-next', 'practice-draft', 'draft-description', 'resume-practice',
   'lesson-title', 'lesson-description', 'instruction', 'step-label', 'step-title', 'step-description',
   'mask-settings', 'mask-fill', 'recovery-methods', 'recovery-search', 'recovery-clear',
   'show-example', 'example-guide', 'example-caption', 'example-controls', 'example-prev', 'example-play',
@@ -18,6 +19,8 @@ const el = Object.fromEntries([
   'inspection-panel', 'choices', 'placement-menu', 'dock-markers', 'grip-label', 'scene-feedback', 'effect-meter', 'feedback', 'result', 'result-heading', 'review', 'hint', 'reset', 'next-lesson', 'source-link'
 ].map(id => [id, byId(id)]));
 
+const practiceId = () => crypto.getRandomValues(new Uint32Array(2)).join('-');
+let runId = practiceId();
 let practice = newPractice(lessons[0], 'guided');
 let hint = false;
 let view;
@@ -32,6 +35,7 @@ let practiceCamera;
 const recent = new Map();
 let storage;
 try { storage = window.localStorage; } catch { /* Practice still works without storage. */ }
+let savedDraft = readDraft(storage);
 const placement = createPlacement({
   viewport: el.viewport,
   markers: el['dock-markers'],
@@ -57,6 +61,7 @@ const press = createPress({
     practice.pressure[action.id] = value;
     activePress = active ? action.id : '';
     refreshEffect();
+    if (!active) saveCurrentDraft();
   },
   complete(action, keyboard) { apply(action.id, keyboard); },
   interrupted(action) {
@@ -84,8 +89,14 @@ document.addEventListener('keydown', event => {
   }
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) example.pause(); });
+window.addEventListener('pagehide', () => press.cancel());
 window.addEventListener('storage', event => {
   if (event.storageArea !== storage) return;
+  if (event.key === draftKey || event.key === null) {
+    savedDraft = readDraft(storage);
+    renderDraft();
+    if (event.key === draftKey) return;
+  }
   const changed = lessons.find(item => event.key === reviewKey(item));
   if (event.key === null) recent.clear();
   else if (changed) recent.delete(changed.id);
@@ -181,10 +192,32 @@ function exampleInspection(action, lesson, scenario) {
   return note + inspectionEvidence(action, lesson, scenario) + (result || '');
 }
 
+function renderDraft() {
+  const draft = savedDraft && savedDraft.id !== runId && !example.current() ? savedDraft.practice : null;
+  el['practice-draft'].hidden = !draft;
+  if (!draft) return;
+  const { lesson, index } = draft;
+  el['draft-description'].textContent = lesson.title + ' · ' + index + ' / ' + lesson.actions.length + '手順';
+}
+
+function saveCurrentDraft() {
+  if (saveDraft(storage, runId, practice, immersive)) {
+    savedDraft = { id: runId, practice, immersive };
+    renderDraft();
+  }
+}
+
+function discardCurrentDraft() {
+  clearDraft(storage, runId);
+  savedDraft = readDraft(storage);
+  renderDraft();
+}
+
 function apply(id, fromKeyboard = false, dock) {
   const result = choose(practice, id, dock);
   if (!result) return;
   if (!result.ok) {
+    saveCurrentDraft();
     const message = result.wrongInspection ? '器材の状態をもう一度見てください。' :
       result.wrongDock ? '位置が違います。器材の位置を見直しましょう。' :
       practice.mode === 'guided' ? '今の手順を先に試してみましょう。' : 'この場面では、先に別の操作があります。';
@@ -192,9 +225,10 @@ function apply(id, fromKeyboard = false, dock) {
     return;
   }
   hint = false;
-  if (practice.mode === 'recall' && practice.index === practice.lesson.actions.length) {
-    recent.set(practice.lesson.id, saveReview(storage, practice));
-  }
+  if (practice.index === practice.lesson.actions.length) {
+    if (practice.mode === 'recall') recent.set(practice.lesson.id, saveReview(storage, practice));
+    discardCurrentDraft();
+  } else saveCurrentDraft();
   feedback(result.message);
   render();
   if (fromKeyboard) {
@@ -203,16 +237,21 @@ function apply(id, fromKeyboard = false, dock) {
   }
 }
 
-function start(lesson, mode) {
-  example.stop();
-  press.cancel();
-  if (lesson.id !== practice.lesson.id) immersive = ['mask', 'recovery', 'inflator'].includes(lesson.scene);
+function syncLessonSettings(lesson) {
   if (lesson.id === 'mask') el['mask-fill'].value = lesson.route || 'mask-partial';
   if (lesson.id === 'recovery') {
     const [search, clear] = (lesson.route || 'sweep-purge').split('-');
     el['recovery-search'].value = search;
     el['recovery-clear'].value = clear;
   }
+}
+
+function start(lesson, mode) {
+  example.stop();
+  press.cancel();
+  if (lesson.id !== practice.lesson.id) immersive = ['mask', 'recovery', 'inflator'].includes(lesson.scene);
+  syncLessonSettings(lesson);
+  runId = practiceId();
   practice = newPractice(lesson, mode);
   hint = false;
   feedback();
@@ -311,17 +350,42 @@ for (const mode of ['guided', 'recall']) {
 el.hint.addEventListener('click', () => {
   if (!reveal(practice)) return;
   hint = true;
+  saveCurrentDraft();
   feedback();
   render();
   el.choices.querySelector('.is-guide')?.focus({ preventScroll: true });
 });
-el.reset.addEventListener('click', () => start(practice.lesson, practice.mode));
+el.reset.addEventListener('click', () => {
+  press.cancel();
+  discardCurrentDraft();
+  start(practice.lesson, practice.mode);
+});
+el['resume-practice'].addEventListener('click', () => {
+  const draft = readDraft(storage);
+  if (!draft) {
+    savedDraft = null;
+    renderDraft();
+    return;
+  }
+  example.stop();
+  press.cancel();
+  ({ id: runId, practice, immersive } = draft);
+  savedDraft = draft;
+  saveCurrentDraft();
+  syncLessonSettings(practice.lesson);
+  hint = practice.assisted.has(practice.lesson.actions[practice.index].id);
+  feedback();
+  render();
+  el.instruction.focus({ preventScroll: true });
+  showViewport();
+});
 el['next-lesson'].addEventListener('click', () => openLesson(lessons[lessonIndex(practice.lesson) + 1]));
 el['rotate-left'].addEventListener('click', () => view?.rotate(-.44));
 el['rotate-right'].addEventListener('click', () => view?.rotate(.44));
 el['reset-view'].addEventListener('click', () => view?.resetCamera());
 el.perspective.addEventListener('click', () => {
   immersive = !immersive;
+  saveCurrentDraft();
   render();
 });
 el['show-example'].addEventListener('click', () => {
@@ -543,6 +607,7 @@ function render() {
   el.hotspots.replaceChildren();
   marks.clear();
   renderReviewOverview();
+  renderDraft();
   renderHistory();
   el.instruction.setAttribute('aria-live', demo ? 'polite' : 'off');
   if (demo) {
