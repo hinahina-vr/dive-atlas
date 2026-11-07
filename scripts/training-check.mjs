@@ -582,6 +582,17 @@ try {
   assert.equal(await desktop.locator('#result-heading').innerText(), '練習完了');
   checks.push('1440 px recovery: reach demonstration aims toward the shoulder and the drill completes by keyboard');
   await desktop.getByRole('button', { name: 'フィンの履き方', exact: true }).click();
+  await desktop.locator('#show-example').click();
+  await desktop.locator('#example-play').click();
+  await desktop.locator('#example-next').click();
+  assert.equal(await desktop.locator('#step-title').innerText(), 'ブーツのつま先を入れる');
+  await watchAttachment('desktop-example-fin-boot.png');
+  await desktop.locator('#example-next').click();
+  assert.equal(await desktop.locator('#step-title').innerText(), 'ストラップをかかとに掛ける');
+  await watchAttachment('desktop-example-fin-strap.png');
+  await desktop.locator('#example-exit').click();
+  assert.equal(await value(desktop), '0');
+  checks.push('1440 px fin demonstration: boot and strap travel toward their docks, pausing holds each pose, and exiting preserves practice');
   await desktop.evaluate(() => { window.__originalRandom = Math.random; Math.random = () => .9; });
   await desktop.locator('#recall').click();
   await desktop.evaluate(() => { Math.random = window.__originalRandom; delete window.__originalRandom; });

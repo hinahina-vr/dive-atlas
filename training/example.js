@@ -23,7 +23,7 @@ export function createExample({
     if (!state) return null;
     const step = state.lesson.actions[state.index];
     const time = duration(step);
-    const movingPart = Boolean(step.attachment) && ['gear', 'inflator'].includes(state.lesson.id);
+    const movingPart = (Boolean(step.attachment) && ['gear', 'inflator', 'fins'].includes(state.lesson.id)) || step.id === 'fin-strap';
     const motion = step.pressTime || (movingPart ? 1800 : 650);
     return {
       ...state, step, time, movingPart,

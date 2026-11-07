@@ -187,7 +187,7 @@ export function createView(container, onProject, onAvailabilityChange) {
     if (firstPerson) {
       orbit.theta = 0;
       orbit.phi = lesson.scene === 'fins' ? 2.02 : lesson.scene === 'recovery' ? 1.90 : 1.64;
-      if (lesson.scene === 'fins') look.set(0, 1.53, 1.92);
+      if (lesson.scene === 'fins') look.set(0, 1.63, 2.09);
       else look.set(0, .17, 2.43);
     } else {
       orbit.theta = lesson?.scene === 'gear' ? .46 : .29;

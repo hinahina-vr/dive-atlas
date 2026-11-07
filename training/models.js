@@ -634,6 +634,54 @@ function inflator(root, inWater = false) {
   };
 }
 
+function heelBand(strap) {
+  const segments = 24;
+  const profile = [[-.013, -.032], [-.007, -.044], [.007, -.044], [.013, -.032],
+    [.013, .032], [.007, .044], [-.007, .044], [-.013, .032]];
+  const sides = profile.length;
+  const geometry = new T.BufferGeometry();
+  const positions = new T.Float32BufferAttribute(new Float32Array((segments + 1) * sides * 3), 3);
+  positions.setUsage(T.DynamicDrawUsage);
+  const indices = [];
+  for (let ring = 0; ring < segments; ring += 1) {
+    for (let side = 0; side < sides; side += 1) {
+      const a = ring * sides + side;
+      const b = ring * sides + (side + 1) % sides;
+      indices.push(a, b, a + sides, b, b + sides, a + sides);
+    }
+  }
+  geometry.setIndex(indices);
+  geometry.setAttribute('position', positions);
+  const band = mesh(strap, geometry, lime);
+  band.frustumCulled = false;
+
+  const center = v(0, 0, 0);
+  const tangent = v(0, 0, 0);
+  const lateral = v(0, 0, 0);
+  const points = [v(-.24, 0, 0), v(0, 0, 0), v(0, 0, 0), v(0, 0, 0), v(.24, 0, 0)];
+  const path = new T.CatmullRomCurve3(points);
+  const lastGrip = v(Infinity, 0, 0);
+  return grip => {
+    if (lastGrip.distanceToSquared(grip) < .000001) return;
+    lastGrip.copy(grip);
+    points[1].set((grip.x - .32) * .5, grip.y * .75, grip.z * .70);
+    points[2].copy(grip);
+    points[3].set((grip.x + .32) * .5, grip.y * .75, grip.z * .70);
+    for (let ring = 0; ring <= segments; ring += 1) {
+      const t = ring / segments;
+      path.getPoint(t, center);
+      path.getTangent(t, tangent);
+      lateral.set(tangent.z, 0, -tangent.x).normalize();
+      const width = .85 + .30 * Math.sin(Math.PI * t);
+      profile.forEach(([thickness, height], side) => {
+        positions.setXYZ(ring * sides + side, center.x + lateral.x * thickness, center.y + height * width, center.z + lateral.z * thickness);
+      });
+    }
+    positions.needsUpdate = true;
+    geometry.computeVertexNormals();
+  };
+}
+
 function fins(root, inWater, issues, legSide = 1) {
   if (!inWater) stage(root, -.95);
   const fin = group(root, 0, -.63, .04);
@@ -648,15 +696,14 @@ function fins(root, inWater, issues, legSide = 1) {
     [.16, .38], [.09, .43], [-.10, .43], [-.16, .38], [-.16, -.18]];
   plate(fin, pocket, .12, .039, rubber, 0, .01, 0).rotation.x = Math.PI / 2;
   sphere(fin, .235, .123, .23, rubber, 0, .096, .435);
-  const strap = group(fin, 0, .08, -.15);
+  const strap = group(fin, 0, .12, -.15);
   const strapRest = v(0, .05, -.26);
   const strapFitted = v(0, .05, -.20);
   const strapLoose = v(0, .05, -.52);
   const strapGrip = group(strap, ...strapRest);
-  const heelView = group(fin, 0, .32, -.36);
+  const heelView = group(fin, 0, .29, -.34);
   heelView.rotation.set(-.27, 1.90, 0, 'YXZ');
-  const band = mesh(strap, new T.BufferGeometry(), lime);
-  const lastGrip = v(Infinity, 0, 0);
+  const updateBand = heelBand(strap);
   const boot = group(root);
   sphere(boot, .177, .043, .331, rubber, 0, -.085, .105);
   sphere(boot, .171, .112, .325, cloth, 0, -.012, .11);
@@ -666,6 +713,8 @@ function fins(root, inWater, issues, legSide = 1) {
   zipper.rotation.z = -.08;
   box(boot, .033, .058, .02, teal, .068, .343, .107);
   const bootAtRest = inWater ? v(-.37, -.16, -.55) : v(-.56, -.16, -.43);
+  const bootTarget = v(0, 0, 0);
+  const gripTarget = v(0, 0, 0);
   const shin = inWater ? group(root) : null;
   const knee = v(-.33 * legSide, .02, -2.14);
   const ankle = v(0, 0, 0);
@@ -681,7 +730,7 @@ function fins(root, inWater, issues, legSide = 1) {
       'fin-lock': [strapGrip, v(0, .035, 0)], 'fin-wiggle': [boot, v(-.18, .29, -.04)],
       'fin-check': [strapGrip, v(.12, .065, .025)]
     },
-    details: { 'fin-check': [heelView, v(0, 0, 0), 1.23] },
+    details: { 'fin-check': [heelView, v(0, 0, 0), 1.49] },
     docks: { pocket: [fin, v(0, .16, .18)], heel: [boot, v(0, .09, -.19)] },
     grabbable: { 'fin-foot': boot, 'fin-lock': strapGrip },
     sync() {
@@ -692,31 +741,40 @@ function fins(root, inWater, issues, legSide = 1) {
         shin.scale.y = calf.length();
         shin.quaternion.setFromUnitVectors(up, calf.normalize());
       }
-      const grip = strapGrip.position;
-      if (lastGrip.distanceToSquared(grip) < .000001) return;
-      lastGrip.copy(grip);
-      const path = new T.CatmullRomCurve3([
-        v(-.24, 0, 0), v((grip.x - .32) * .5, grip.y * .75, grip.z * .70), grip,
-        v((grip.x + .32) * .5, grip.y * .75, grip.z * .70), v(.24, 0, 0)
-      ]);
-      band.geometry.dispose();
-      band.geometry = new T.TubeGeometry(path, 20, .043, 8, false);
+      updateBand(strapGrip.position);
     },
     update(done, k, _time, interaction) {
       if (shin) shin.visible = interaction.detail !== 'fin-check';
       const inserted = done.has('fin-foot');
       const locked = done.has('fin-lock');
       const checked = done.has('fin-check');
-      const loose = locked && issues.includes('fin-check') && !checked;
-      const lift = locked && !checked ? (done.has('fin-wiggle') ? 1 : interaction.pressure['fin-wiggle'] || 0) : 0;
+      const looseFit = issues.includes('fin-check') && !checked;
+      const loose = locked && looseFit;
+      const pressure = interaction.pressure;
+      if ('fin-strap' in pressure || 'fin-foot' in pressure || 'fin-lock' in pressure) k = 1;
+      const open = done.has('fin-strap') ? 1 : pressure['fin-strap'] || 0;
+      const slide = inserted ? 1 : pressure['fin-foot'] || 0;
+      const pull = locked ? 1 : pressure['fin-lock'] || 0;
+      const arc = Math.sin(Math.PI * pull);
+      const lift = locked && !checked ? (done.has('fin-wiggle') ? 1 : pressure['fin-wiggle'] || 0) : 0;
       const tilt = lift * (loose ? .36 : .09);
       fin.rotation.x = T.MathUtils.lerp(fin.rotation.x, loose ? 0 : tilt, k);
-      strapGrip.position.lerp(locked ? (loose ? strapLoose : strapFitted) : strapRest, k);
-      const seatedBoot = v(0, -.48 + lift * (loose ? .25 : .022), -.07 - lift * (loose ? .07 : .009));
-      boot.position.lerp(inserted ? seatedBoot : bootAtRest, k);
-      boot.rotation.x = T.MathUtils.lerp(boot.rotation.x, inserted ? tilt : -.24, k);
-      strap.rotation.x = T.MathUtils.lerp(strap.rotation.x, locked ? .24 : done.has('fin-strap') ? -1.14 : -.31, k);
-      strap.position.y = T.MathUtils.lerp(strap.position.y, locked ? .235 : .08, k);
+
+      bootTarget.set(0, -.48 + lift * (loose ? .25 : .022), -.07 - lift * (loose ? .07 : .009));
+      bootTarget.lerp(bootAtRest, 1 - slide);
+      bootTarget.y += .09 * Math.sin(Math.PI * slide);
+      boot.position.lerp(bootTarget, k);
+      boot.rotation.x = T.MathUtils.lerp(boot.rotation.x, T.MathUtils.lerp(-.24, tilt, slide), k);
+
+      const openAngle = T.MathUtils.lerp(-.31, -1.14, open);
+      const strapAngle = T.MathUtils.lerp(openAngle, .24, pull);
+      const heelRise = T.MathUtils.lerp(.08, .235, pull) - strap.position.y;
+      gripTarget.lerpVectors(strapRest, looseFit ? strapLoose : strapFitted, pull);
+      // Lift the middle of the band in fin space while its ends pivot at the buckles.
+      gripTarget.y += heelRise * Math.cos(strapAngle);
+      gripTarget.z -= .21 * arc + heelRise * Math.sin(strapAngle);
+      strapGrip.position.lerp(gripTarget, k);
+      strap.rotation.x = T.MathUtils.lerp(strap.rotation.x, strapAngle, k);
     }
   };
 }
