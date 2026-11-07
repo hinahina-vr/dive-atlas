@@ -391,7 +391,7 @@ export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelec
   }
   update();
  }
- function showWorld() {
+ function enableWorldMap() {
   canvas.dataset.worldView = 'true';
   // The regular Mercator constraint fills the viewport and crops the world on phones.
   map.setTransformConstrain((center, zoom) => ({
@@ -399,6 +399,9 @@ export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelec
    zoom: clamp(zoom, minZoom, maxZoom),
   }));
   map.setRenderWorldCopies(false);
+ }
+ function showWorld() {
+  enableWorldMap();
   map.fitBounds(worldBounds, { padding: 18, duration: motion.matches ? 0 : 950 });
  }
  function enableWrappedMap() {
@@ -420,5 +423,22 @@ export async function createMap({canvas,ocean,pins,spotPins,onSelect,onSpotSelec
    duration: motion.matches ? 0 : 480,
   });
  }
- return {setLogs,setJournalMode,fit,showWorld,showJapan,focusSpot,select(log){selected=log.id;setLogs(logs,selected);if(log.lat!==null){const r=dimensions();map.easeTo({center:[log.lon,log.lat],zoom:Math.max(map.getZoom(),12.8),offset:[r.width<700?0:r.width*.13,-r.height*(r.width<700?.2:.06)],duration:motion.matches?0:1050});map.once('moveend',()=>{const p=map.project([log.lon,log.lat]);oceanView.ripple(p.x,p.y);});}},zoomBy(f){map.zoomTo(map.getZoom()+Math.log2(f),{duration:motion.matches?0:500});},pauseMotion:value=>oceanView.pause(value)};
+ function rememberView() {
+  return {
+   center: map.getCenter().toArray(),
+   zoom: map.getZoom(),
+   bearing: map.getBearing(),
+   pitch: map.getPitch(),
+   padding: map.getPadding(),
+   world: !map.getRenderWorldCopies()
+  };
+ }
+ function restoreView(view) {
+  const { center, zoom, bearing, pitch, padding } = view ?? {};
+  if (!Array.isArray(center) || center.length !== 2 || Math.abs(center[1]) > mercatorLimit ||
+      ![...center, zoom, bearing, pitch, padding?.top, padding?.right, padding?.bottom, padding?.left].every(Number.isFinite)) return;
+  if (view.world === true) enableWorldMap();
+  map.jumpTo({ center, zoom, bearing, pitch, padding });
+ }
+ return {setLogs,setJournalMode,fit,showWorld,showJapan,focusSpot,rememberView,restoreView,select(log){selected=log.id;setLogs(logs,selected);if(log.lat!==null){const r=dimensions();map.easeTo({center:[log.lon,log.lat],zoom:Math.max(map.getZoom(),12.8),offset:[r.width<700?0:r.width*.13,-r.height*(r.width<700?.2:.06)],duration:motion.matches?0:1050});map.once('moveend',()=>{const p=map.project([log.lon,log.lat]);oceanView.ripple(p.x,p.y);});}},zoomBy(f){map.zoomTo(map.getZoom()+Math.log2(f),{duration:motion.matches?0:500});},pauseMotion:value=>oceanView.pause(value)};
 }

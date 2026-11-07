@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium, devices } from 'playwright-core';
 import { backup, normalizeLog, readBackup, sortLogs } from '../src/model.js';
 import { diveSpots } from '../src/dive-spots.js';
 
@@ -39,10 +39,11 @@ for (const row of builtRows) assert.deepEqual(Object.keys(row).sort(), ['date','
 const pinSites = ['黒島北','黒島南','カメ吉','那覇シーサイドパーク'];
 const publicRows = pinSites.map(site => ({date:'2026-01-01', site, depth:15, duration:40}));
 fs.writeFileSync(publicJournalFile, JSON.stringify(publicRows));
-const mime = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.mjs':'text/javascript', '.json':'application/json', '.png':'image/png', '.geojson':'application/geo+json' };
+const mime = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.mjs':'text/javascript', '.json':'application/json', '.webmanifest':'application/manifest+json', '.svg':'image/svg+xml', '.png':'image/png', '.geojson':'application/geo+json' };
 const published = http.createServer((req,res)=>{
  if(!req.url.startsWith(prefix)) return res.writeHead(404).end();
- const filename = path.resolve(pages, req.url.slice(prefix.length).split('?')[0] || 'index.html');
+ const relative = req.url.slice(prefix.length).split('?')[0];
+ const filename = path.resolve(pages, !relative || relative.endsWith('/') ? relative+'index.html' : relative);
  if(!filename.startsWith(pages+path.sep)||!fs.existsSync(filename)||!fs.statSync(filename).isFile()) return res.writeHead(404).end();
  res.writeHead(200, {'Content-Type':mime[path.extname(filename)]||'application/octet-stream'});
  res.end(fs.readFileSync(filename));
@@ -61,9 +62,13 @@ try {
  assert.equal((await fetch(localBase+'api/import-tusa',{method:'POST'})).status,405);
  assert.equal((await fetch(localBase+'api/local-import',{headers:{Origin:'https://example.test'}})).status,403);
  assert.equal((await fetch(localBase+'artifacts/private-import/tusa-import.json')).status,404);
- for(const width of [1440,390]) {
-  const mobile = width === 390;
-  const context = await browser.newContext({viewport:{width,height:mobile?844:1000},isMobile:mobile,hasTouch:mobile,reducedMotion:'reduce'});
+ const { defaultBrowserType, ...pixel } = devices['Pixel 7'];
+ for (const width of [1440, pixel.viewport.width]) {
+  const mobile = width === pixel.viewport.width;
+  const context = await browser.newContext({
+   ...(mobile ? pixel : { viewport:{width,height:1000} }),
+   reducedMotion:'reduce'
+  });
   await context.addInitScript(() => {
    window.__qaBonusRoll = .99;
    window.addEventListener('click', event => {
@@ -146,7 +151,28 @@ try {
    const instrumented=source.replace("canvas.dataset.mapState='loading'", "window.__verifiedDiveMap=map; canvas.dataset.mapState='loading'");
    await route.fulfill({response,body:instrumented});
   });
+  const trainingLink = page.getByRole('link', { name:'OWD スキルラボ', exact:true });
+  const mapLink = page.getByRole('link', { name:'地図に戻る', exact:true });
+  const openTraining = async base => {
+   await trainingLink[mobile ? 'tap' : 'click']();
+   await page.waitForURL(base + 'training/');
+   await page.getByRole('heading', { name:'OWD スキルラボ', exact:true }).waitFor();
+   await page.locator('#scene canvas').waitFor();
+  };
+  const camera = () => page.evaluate(() => {
+   const map = window.__verifiedDiveMap;
+   return { center:map.getCenter().toArray(), zoom:map.getZoom(), world:!map.getRenderWorldCopies() };
+  });
+  function checkCamera(before, after) {
+   assert.equal(after.world, before.world);
+   assert(Math.abs(after.zoom - before.zoom) < 1e-5);
+   assert(after.center.every((coordinate, i) => Math.abs(coordinate - before.center[i]) < 1e-5));
+  }
   await page.goto(localBase,{waitUntil:'domcontentloaded',timeout:60000});
+  await mapReady();
+  await openTraining(localBase);
+  await mapLink[mobile ? 'tap' : 'click']();
+  await page.waitForURL(localBase);
   await mapReady();
   assert(await journalToggle.isVisible());
   await checkSwitch(journalToggle, false);
@@ -219,7 +245,8 @@ try {
 
   const publicRequests = [];
   page.on('request', request=>publicRequests.push(request.url()));
-  await page.goto('http://127.0.0.1:4495'+prefix,{waitUntil:'domcontentloaded',timeout:60000});
+  const pagesBase = 'http://127.0.0.1:4495' + prefix;
+  await page.goto(pagesBase,{waitUntil:'domcontentloaded',timeout:60000});
   await mapReady();
   assert.equal(await page.locator(updateControls).count(),0);
   const spotPins = page.locator('.spot-pin');
@@ -291,6 +318,16 @@ try {
   assert.equal(await page.locator('#detail h2').textContent(),turtleSpot.name);
   assert.match(await page.locator('#detail').textContent(),/ウミガメ/);
   await page.screenshot({path:path.join(folder,'turtle-pin-'+width+'.png')});
+  const spotCamera = await camera();
+  await openTraining(pagesBase);
+  await mapLink[mobile ? 'tap' : 'click']();
+  await page.waitForURL(pagesBase);
+  await mapReady();
+  checkCamera(spotCamera, await camera());
+  await waitForWaterAt(turtleSpot.coordinates);
+  assert.equal(await page.locator('#detail h2').textContent(), turtleSpot.name);
+  assert.equal(await turtlePin.getAttribute('aria-pressed'), 'true');
+  await page.screenshot({path:path.join(folder,'training-map-return-'+width+'.png')});
   await page.locator('#detail button').first().click();
   await checkLampsOff();
   assert.equal(await journalToggle.getAttribute('aria-checked'),'false');
@@ -302,6 +339,15 @@ try {
   await page.getByRole('button',{name:'世界地図を表示',exact:true}).click();
   await mapReady();
   assert.match(await page.locator('#map-coordinate').textContent(),/0\.0°E$/);
+  const worldCamera = await camera();
+  await openTraining(pagesBase);
+  await page.goBack();
+  await page.waitForURL(pagesBase);
+  await mapReady();
+  checkCamera(worldCamera, await camera());
+  assert(await page.locator('#detail').isHidden());
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('dive-atlas:training-return')), null);
+  report.checks.push(width+'px: map link opens 3D training locally and under /dive-atlas/; return restores a selected spot and browser Back restores world view');
   assert(await page.evaluate(()=>{
    const map=window.__verifiedDiveMap;
    const canvas=map.getCanvas();

@@ -51,20 +51,44 @@ const spotPins = $('#spot-pins');
 const spotToggle = $('#spot-toggle');
 const spotPreferenceKey = 'dive-atlas:show-famous-spots';
 const difficultyNames = ['', '初心者向け', '初心者向け（ガイド同行）', '中級者向け', '上級者向け', '上級者向け'];
+const trainingReturnKey = 'dive-atlas:training-return';
+
+function takeMapReturn() {
+ try {
+  const saved = sessionStorage.getItem(trainingReturnKey);
+  sessionStorage.removeItem(trainingReturnKey);
+  return JSON.parse(saved);
+ } catch {
+  return null;
+ }
+}
+
+const mapReturn = takeMapReturn();
+window.addEventListener('pageshow', event => { if (event.persisted) takeMapReturn(); });
+$('#training-open').addEventListener('click', event => {
+ if (!map || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+ try {
+  sessionStorage.setItem(trainingReturnKey, JSON.stringify({
+   view: map.rememberView(), spot: selectedSpot?.spot.id
+  }));
+ } catch { /* Navigation still works without storage. */ }
+});
 
 function clearSpotSelection() {
  selectedSpot?.marker.setAttribute('aria-pressed', 'false');
  selectedSpot = null;
 }
 
-function selectSpot(spot, marker) {
+function selectSpot(spot, marker, focus = true) {
  clearSpotSelection();
  selected = '';
  selectedSpot = { spot, marker };
  marker.setAttribute('aria-pressed', 'true');
  render();
- if (innerWidth < 700) map?.focusSpot(spot);
- $('#spot-close').focus({ preventScroll: true });
+ if (focus) {
+  if (innerWidth < 700) map?.focusSpot(spot);
+  $('#spot-close').focus({ preventScroll: true });
+ }
 }
 
 function renderSpotDetail(el, { spot, marker }) {
@@ -223,4 +247,25 @@ if (localJournal) {
 }
 render();
 
-try{map=await createMap({canvas:$('#map'),ocean:$('#ocean'),pins:$('#pins'),spotPins,onSelect:selectLog,onSpotSelect:selectSpot,onMove:({lat,lon})=>{$('#map-coordinate').textContent=`${Math.abs(lat).toFixed(1)}°${lat<0?'S':'N'} / ${Math.abs(lon).toFixed(1)}°${lon<0?'W':'E'}`;}});map.setJournalMode(showJournal);map.setLogs(shown(),selected);if(shown().some(log=>log.lat!==null))map.fit();}catch(e){toast('地図を読み込めませんでした。ログは一覧から使えます。');console.error(e);}
+try {
+ map = await createMap({
+  canvas: $('#map'), ocean: $('#ocean'), pins: $('#pins'), spotPins, onSelect: selectLog, onSpotSelect: selectSpot,
+  onMove: ({lat,lon}) => {
+   $('#map-coordinate').textContent = `${Math.abs(lat).toFixed(1)}°${lat<0?'S':'N'} / ${Math.abs(lon).toFixed(1)}°${lon<0?'W':'E'}`;
+  }
+ });
+ map.setJournalMode(showJournal);
+ map.setLogs(shown(), selected);
+ if (shown().some(log => log.lat !== null)) map.fit();
+ if (mapReturn) {
+  map.restoreView(mapReturn.view);
+  const spot = !spotPins.hidden && diveSpots.find(item => item.id === mapReturn.spot);
+  if (spot) {
+   const marker = spotPins.querySelector('[data-spot="' + spot.id + '"]');
+   if (marker) selectSpot(spot, marker, false);
+  }
+ }
+} catch (error) {
+ toast('地図を読み込めませんでした。ログは一覧から使えます。');
+ console.error(error);
+}

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e1f7ee">
+  <meta name="owd-offline" content="disabled">
+  <title>OWD スキルラボ | DIVE ATLAS</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="manifest" href="./app.webmanifest">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="../" aria-label="DIVE ATLAS 地図へ戻る">
+      <svg viewBox="0 0 38 38" aria-hidden="true"><path d="M4 22c5-8 9-8 15 0s10 8 15 0M4 15c5-8 9-8 15 0s10 8 15 0"/></svg>
+      <span>DIVE ATLAS</span>
+    </a>
+    <span class="mast-label">FIELD LAB <b>01</b></span>
+    <a class="return" href="../">地図に戻る <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="title">
+      <div>
+        <p class="eyebrow">OPEN WATER · SKILLS LAB</p>
+        <h1 id="title">OWD スキルラボ</h1>
+        <p class="intro-copy">次のダイブの前に、手順を思い出そう。 <span id="offline-status" role="status" hidden></span>
+          <button type="button" id="install-app" class="quiet" aria-controls="install-help" aria-expanded="false" hidden>端末に追加</button>
+        </p>
+        <div id="install-help" hidden>
+          <p>iPhone・iPadはSafariの共有メニューから「ホーム画面に追加」。追加したアイコンから一度開き、「オフラインで使えます」と出たら準備完了です。</p>
+          <p>Android・PCは、ブラウザーのメニューから「ホーム画面に追加」またはアプリのインストールを選びます。</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="review-overview">
+      <p id="review-overview-status" role="status"></p>
+      <button type="button" id="review-next" class="quiet" hidden></button>
+    </div>
+    <section id="review-queue" aria-labelledby="review-queue-title" hidden>
+      <h2 id="review-queue-title" tabindex="-1">見直したい手順</h2>
+      <div id="review-queue-list"></div>
+    </section>
+    <div id="practice-draft" hidden>
+      <p><strong>練習の続き</strong> <span id="draft-description"></span></p>
+      <button type="button" id="resume-practice" class="outline-control" aria-describedby="draft-description">続きから</button>
+    </div>
+    <nav id="lessons" aria-label="練習メニュー" tabindex="-1"></nav>
+    <div id="practice-controls" role="group" aria-label="練習の進め方">
+      <button type="button" id="show-example" class="outline-control" aria-pressed="false">見本を見る</button>
+      <div class="segmented" role="group" aria-label="練習モード">
+        <button type="button" id="guided" aria-pressed="true">手順を見ながら</button>
+        <button type="button" id="recall" aria-pressed="false">自力で復習</button>
+      </div>
+    </div>
+
+    <section class="workspace" aria-label="練習">
+      <div class="viewer">
+        <div class="viewport" id="viewport">
+        <div id="scene" aria-label="3D器材モデル">
+          <p id="scene-status" class="scene-status" role="status">3Dを準備しています。下の選択肢で先に練習できます。</p>
+        </div>
+        <div class="view-header">
+          <div class="view-readout">
+            <div class="view-title">
+              <p class="eyebrow" id="view-label"></p>
+              <p id="view-subtitle"></p>
+            </div>
+            <div id="effect-meter" aria-hidden="true" hidden><span></span><i></i></div>
+          </div>
+          <div class="view-modes">
+            <button type="button" id="vr-practice" class="view-mode" hidden>VRで試す</button>
+            <button type="button" id="perspective" class="view-mode" aria-pressed="false" hidden>ダイバー視点</button>
+          </div>
+        </div>
+        <div id="mask-overlay" aria-hidden="true" hidden>
+          <div class="mask-window"><span></span></div>
+          <div class="mask-window"><span></span></div>
+          <svg class="mask-fingertip" viewBox="0 0 76 55">
+            <g id="mask-glove">
+              <path d="M1 1h23c12 0 22 6 30 15l17 18c6 7 5 15-2 19-5 3-11 1-15-3L31 29c-5-5-10-7-16-7H1Z" fill="#203941" stroke="#112b33" stroke-width="2"/>
+              <path d="M8 8h13c12 0 21 5 29 14l15 17" fill="none" stroke="#79b4b2" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/>
+              <path d="m48 37 10-10" fill="none" stroke="#587f84" stroke-width="2" stroke-linecap="round"/>
+            </g>
+          </svg>
+          <svg class="mask-fingertip mask-fingertip-right" viewBox="0 0 76 55"><use href="#mask-glove"/></svg>
+        </div>
+        <p id="grip-label" hidden></p>
+        <p id="scene-feedback" aria-hidden="true" hidden></p>
+        <div id="hotspots"></div>
+        <div id="dock-markers"></div>
+        <svg id="example-guide" aria-hidden="true" hidden>
+          <line></line><circle r="11"></circle><circle r="15"></circle>
+        </svg>
+        <div id="example-caption" aria-hidden="true" hidden><span></span><strong></strong></div>
+        <div id="view-controls" class="view-controls" role="group" aria-label="カメラ操作" hidden>
+          <button type="button" id="rotate-left" aria-label="左に回す" title="左に回す">↶</button>
+          <button type="button" id="reset-view" aria-label="視点を戻す" title="視点を戻す">⌖</button>
+          <button type="button" id="rotate-right" aria-label="右に回す" title="右に回す">↷</button>
+        </div>
+        <p id="view-help" hidden>ドラッグで回転</p>
+        </div>
+        <div id="inspection-panel" role="group" aria-label="器材の状態を判断する" hidden></div>
+        <div id="example-controls" hidden>
+          <div class="example-timer" aria-hidden="true"><i></i></div>
+          <div class="example-transport" role="group" aria-label="見本の再生">
+            <button type="button" id="example-prev" class="outline-control">‹ 前へ</button>
+            <button type="button" id="example-play" class="outline-control">一時停止</button>
+            <button type="button" id="example-next" class="outline-control">次へ ›</button>
+          </div>
+          <button type="button" id="example-recall" class="primary">ヒントなしで試す ›</button>
+          <button type="button" id="example-exit" class="quiet">練習に戻る</button>
+        </div>
+      </div>
+
+      <section class="panel" aria-labelledby="lesson-title">
+        <div class="panel-top">
+          <p class="eyebrow" id="module-label"></p>
+          <span id="step-count"></span>
+          <a class="back-to-lessons" href="#lessons">種目一覧</a>
+        </div>
+        <div class="progress" id="progress" role="progressbar" aria-label="練習の進み具合" aria-valuemin="0"></div>
+        <h2 id="lesson-title"></h2>
+        <p id="lesson-description" class="description"></p>
+        <div id="instruction" tabindex="-1">
+          <p class="step-label" id="step-label"></p>
+          <p class="step-title" id="step-title"></p>
+          <p class="step-description" id="step-description"></p>
+        </div>
+        <div id="buoyancy-panel" role="group" aria-label="BCDの浮力を調整" hidden>
+          <p id="buoyancy-status" role="status"></p>
+          <button type="button" id="trim-add" class="choice">＋ 少し給気</button>
+          <button type="button" id="trim-vent" class="choice">− 少し排気</button>
+        </div>
+        <div id="choices" role="group" aria-label="操作を選ぶ"></div>
+        <div id="placement-menu" role="group" aria-label="取り付け先を選ぶ" hidden></div>
+        <p id="feedback" role="status" aria-live="polite"></p>
+        <section id="result" aria-labelledby="result-heading" hidden>
+          <h3 id="result-heading" tabindex="-1"></h3>
+          <p id="result-summary" hidden></p>
+          <ul id="review" hidden></ul>
+          <div class="result-actions">
+            <button type="button" id="retry-recall" class="primary" hidden>この種目を自力で復習 ›</button>
+            <button type="button" id="next-lesson" class="primary"></button>
+          </div>
+        </section>
+        <div id="mask-settings" class="lesson-settings" hidden>
+          <label>練習を始めるときの水の量
+            <select id="mask-fill">
+              <option value="mask-partial">半分ほど入った状態</option>
+              <option value="mask-full">全体に入った状態</option>
+            </select>
+          </label>
+          <p>水の量を変えると、この種目は最初からになります。</p>
+        </div>
+        <div id="recovery-methods" class="lesson-settings" aria-label="レギュレーターの練習方法" role="group" hidden>
+          <label>回収方法
+            <select id="recovery-search">
+              <option value="sweep">腕ですくう</option>
+              <option value="reach">ホースをたどる</option>
+            </select>
+          </label>
+          <label>水の出し方
+            <select id="recovery-clear">
+              <option value="purge">パージボタン</option>
+              <option value="exhale">口から息を吐く</option>
+            </select>
+          </label>
+          <p>方法を変えると、この種目は最初からになります。</p>
+        </div>
+        <details id="previous-review" hidden>
+          <summary><span>前回の自力復習</span><span id="previous-review-count"></span></summary>
+          <ul id="previous-review-list"></ul>
+        </details>
+        <div class="panel-footer" id="practice-footer">
+          <button type="button" id="hint" class="quiet">ヒントを見る</button>
+          <button type="button" id="reset" class="quiet">最初から</button>
+        </div>
+      </section>
+    </section>
+
+    <footer class="footnote">
+      <p>認定後の復習用です。実機では講習で習った手順と、使う器材の説明書を確認してください。水中の実技はインストラクターと復習できます。</p>
+      <a id="source-link" target="_blank" rel="noreferrer">参照した資料 ↗</a>
+    </footer>
+  </main>
+</body>
+</html>

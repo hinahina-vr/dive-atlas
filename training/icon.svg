@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sea" x2=".8" y2="1">
+      <stop stop-color="#176778"/>
+      <stop offset="1" stop-color="#093b52"/>
+    </linearGradient>
+    <linearGradient id="lens" x2=".2" y2="1">
+      <stop stop-color="#a3f1e4"/>
+      <stop offset="1" stop-color="#39bcae"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#sea)" d="M0 0h512v512H0z"/>
+  <circle cx="256" cy="256" r="165" fill="#357f87" opacity=".55"/>
+  <path fill="url(#lens)" d="M147 204q0-33 35-33h148q35 0 35 33v79q0 39-39 39h-51l-19-16-19 16h-51q-39 0-39-39z"/>
+  <path fill="none" stroke="#e7fffa" stroke-linecap="round" stroke-width="13" d="M176 238q27-28 54 0t54 0 52 0m-160 35q27-28 54 0t54 0 52 0"/>
+  <circle cx="355" cy="152" r="11" fill="#d1fff2"/>
+  <circle cx="381" cy="126" r="5" fill="#d1fff2"/>
+  <path fill="none" stroke="#81decf" stroke-width="7" stroke-linecap="round" d="M193 369h126"/>
+</svg>

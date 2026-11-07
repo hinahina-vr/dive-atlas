@@ -1,0 +1,1116 @@
+import * as T from '../vendor/three.module.js';
+import { remainingMaskWater, inflatorAir, neutralAir } from './lessons.js';
+
+const mat = (color, roughness = .55, metalness = 0) => new T.MeshStandardMaterial({ color, roughness, metalness });
+const rubber = mat(0x172933, .83);
+const webbing = mat(0x243942, .92);
+webbing.side = T.DoubleSide;
+const cloth = mat(0x234c53, .86);
+const teal = mat(0x2db6a7, .42);
+const lime = mat(0xd5e48a, .52);
+const white = mat(0xe4f7ef, .41);
+const aluminum = mat(0x9fb8b7, .31, .52);
+const gray = mat(0x507783, .55);
+const amber = mat(0xeeb84f, .37);
+const coral = mat(0xeb6d57, .46);
+const lens = new T.MeshStandardMaterial({ color: 0x79d8d5, transparent: true, opacity: .38, roughness: .18, depthWrite: false });
+const metal = mat(0xbda782, .34, .52);
+const deck = mat(0x153a43, .56, .16);
+const neopreneSkin = mat(0x9c6d55, .81);
+const faceSkin = mat(0xb78468, .81);
+const v = (x, y, z) => new T.Vector3(x, y, z);
+
+function place(parent, object, x = 0, y = 0, z = 0) {
+  object.position.set(x, y, z);
+  parent.add(object);
+  return object;
+}
+const group = (parent, ...point) => place(parent, new T.Group(), ...point);
+function mesh(parent, geometry, material, ...point) {
+  const object = place(parent, new T.Mesh(geometry, material), ...point);
+  return object;
+}
+const box = (parent, w, h, d, material, ...point) => mesh(parent, new T.BoxGeometry(w, h, d), material, ...point);
+function sphere(parent, w, h, d, material, ...point) {
+  const object = mesh(parent, new T.SphereGeometry(1, 24, 16), material, ...point);
+  object.scale.set(w, h, d);
+  return object;
+}
+function cyl(parent, r, h, material, x, y, z, axis = 'y', lower = r) {
+  const part = mesh(parent, new T.CylinderGeometry(r, lower, h, 32), material, x, y, z);
+  if (axis === 'z') part.rotation.x = Math.PI / 2;
+  if (axis === 'x') part.rotation.z = Math.PI / 2;
+  return part;
+}
+function hose(parent, coordinates, radius = .036, material = rubber) {
+  const path = new T.CatmullRomCurve3(coordinates.map(point => v(...point)));
+  return mesh(parent, new T.TubeGeometry(path, 28, radius, 8, false), material);
+}
+function flexibleHose(parent, radius, material, route, corrugations = 0) {
+  const tube = mesh(parent, new T.BufferGeometry(), material);
+  const ribs = corrugations ? new T.InstancedMesh(new T.TorusGeometry(radius, .014, 5, 16), material, corrugations) : null;
+  const rib = new T.Object3D();
+  const axis = v(0, 0, 1);
+  if (ribs) {
+    ribs.name = 'inflator-hose-ribs';
+    ribs.instanceMatrix.setUsage(T.DynamicDrawUsage);
+    ribs.frustumCulled = false;
+    parent.add(ribs);
+  }
+  const lastFrom = v(Infinity, 0, 0);
+  const lastTo = v(Infinity, 0, 0);
+  return (from, to) => {
+    if (lastFrom.distanceToSquared(from) < .000001 && lastTo.distanceToSquared(to) < .000001) return;
+    lastFrom.copy(from);
+    lastTo.copy(to);
+    const path = new T.CatmullRomCurve3([from, ...route(from, to), to]);
+    tube.geometry.dispose();
+    tube.geometry = new T.TubeGeometry(path, 22, radius, 8, false);
+    if (ribs) {
+      for (let i = 0; i < corrugations; i += 1) {
+        const along = (i + 1) / (corrugations + 1);
+        path.getPointAt(along, rib.position);
+        rib.quaternion.setFromUnitVectors(axis, path.getTangentAt(along));
+        rib.updateMatrix();
+        ribs.setMatrixAt(i, rib.matrix);
+      }
+      ribs.instanceMatrix.needsUpdate = true;
+    }
+  };
+}
+function plate(parent, coords, depth, round, material, ...point) {
+  const shape = new T.Shape();
+  shape.moveTo(...coords[0]);
+  for (const point of coords.slice(1)) shape.lineTo(...point);
+  shape.closePath();
+  return mesh(parent, new T.ExtrudeGeometry(shape, {
+    depth, bevelEnabled: true, bevelThickness: round, bevelSize: round, bevelSegments: 3, steps: 1
+  }), material, ...point);
+}
+function ring(parent, r, section, material, ...point) {
+  return mesh(parent, new T.TorusGeometry(r, section, 9, 36), material, ...point);
+}
+function textPlate(parent, text, color, width, x, y, z) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 384;
+  canvas.height = 80;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.font = '700 48px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 192, 40, 368);
+  const texture = new T.CanvasTexture(canvas);
+  texture.colorSpace = T.SRGBColorSpace;
+  return mesh(parent, new T.PlaneGeometry(width, width / 4.8), new T.MeshBasicMaterial({
+    map: texture, transparent: true, depthWrite: false
+  }), x, y, z);
+}
+
+function stage(parent, y = -1.27) {
+  const platform = group(parent, 0, y, 0);
+  cyl(platform, 1.62, .12, deck, 0, -.055, 0);
+  const edge = ring(platform, 1.53, .013, gray, 0, .012, 0);
+  edge.rotation.x = -Math.PI / 2;
+  const inner = ring(platform, 1.37, .006, gray, 0, .014, 0);
+  inner.rotation.x = -Math.PI / 2;
+  for (let i = 0; i < 36; i += 1) {
+    const bearing = i * Math.PI / 18;
+    const tick = box(platform, .014, .007, i % 3 ? .035 : .065, i % 3 ? gray : teal,
+      Math.sin(bearing) * 1.44, .018, Math.cos(bearing) * 1.44);
+    tick.rotation.y = bearing;
+  }
+}
+
+function octo(parent, color, ...point) {
+  const item = group(parent, ...point);
+  cyl(item, .133, .115, rubber, 0, 0, 0, 'z');
+  item.userData.purge = cyl(item, .112, .025, color, 0, 0, .071, 'z');
+  ring(item, .08, .007, rubber, 0, 0, .09);
+  box(item, .145, .06, .105, rubber, 0, .11, -.02);
+  cyl(item, .044, .075, metal, -.16, 0, 0, 'x');
+  return item;
+}
+function inflatorHead(parent, ...point) {
+  const item = group(parent, ...point);
+  sphere(item, .102, .211, .085, rubber);
+  cyl(item, .064, .13, rubber, 0, .18, 0);
+  item.userData.supply = cyl(item, .048, .023, lime, 0, .014, .084, 'z');
+  item.userData.exhaust = cyl(item, .049, .025, gray, 0, -.11, .081, 'z');
+  cyl(item, .053, .054, aluminum, -.101, .058, 0, 'x');
+  return item;
+}
+
+const jacketOutline = [[-.68, -.68], [-.76, -.38], [-.57, .08], [-.44, .55], [-.24, .66], [-.15, .38],
+  [.15, .38], [.24, .66], [.44, .55], [.57, .08], [.76, -.38], [.68, -.68], [.39, -.78], [-.39, -.78]];
+
+function kit(root, startAssembled, issues) {
+  stage(root);
+  const tank = group(root, .28, -.11, -.41);
+  cyl(tank, .376, 1.75, aluminum, 0, -.105, 0);
+  sphere(tank, .376, .28, .376, aluminum, 0, .77, 0);
+  sphere(tank, .376, .23, .376, aluminum, 0, -.96, 0);
+  cyl(tank, .378, .134, rubber, 0, -1.064, 0);
+  cyl(tank, .379, .1, teal, 0, .615, 0);
+  textPlate(tank, 'DIVE / 01', '#163b42', .48, 0, .46, .378);
+  const dateHeading = textPlate(tank, '検査期限', '#163b42', .36, 0, .28, .378);
+  const validDate = textPlate(tank, '2028/05', '#163b42', .44, 0, .195, .378);
+  const expiredDate = textPlate(tank, '2026/08', '#163b42', .44, 0, .195, .378);
+  cyl(tank, .11, .15, metal, 0, 1.04, 0);
+  box(tank, .24, .14, .18, aluminum, 0, 1.15, 0);
+  const valveSeat = cyl(tank, .087, .062, metal, 0, 1.15, .104, 'z');
+  const seal = ring(tank, .051, .011, rubber, 0, 1.15, .139);
+  const damagedSeal = mesh(tank, new T.TorusGeometry(.051, .011, 10, 32, 5), rubber, 0, 1.15, .139);
+  damagedSeal.rotation.z = .42;
+  const knob = group(tank, .17, 1.15, 0);
+  cyl(knob, .077, .12, rubber, 0, 0, 0, 'x');
+  for (let i = 0; i < 10; i += 1) {
+    const a = i * Math.PI / 5;
+    const grip = box(knob, .115, .024, .015, gray, 0, Math.sin(a) * .074, Math.cos(a) * .074);
+    grip.rotation.x = -a;
+  }
+  const jacket = group(root);
+  plate(jacket, jacketOutline, .14, .07, cloth, 0, 0, -.12);
+  const weight = group(jacket, .53, -.45, .317);
+  let weightPocket;
+  for (const side of [-1, 1]) {
+    const strap = [[.24, .59], [.35, .59], [.45, -.03], [.37, -.42], [.23, -.39], [.25, -.05]]
+      .map(([x, y]) => [x * side, y]);
+    plate(jacket, strap, .061, .034, rubber, 0, 0, .175);
+    const pocket = plate(jacket, [[-.20, -.17], [-.19, .15], [.13, .19], [.20, .12], [.19, -.13], [.13, -.2]],
+      .20, .045, rubber, .47 * side, -.40, .06);
+    if (side > 0) weightPocket = pocket;
+    box(jacket, .30, .031, .028, teal, .48 * side, -.28, .303);
+    if (side < 0) box(jacket, .13, .049, .04, amber, .53 * side, -.45, .317);
+  }
+  box(weight, .205, .137, .11, rubber, 0, 0, -.053);
+  box(weight, .141, .053, .035, amber, 0, 0, .028);
+  const chestStrap = box(jacket, .33, .071, .046, rubber, -.229, -.14, .244);
+  const chestSocket = box(jacket, .097, .106, .068, aluminum, -.045, -.14, .276);
+  const buckle = group(jacket, .046, -.14, .276);
+  box(buckle, .092, .084, .058, aluminum, 0, 0, 0);
+  box(buckle, .287, .071, .046, rubber, .176, 0, -.032);
+  box(buckle, .023, .038, .032, gray, -.036, 0, .039);
+  box(jacket, .8, .09, .062, rubber, 0, -.49, .27);
+  box(jacket, .20, .12, .079, rubber, 0, -.49, .32);
+  box(jacket, .074, .052, .01, teal, 0, -.49, .365);
+  const looseBand = mesh(jacket, new T.CylinderGeometry(.43, .43, .12, 32, 1, true), webbing, 0, -.13, -.41);
+  const tankBand = cyl(tank, .39, .12, rubber, 0, -.02, 0);
+  const bandLatch = group(tank, .36, -.02, .15);
+  const latchHandle = group(bandLatch, .075, 0, 0);
+  box(latchHandle, .18, .095, .048, aluminum, .053, 0, 0);
+  box(latchHandle, .055, .06, .018, amber, .095, 0, .031);
+  hose(jacket, [[-.37, .49, -.05], [-.68, .53, .04], [-.74, .31, .25], [-.68, .06, .42]], .053);
+  const inflator = inflatorHead(jacket, -.68, -.03, .42);
+  for (let i = 0; i < 7; i += 1) {
+    const y = .09 + i * .037;
+    const grip = ring(jacket, .054, .007, gray, -.71, y, .4 - (y - .08) * .61);
+    grip.rotation.x = Math.PI / 2.8;
+  }
+
+  const reg = group(root);
+  cyl(reg, .112, .183, metal, 0, 0, 0, 'z');
+  cyl(reg, .086, .14, aluminum, 0, 0, .097, 'z');
+  hose(reg, [[-.086, 0, .015], [-.144, .117, -.064], [0, .158, -.12], [.144, .117, -.064], [.086, 0, .015]], .029, aluminum);
+  const dustCap = cyl(reg, .058, .032, rubber, 0, 0, -.115, 'z');
+  const loose = group(reg);
+  hose(loose, [[.08, -.01, .02], [.42, .035, .06], [.57, -.26, .16], [.57, -.57, .27]], .032);
+  octo(loose, teal, .58, -.64, .28);
+  const spareRest = v(-.08, -.85, .26);
+  const spare = octo(loose, amber, ...spareRest);
+  spare.scale.setScalar(.85);
+  const spareOrigin = v(-.06, -.07, .07);
+  const spareClip = v(.43, -.09, .49);
+  const spareLoose = v(.49, -1.58, .54);
+  const spareEnd = v(0, 0, 0);
+  const updateSpare = flexibleHose(loose, .029, amber, (from, to) => [
+    v(from.x - .29, from.y - .17, from.z + .11), v(to.x - .36, to.y + .20, to.z + .15)
+  ]);
+  const coupler = group(root);
+  cyl(coupler, .048, .14, metal, 0, 0, 0, 'x');
+  const sleeve = group(coupler);
+  cyl(sleeve, .049, .071, metal, .004, 0, 0, 'x');
+  for (let i = 0; i < 4; i += 1) {
+    const grip = ring(sleeve, .047, .006, aluminum, -.024 + i * .018, 0, 0);
+    grip.rotation.y = Math.PI / 2;
+  }
+  const feedStart = v(0, 0, 0);
+  const feedEnd = v(0, 0, 0);
+  const updateFeed = flexibleHose(root, .034, gray, (from, to) => {
+    const span = Math.min(from.distanceTo(to), 1.6);
+    return [v(from.x - .24 * span, from.y + .15 * span, from.z + .06 * span),
+      v(to.x - .16 * span, to.y + .32 * span, to.z + .06 * span)];
+  });
+  const inlet = v(-.15, .058, 0);
+  const source = v(-.08, 0, .07);
+  const freeEnd = v(-.38, -.32, .47);
+  const couplerRest = v(0, 0, 0);
+  const couplerMounted = v(0, 0, 0);
+  const gaugeRest = v(.23, -1.16, .26);
+  const gauge = group(loose, ...gaugeRest);
+  const gaugeOrigin = v(.04, -.055, -.05);
+  const gaugeClip = v(-.49, -.49, .43);
+  const gaugeEnd = v(0, 0, 0);
+  const updateGauge = flexibleHose(loose, .029, rubber, (from, to) => [
+    v(from.x + .24, from.y - .24, from.z + .05), v(to.x + .17, to.y + .27, to.z - .10)
+  ]);
+  cyl(gauge, .142, .083, rubber, 0, 0, 0, 'z');
+  cyl(gauge, .118, .015, white, 0, 0, .048, 'z');
+  textPlate(gauge, 'bar', '#24535b', .10, 0, -.062, .060);
+  const gaugeAngle = bar => 2.18 * (1 - bar / 150);
+  for (let bar = 0; bar <= 300; bar += 25) {
+    const a = gaugeAngle(bar);
+    const major = bar % 100 === 0;
+    const tick = box(gauge, .0045, major ? .019 : .010, .005, bar < 50 ? coral : gray,
+      -Math.sin(a) * .101, Math.cos(a) * .101, .059);
+    tick.rotation.z = a;
+    if (major) {
+      const x = -Math.sin(a) * .070;
+      const y = Math.cos(a) * .070;
+      textPlate(gauge, String(bar), '#163b42', .094, x + Math.sign(x) * .010, y - .012, .063);
+    }
+  }
+  const needle = group(gauge, 0, 0, .065);
+  box(needle, .006, .091, .008, coral, 0, .037, 0);
+  cyl(needle, .014, .009, rubber, 0, 0, 0, 'z');
+  const clip = box(jacket, .077, .098, .048, amber, .43, -.015, .36);
+  box(jacket, .077, .098, .048, aluminum, -.49, -.38, .34);
+  const parked = v(0, 0, 0);
+  const extras = group(root, -.93, -.97, .54);
+  if (startAssembled) {
+    for (const side of [-1, 1]) {
+      const blade = box(extras, .18, .051, .51, teal, .11 * side, 0, .05);
+      blade.rotation.y = .18 * side;
+      box(extras, .137, .076, .19, rubber, .11 * side, .023, -.17);
+      const glass = ring(extras, .079, .022, rubber, side * .086, .081, -.38);
+      glass.rotation.x = -Math.PI / 2;
+      cyl(extras, .067, .017, lens, side * .086, .086, -.38);
+    }
+  }
+
+  const jacketRest = v(-.84, -.33, .24);
+  const jacketMounted = v(.28, 0, 0);
+  const regulatorRest = v(1.11, .11, .32);
+  const regulatorAligned = v(.28, 1.04, .15);
+  const regulatorMounted = v(.28, 1.04, -.13);
+  const ease = T.MathUtils.smoothstep;
+  const mix = T.MathUtils.lerp;
+
+  function secure(part, mount, rest, stowed, k) {
+    if (stowed) loose.worldToLocal(jacket.localToWorld(parked.copy(mount)));
+    part.position.lerp(stowed ? parked : rest, k);
+  }
+
+  return {
+    anchors: {
+      inspect: [tank, v(0, .24, .39)], 'inspect-ring': [tank, v(0, 1.23, .18)],
+      bcd: [jacket, v(-.04, .18, .34)], lock: [bandLatch, v(.14, .02, .08)],
+      uncap: [dustCap, v(.04, -.01, .015)], first: [reg, v(.12, .22, .13)],
+      connect: startAssembled ? [inflator, v(-.11, 0, .13)] : [coupler, v(.05, 0, .045)],
+      stow: [clip, v(.18, .05, .1)], open: [knob, v(.11, .03, .07)],
+      pressure: [gauge, v(.07, -.09, .13)],
+      buoyancy: [inflator.userData.supply, v(0, .018, .051)], 'buddy-vent': [inflator.userData.exhaust, v(0, -.02, .048)],
+      weights: [weight, v(.005, .03, .08)], releases: [buckle, v(-.035, .02, .075)],
+      air: [gauge, v(.07, .05, .12)], alternate: [spare, v(.04, .07, .10)], final: [extras, v(0, .26, -.2)]
+    },
+    docks: {
+      cylinder: [tank, v(0, .02, .39)],
+      valve: [tank, v(0, 1.15, .145)],
+      inflator: [inflator, inlet]
+    },
+    details: {
+      inspect: [tank, v(0, .235, .38), .92],
+      'inspect-ring': [tank, v(0, 1.15, .139), .44],
+      pressure: [gauge, v(0, 0, .067), .61]
+    },
+    inspectionParts: {
+      inspect: { parts: [dateHeading, validDate, expiredDate], center: v(0, .24, .378), scale: 1.45 },
+      'inspect-ring': { parts: [valveSeat, seal, damagedSeal], center: v(0, 1.15, .139), scale: 2.55 },
+      pressure: { parts: gauge.children, center: v(0, 0, .051), scale: 1.58 },
+      weights: { parts: [weightPocket, weight], center: v(.51, -.41, .31), scale: .93 },
+      releases: { parts: [chestStrap, chestSocket, buckle], center: v(0, -.16, .31), scale: .87 }
+    },
+    grabbable: { bcd: jacket, first: reg, connect: coupler },
+    sync() {
+      root.worldToLocal(reg.localToWorld(feedStart.copy(source)));
+      feedEnd.copy(coupler.position);
+      feedEnd.x -= .067;
+      updateFeed(feedStart, feedEnd);
+      spareEnd.copy(spare.position);
+      spareEnd.x -= .17 * spare.scale.x;
+      updateSpare(spareOrigin, spareEnd);
+      gaugeEnd.copy(gauge.position);
+      gaugeEnd.y += .13;
+      updateGauge(gaugeOrigin, gaugeEnd);
+    },
+    update(done, blend, _time, interaction) {
+      const { bcd: jacketMotion, first: regulatorMotion, connect: couplerMotion } = interaction.pressure;
+      // A seek establishes the earlier steps before showing the current attachment.
+      const k = jacketMotion !== undefined || regulatorMotion !== undefined || couplerMotion !== undefined ? 1 : blend;
+      const fault = id => issues.includes(id) && !done.has(id);
+      const bcd = startAssembled || done.has('bcd');
+      const first = startAssembled || done.has('first');
+      const stow = startAssembled || done.has('stow');
+      const open = startAssembled || done.has('open');
+      if (!bcd && jacketMotion !== undefined) {
+        const raise = ease(jacketMotion, 0, .33);
+        const slide = ease(jacketMotion, .33, .64);
+        const lower = ease(jacketMotion, .64, 1);
+        jacket.position.lerpVectors(jacketRest, jacketMounted, slide);
+        jacket.position.y = mix(mix(jacketRest.y, 1.38, raise), jacketMounted.y, lower);
+        jacket.rotation.y = mix(.35, -.10, slide);
+      } else {
+        jacket.position.lerp(bcd ? jacketMounted : jacketRest, k);
+        jacket.rotation.y = mix(jacket.rotation.y, bcd ? -.10 : .35, k);
+      }
+      const air = done.has('buddy-vent') ? 0 :
+        done.has('buoyancy') ? 1 - (interaction.pressure['buddy-vent'] || 0) : interaction.pressure.buoyancy || 0;
+      jacket.scale.lerp(v(1 + .035 * air, 1 + .07 * air, 1 + .20 * air), k);
+      inflator.userData.supply.position.z = interaction.active === 'buoyancy' ? .070 : .084;
+      inflator.userData.exhaust.position.z = interaction.active === 'buddy-vent' ? .067 : .081;
+      const looseWeight = fault('weights');
+      weight.position.lerp(looseWeight ? v(.66, -.47, .55) : v(.53, -.45, .317), k);
+      weight.rotation.y = T.MathUtils.lerp(weight.rotation.y, looseWeight ? -.24 : 0, k);
+      const openBuckle = fault('releases');
+      buckle.position.lerp(openBuckle ? v(.215, -.22, .385) : v(.046, -.14, .276), k);
+      buckle.rotation.z = T.MathUtils.lerp(buckle.rotation.z, openBuckle ? .40 : 0, k);
+      if (!first && regulatorMotion !== undefined) {
+        const align = ease(regulatorMotion, 0, .70);
+        const seat = ease(regulatorMotion, .70, 1);
+        reg.position.lerpVectors(regulatorRest, regulatorAligned, align).lerp(regulatorMounted, seat);
+        reg.rotation.z = mix(-.19, 0, align);
+      } else {
+        reg.position.lerp(first ? regulatorMounted : regulatorRest, k);
+        reg.rotation.z = mix(reg.rotation.z, first ? 0 : -.19, k);
+      }
+      loose.rotation.y = T.MathUtils.lerp(loose.rotation.y, stow ? .63 : -.12, k);
+      const looseSpare = fault('alternate');
+      secure(spare, spareClip, looseSpare ? spareLoose : spareRest, stow && !looseSpare, k);
+      secure(gauge, gaugeClip, gaugeRest, stow, k);
+      knob.rotation.x = T.MathUtils.lerp(knob.rotation.x, open ? 2.35 : 0, k);
+      const gaugeAway = done.has('gauge-away') && !done.has('pressure') && interaction.detail !== 'pressure';
+      gauge.rotation.y = T.MathUtils.lerp(gauge.rotation.y, gaugeAway ? 2.82 : .08, k);
+      needle.rotation.z = T.MathUtils.lerp(needle.rotation.z, gaugeAngle(open ? 200 : 0), k);
+      expiredDate.visible = fault('inspect');
+      validDate.visible = !expiredDate.visible;
+      damagedSeal.visible = fault('inspect-ring');
+      seal.visible = !damagedSeal.visible;
+      looseBand.visible = !bcd;
+      tankBand.visible = bcd;
+      bandLatch.visible = bcd;
+      latchHandle.rotation.y = T.MathUtils.lerp(latchHandle.rotation.y, startAssembled || done.has('lock') ? 0 : -.94, k);
+      clip.material = stow && !looseSpare ? teal : amber;
+      dustCap.visible = !startAssembled && !done.has('uncap');
+      const connected = startAssembled || done.has('connect');
+      const host = connected ? inflator : loose;
+      root.worldToLocal(host.localToWorld(couplerRest.copy(connected ? inlet : freeEnd)));
+      sleeve.position.x = 0;
+      if (!connected && couplerMotion !== undefined) {
+        const align = ease(couplerMotion, 0, .69);
+        const seat = ease(couplerMotion, .69, .91);
+        root.worldToLocal(inflator.localToWorld(couplerMounted.copy(inlet)));
+        couplerRest.lerp(couplerMounted, align);
+        couplerRest.x -= .14 * align * (1 - seat);
+        sleeve.position.x = -.042 * ease(couplerMotion, .49, .69) * (1 - ease(couplerMotion, .91, 1));
+      }
+      coupler.position.lerp(couplerRest, k);
+    }
+  };
+}
+
+function diver(root, lesson) {
+  const recovery = lesson.scene === 'recovery';
+  const reachRoute = lesson.route?.startsWith('reach');
+  const torso = group(root, 0, -.08, 0);
+  sphere(torso, .64, .84, .30, cloth, 0, -.64, -.15);
+  sphere(torso, .38, .46, .33, rubber, 0, .53, 0);
+  sphere(torso, .308, .335, .281, faceSkin, 0, .49, .135);
+  for (const side of [-1, 1]) {
+    sphere(torso, .15, .63, .109, rubber, .36 * side, -.45, .058).rotation.z = side * -.25;
+    box(torso, .087, .05, .035, teal, .36 * side, -.34, .17);
+  }
+  const mask = group(torso, 0, .592, .39);
+  const rim = [[-.38, .11], [-.32, .22], [-.14, .235], [0, .205], [.14, .235], [.32, .22], [.38, .11],
+    [.31, -.10], [.12, -.13], [0, -.096], [-.12, -.13], [-.31, -.1]];
+  plate(mask, rim, .083, .052, teal, 0, 0, -.015);
+  sphere(mask, .10, .104, .115, rubber, 0, -.075, .084);
+  const water = group(mask, 0, -.063, 0);
+  const fingertips = group(mask);
+  for (const side of [-1, 1]) {
+    sphere(fingertips, .037, .12, .034, rubber, side * .20, .271, .134).rotation.z = side * -.23;
+  }
+  for (const side of [-1, 1]) {
+    const pane = [[-.133, -.074], [-.151, .099], [-.105, .162], [.111, .151], [.137, .072], [.095, -.075]];
+    plate(mask, pane, .025, .026, lens, side * .185, .025, .095);
+    sphere(mask, .057, .034, .025, white, side * .163, .09, .087);
+    sphere(mask, .022, .023, .012, rubber, side * .160, .09, .108);
+    box(water, .242, .223, .021, lens, side * .183, .111, .132);
+  }
+  const regulator = octo(torso, aluminum, 0, .245, .433);
+  const replaceTarget = group(regulator);
+  const clearTarget = group(regulator);
+  const breathTarget = group(mask);
+  const hoseOrigin = v(-.35, .33, -.35);
+  const hoseEnd = v(0, 0, 0);
+  const updateHose = flexibleHose(torso, .04, rubber, (from, to) => [
+    v(-.65, .25, -.13), v(to.x - .14, to.y + .09, to.z - .11)
+  ]);
+  const arm = group(torso, -.54, -.26, .025);
+  const upper = cyl(arm, .118, .63, rubber, 0, -.28, 0);
+  sphere(arm, .116, .119, .116, rubber, 0, -.592, 0);
+  const lower = group(arm, 0, -.59, 0);
+  cyl(lower, .095, .47, cloth, 0, -.195, 0);
+  sphere(lower, .095, .123, .071, neopreneSkin, 0, -.445, 0);
+  upper.rotation.z = -.035;
+  const bubbles = group(torso, 0, .27, .59);
+  const bubbleParts = Array.from({ length: 12 }, (_, i) => sphere(bubbles, .017 + i % 3 * .008, .021, .022, lens));
+  stage(root, -1.36);
+
+  return {
+    anchors: recovery ? {
+      bubbles: [torso, v(.20, .22, .59)], sweep: [torso, v(-.68, -.66, .145)],
+      reach: [torso, v(-.56, .35, -.14)], 'trace-hose': [torso, v(-.71, .12, -.07)],
+      replace: [replaceTarget, v(-.08, -.10, .12)], purge: [clearTarget, v(0, .01, .115)],
+      'reg-exhale': [clearTarget, v(-.19, -.10, .14)],
+      'reg-breathe': [breathTarget, v(.34, -.06, .17)]
+    } : {
+      'mask-breathe': [regulator, v(.16, -.03, .14)], 'mask-hold': [mask, v(.05, .27, .14)],
+      'mask-exhale': [mask, v(-.13, -.15, .23)]
+    },
+    ...(recovery ? { docks: { mouth: [torso, v(0, .245, .52)], chest: [torso, v(.36, -.30, .25)] },
+      grabbable: { replace: regulator } } : {}),
+    animated: true,
+    sync() {
+      hoseEnd.copy(regulator.position);
+      hoseEnd.x -= .17;
+      updateHose(hoseOrigin, hoseEnd);
+    },
+    update(done, k, time, interaction) {
+      const swept = done.has('sweep');
+      const traced = done.has('trace-hose');
+      const reaching = done.has('reach') && !traced;
+      const replaced = done.has('replace');
+      const clear = done.has('mask-exhale');
+      const held = done.has('mask-hold') && !clear;
+      const exhaling = interaction.active === 'mask-exhale';
+      const purging = interaction.active === 'purge';
+      regulator.userData.purge.position.z = purging ? .057 : .071;
+      const retrieved = swept || traced;
+      const sweepProgress = !replaced && recovery ? (swept ? 1 : interaction.pressure.sweep || 0) : 0;
+      const bringForward = retrieved ? 1 : Math.max(0, (sweepProgress - .60) / .40);
+      const sweepArc = Math.sin(sweepProgress * Math.PI);
+      replaceTarget.visible = retrieved && !replaced;
+      clearTarget.visible = replaced;
+      breathTarget.visible = replaced;
+      const regPosition = recovery && !replaced
+        ? v(T.MathUtils.lerp(-.56, -.80, bringForward),
+          T.MathUtils.lerp(reachRoute ? .13 : -.39, .06, bringForward), T.MathUtils.lerp(-.31, .41, bringForward))
+        : v(0, .245, .433);
+      regulator.position.lerp(regPosition, k);
+      const armLift = !replaced && traced ? 1 : sweepProgress;
+      torso.rotation.z = T.MathUtils.lerp(torso.rotation.z, -.16 * Math.min(1, sweepProgress * 2), k);
+      arm.rotation.z = T.MathUtils.lerp(arm.rotation.z, .08 - .70 * armLift - .24 * sweepArc, k);
+      arm.rotation.x = T.MathUtils.lerp(arm.rotation.x, reaching ? -2.44 : .82 * sweepArc - 1.13 * armLift, k);
+      lower.rotation.x = T.MathUtils.lerp(lower.rotation.x, reaching ? -1.26 : -.12 - .58 * armLift, k);
+      fingertips.visible = !recovery && held;
+      mask.rotation.x = T.MathUtils.lerp(mask.rotation.x, exhaling ? -.15 : held ? -.06 : 0, k);
+      const remaining = remainingMaskWater(lesson.maskFill ?? 0, clear, interaction.pressure['mask-exhale']);
+      water.scale.y = T.MathUtils.lerp(water.scale.y, remaining, k);
+      water.visible = !recovery && water.scale.y > .015;
+      bubbles.visible = recovery ? purging || interaction.active === 'reg-exhale' || (done.has('bubbles') && !replaced) : exhaling;
+      bubbles.position.set(0, exhaling ? .43 : .24, .59);
+      bubbleParts.forEach((bubble, i) => {
+        const phase = (time * .00038 + i / bubbleParts.length) % 1;
+        bubble.position.set(Math.sin(phase * 7 + i) * .17, phase * 1.09, Math.cos(i) * .11 + phase * .12);
+      });
+    }
+  };
+}
+
+function inflator(root, inWater = false) {
+  if (!inWater) stage(root);
+  const jacket = group(root, -.62, -.16, -.27);
+  jacket.scale.setScalar(.82);
+  plate(jacket, jacketOutline, .12, .06, rubber, 0, 0, -.14);
+  const airCells = [-1, 1].map(side => {
+    const cell = group(jacket, side * .43, -.21, -.04);
+    cell.name = 'bcd-air-cell';
+    const outline = [[-.11, .67], [.07, .65], [.15, .36], [.24, -.07], [.28, -.27],
+      [.21, -.46], [.06, -.53], [-.19, -.48], [-.28, -.33], [-.25, -.13], [-.16, .25]]
+      .map(([x, y]) => [side * x, y]);
+    plate(cell, outline, .34, .095, cloth);
+    plate(cell, [[-.16, -.15], [-.15, .08], [.11, .12], [.19, .035], [.15, -.17], [0, -.21]],
+      .042, .026, gray, side * .014, -.23, .405);
+    box(cell, .23, .027, .018, teal, side * .02, -.16, .48);
+    box(cell, .05, .047, .022, aluminum, side * .11, -.172, .491);
+    return cell;
+  });
+  for (const side of [-1, 1]) {
+    const strap = [[.26, .57], [.36, .58], [.43, .03], [.39, -.28], [.28, -.28], [.30, .04]]
+      .map(([x, y]) => [side * x, y]);
+    plate(jacket, strap, .028, .017, rubber, 0, 0, .42);
+    box(jacket, .10, .07, .045, aluminum, side * .34, .04, .47);
+  }
+  box(jacket, .69, .06, .044, rubber, 0, .04, .48);
+  box(jacket, .15, .09, .067, gray, 0, .04, .49);
+  box(jacket, .07, .04, .008, teal, 0, .04, .527);
+  box(jacket, .68, .09, .045, rubber, 0, -.47, .36);
+  box(jacket, .16, .13, .055, gray, 0, -.47, .40);
+  textPlate(jacket, 'BCD', '#b6e2da', .29, 0, -.18, .045);
+
+  const head = inflatorHead(root, .61, -.44, .23);
+  const { supply, exhaust: ventButton } = head.userData;
+  supply.name = 'inflator-supply-button';
+  ventButton.name = 'inflator-vent-button';
+  supply.position.y = .058;
+  ventButton.position.y = -.128;
+  ring(head, .052, .005, gray, 0, supply.position.y, .078);
+  ring(head, .053, .005, gray, 0, ventButton.position.y, .073);
+  box(supply, .048, .004, .010, rubber, 0, .013, 0);
+  box(supply, .010, .004, .048, rubber, 0, .013, 0);
+  box(ventButton, .048, .004, .010, white, 0, .014, 0);
+  cyl(head, .039, .063, aluminum, -.145, .058, 0, 'x');
+  cyl(head, .045, .029, gray, -.147, .058, 0, 'x');
+  cyl(head, .044, .064, rubber, 0, -.203, 0);
+  cyl(head, .031, .009, gray, 0, -.238, 0);
+  const exhaust = group(root);
+  exhaust.name = 'inflator-exhaust';
+  const bubbles = inWater ? Array.from({ length: 8 }, () => sphere(exhaust, 1, 1, 1, lens)) : [];
+  const ventOrigin = v(0, 0, 0);
+  const cellScale = v(1, 1, 1);
+  const raisedPosition = v(.61, .68, .23);
+  const restPosition = head.position.clone();
+  const airCellPort = v(-.30, .27, -.11);
+  const handEnd = v(0, 0, 0);
+  const headPosition = v(0, 0, 0);
+  const supplyPort = v(-.62, .19, -.46);
+  const updateAirway = flexibleHose(root, .074, rubber, (from, to) => [
+    v(from.x + .27, Math.max(.77, to.y + .09), .05),
+    v(to.x - .12, Math.max(.57, to.y + .13), to.z - .06)
+  ], 21);
+  const updateSupply = flexibleHose(root, .022, rubber, (from, to) => [
+    v(from.x + .15, Math.max(.36, to.y + .09), -.26),
+    v(to.x - .24, to.y + .15, to.z - .10)
+  ]);
+  const addButton = [supply, v(0, .015, 0)];
+  const releaseButton = [ventButton, v(0, .016, 0)];
+  head.scale.setScalar(1.55);
+  head.rotation.z = -.13;
+  return {
+    anchors: {
+      'add-air': addButton, raise: [head, v(-.045, .365, .066)], vent: releaseButton,
+      'trim-add': addButton, 'trim-vent': releaseButton
+    },
+    docks: { above: [root, v(.52, .77, .39)], below: [root, v(.52, -.62, .41)] },
+    grabbable: { raise: head },
+    sync() {
+      handEnd.set(0, .213, 0);
+      root.worldToLocal(head.localToWorld(handEnd));
+      updateAirway(airCellPort, handEnd);
+      root.worldToLocal(head.localToWorld(handEnd.set(-.175, .058, 0)));
+      updateSupply(supplyPort, handEnd);
+    },
+    update(done, k, time, interaction) {
+      const raised = done.has('raise') ? 1 : T.MathUtils.smoothstep(interaction.pressure.raise || 0, 0, 1);
+      const vented = done.has('vent');
+      const air = inflatorAir(done.has('add-air'), vented, interaction.pressure);
+      cellScale.set(.84 + .24 * air, 1 + .05 * air, .38 + 1.37 * air);
+      for (const cell of airCells) cell.scale.lerp(cellScale, k);
+      head.position.lerp(headPosition.lerpVectors(restPosition, raisedPosition, raised), k);
+      supply.position.z = interaction.active === 'add-air' ? .070 : .084;
+      ventButton.position.z = interaction.active === 'vent' ? .067 : .081;
+      exhaust.visible = inWater && interaction.active === 'vent' && (air > .005 || vented);
+      if (exhaust.visible) {
+        root.worldToLocal(head.localToWorld(ventOrigin.set(.012, -.234, .02)));
+        bubbles.forEach((bubble, i) => {
+          const travel = (time * .0018 + i / bubbles.length) % 1;
+          const radius = (.019 + .023 * (i % 3) / 2) * (1 + travel * .42);
+          bubble.scale.set(radius, radius * 1.16, radius);
+          bubble.position.set(ventOrigin.x + travel * (.12 + Math.sin(i * 2.6 + travel * 4) * .06),
+            ventOrigin.y + travel * .89, ventOrigin.z + .09 + travel * .10);
+        });
+      }
+    }
+  };
+}
+
+function heelBand(strap) {
+  const segments = 24;
+  const profile = [[-.013, -.032], [-.007, -.044], [.007, -.044], [.013, -.032],
+    [.013, .032], [.007, .044], [-.007, .044], [-.013, .032]];
+  const sides = profile.length;
+  const geometry = new T.BufferGeometry();
+  const positions = new T.Float32BufferAttribute(new Float32Array((segments + 1) * sides * 3), 3);
+  positions.setUsage(T.DynamicDrawUsage);
+  const indices = [];
+  for (let ring = 0; ring < segments; ring += 1) {
+    for (let side = 0; side < sides; side += 1) {
+      const a = ring * sides + side;
+      const b = ring * sides + (side + 1) % sides;
+      indices.push(a, b, a + sides, b, b + sides, a + sides);
+    }
+  }
+  geometry.setIndex(indices);
+  geometry.setAttribute('position', positions);
+  const band = mesh(strap, geometry, lime);
+  band.frustumCulled = false;
+
+  const center = v(0, 0, 0);
+  const tangent = v(0, 0, 0);
+  const lateral = v(0, 0, 0);
+  const points = [v(-.24, 0, 0), v(0, 0, 0), v(0, 0, 0), v(0, 0, 0), v(.24, 0, 0)];
+  const path = new T.CatmullRomCurve3(points);
+  const lastGrip = v(Infinity, 0, 0);
+  return grip => {
+    if (lastGrip.distanceToSquared(grip) < .000001) return;
+    lastGrip.copy(grip);
+    points[1].set((grip.x - .32) * .5, grip.y * .75, grip.z * .70);
+    points[2].copy(grip);
+    points[3].set((grip.x + .32) * .5, grip.y * .75, grip.z * .70);
+    for (let ring = 0; ring <= segments; ring += 1) {
+      const t = ring / segments;
+      path.getPoint(t, center);
+      path.getTangent(t, tangent);
+      lateral.set(tangent.z, 0, -tangent.x).normalize();
+      const width = .85 + .30 * Math.sin(Math.PI * t);
+      profile.forEach(([thickness, height], side) => {
+        positions.setXYZ(ring * sides + side, center.x + lateral.x * thickness, center.y + height * width, center.z + lateral.z * thickness);
+      });
+    }
+    positions.needsUpdate = true;
+    geometry.computeVertexNormals();
+  };
+}
+
+function fins(root, inWater, issues, legSide = 1) {
+  if (!inWater) stage(root, -.95);
+  const fin = group(root, 0, -.63, .04);
+  const blade = [[-.27, -.55], [-.47, -.91], [-.53, -1.19], [-.41, -1.34], [-.10, -1.39], [.15, -1.38],
+    [.43, -1.30], [.52, -1.13], [.44, -.86], [.25, -.53], [.23, -.29], [-.23, -.29]];
+  plate(fin, blade, .055, .037, teal).rotation.x = -Math.PI / 2;
+  for (const side of [-1, 1]) {
+    hose(fin, [[side * .16, .054, .27], [side * .24, .058, .63], [side * .38, .067, 1.01], [side * .42, .062, 1.18]], .037, rubber);
+    box(fin, .084, .13, .10, amber, side * .25, .076, -.12);
+  }
+  const pocket = [[-.24, -.18], [-.24, .40], [-.15, .53], [.13, .53], [.24, .43], [.24, -.18], [.16, -.18],
+    [.16, .38], [.09, .43], [-.10, .43], [-.16, .38], [-.16, -.18]];
+  plate(fin, pocket, .12, .039, rubber, 0, .01, 0).rotation.x = Math.PI / 2;
+  sphere(fin, .235, .123, .23, rubber, 0, .096, .435);
+  const strap = group(fin, 0, .12, -.15);
+  const strapRest = v(0, .05, -.26);
+  const strapFitted = v(0, .05, -.20);
+  const strapLoose = v(0, .05, -.52);
+  const strapGrip = group(strap, ...strapRest);
+  const heelView = group(fin, 0, .29, -.34);
+  heelView.rotation.set(-.27, 1.90, 0, 'YXZ');
+  const updateBand = heelBand(strap);
+  const boot = group(root);
+  sphere(boot, .177, .043, .331, rubber, 0, -.085, .105);
+  sphere(boot, .171, .112, .325, cloth, 0, -.012, .11);
+  sphere(boot, .157, .275, .154, gray, 0, .20, -.052);
+  cyl(boot, .138, .054, rubber, 0, .438, -.052);
+  const zipper = box(boot, .027, .29, .021, rubber, .058, .205, .092);
+  zipper.rotation.z = -.08;
+  box(boot, .033, .058, .02, teal, .068, .343, .107);
+  const bootAtRest = inWater ? v(-.37, -.16, -.55) : v(-.56, -.16, -.43);
+  const bootTarget = v(0, 0, 0);
+  const gripTarget = v(0, 0, 0);
+  const shin = inWater ? group(root) : null;
+  const knee = v(-.33 * legSide, .02, -2.14);
+  const ankle = v(0, 0, 0);
+  const calf = v(0, 0, 0);
+  const up = v(0, 1, 0);
+  if (shin) {
+    cyl(shin, .137, 1, cloth, 0, 0, 0, 'y', .105);
+    cyl(shin, .115, .095, rubber, 0, -.40, 0, 'y', .110);
+  }
+  return {
+    anchors: {
+      'fin-strap': [strap, v(.21, .08, -.12)], 'fin-foot': [boot, v(.04, .13, .30)],
+      'fin-lock': [strapGrip, v(0, .035, 0)], 'fin-wiggle': [boot, v(-.18, .29, -.04)],
+      'fin-check': [strapGrip, v(.12, .065, .025)]
+    },
+    details: { 'fin-check': [heelView, v(0, 0, 0), 1.49] },
+    docks: { pocket: [fin, v(0, .16, .18)], heel: [boot, v(0, .09, -.19)] },
+    grabbable: { 'fin-foot': boot, 'fin-lock': strapGrip },
+    sync() {
+      if (shin) {
+        root.worldToLocal(boot.localToWorld(ankle.set(0, .40, -.052)));
+        calf.subVectors(knee, ankle);
+        shin.position.copy(ankle).lerp(knee, .5);
+        shin.scale.y = calf.length();
+        shin.quaternion.setFromUnitVectors(up, calf.normalize());
+      }
+      updateBand(strapGrip.position);
+    },
+    update(done, k, _time, interaction) {
+      if (shin) shin.visible = interaction.detail !== 'fin-check';
+      const inserted = done.has('fin-foot');
+      const locked = done.has('fin-lock');
+      const checked = done.has('fin-check');
+      const looseFit = issues.includes('fin-check') && !checked;
+      const loose = locked && looseFit;
+      const pressure = interaction.pressure;
+      if ('fin-strap' in pressure || 'fin-foot' in pressure || 'fin-lock' in pressure) k = 1;
+      const open = done.has('fin-strap') ? 1 : pressure['fin-strap'] || 0;
+      const slide = inserted ? 1 : pressure['fin-foot'] || 0;
+      const pull = locked ? 1 : pressure['fin-lock'] || 0;
+      const arc = Math.sin(Math.PI * pull);
+      const lift = locked && !checked ? (done.has('fin-wiggle') ? 1 : pressure['fin-wiggle'] || 0) : 0;
+      const tilt = lift * (loose ? .36 : .09);
+      fin.rotation.x = T.MathUtils.lerp(fin.rotation.x, loose ? 0 : tilt, k);
+
+      bootTarget.set(0, -.48 + lift * (loose ? .25 : .022), -.07 - lift * (loose ? .07 : .009));
+      bootTarget.lerp(bootAtRest, 1 - slide);
+      bootTarget.y += .09 * Math.sin(Math.PI * slide);
+      boot.position.lerp(bootTarget, k);
+      boot.rotation.x = T.MathUtils.lerp(boot.rotation.x, T.MathUtils.lerp(-.24, tilt, slide), k);
+
+      const openAngle = T.MathUtils.lerp(-.31, -1.14, open);
+      const strapAngle = T.MathUtils.lerp(openAngle, .24, pull);
+      const heelRise = T.MathUtils.lerp(.08, .235, pull) - strap.position.y;
+      gripTarget.lerpVectors(strapRest, looseFit ? strapLoose : strapFitted, pull);
+      // Lift the middle of the band in fin space while its ends pivot at the buckles.
+      gripTarget.y += heelRise * Math.cos(strapAngle);
+      gripTarget.z -= .21 * arc + heelRise * Math.sin(strapAngle);
+      strapGrip.position.lerp(gripTarget, k);
+      strap.rotation.x = T.MathUtils.lerp(strap.rotation.x, strapAngle, k);
+    }
+  };
+}
+
+export function makeModel(root, lesson, scenario) {
+  switch (lesson.scene) {
+    case 'gear': return kit(root, lesson.id === 'buddy', lesson.scenarios?.[scenario] || []);
+    case 'mask':
+    case 'recovery': return diver(root, lesson);
+    case 'inflator': return inflator(root);
+    case 'fins': return fins(root, false, lesson.scenarios[scenario]);
+    default: throw new Error('Unknown practice model');
+  }
+}
+
+const reefRockMaterial = mat(0xffffff, .93);
+const sandTint = new T.Color(0xe9dabb);
+const distantSand = new T.Color(0x72b9b9);
+
+const waterPlaneVertex = `
+  varying vec3 waterPoint;
+  void main() {
+    waterPoint = (modelMatrix * vec4(position, 1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }`;
+
+const waterLight = `
+  varying vec3 waterPoint;
+  uniform float tide;
+  float lightNetwork(vec2 p) {
+    p = mat2(1.08, -.43, .39, .93) * p;
+    p += vec2(.40, -.27) * tide;
+    p += vec2(sin(p.y * .68 + tide), cos(p.x * .54 - tide * .76));
+    float ridge = sin(p.x) * sin(p.y) + .36 * sin((p.x + p.y) * .72);
+    return 1.0 - smoothstep(.016, .102 + min(.72 * fwidth(ridge), .22), abs(ridge));
+  }`;
+
+function addReef(water) {
+  const geometry = new T.IcosahedronGeometry(1, 2);
+  const points = geometry.attributes.position;
+  for (let i = 0; i < points.count; i += 1) {
+    const x = points.getX(i);
+    const y = points.getY(i);
+    const z = points.getZ(i);
+    const roughness = 1 + .14 * Math.sin(x * 7 + y * 2) * Math.cos(z * 5 - y * 3);
+    points.setXYZ(i, x * roughness, y * roughness, z * roughness);
+  }
+  const rockCount = 34;
+  const rocks = new T.InstancedMesh(geometry, reefRockMaterial, rockCount);
+  const transform = new T.Object3D();
+  const colors = [0x6b8270, 0x869887, 0xa3a387, 0xb7ae91].map(color => new T.Color(color));
+  for (let i = 0; i < rockCount; i += 1) {
+    const side = i % 2 ? -1 : 1;
+    const spread = Math.sin(i * 7.12);
+    const x = side * (2.05 + i * .12 + spread * .61);
+    const z = 2.1 - i * .31 + Math.cos(i * 4.82) * 1.35;
+    const size = .16 + (i * .377 % 1) * .62;
+    transform.position.set(x, -1.88, z);
+    transform.scale.set(size * 1.38, size * (.48 + .15 * spread), size);
+    transform.rotation.set(.14 * spread, i * 1.31, .17 * side);
+    transform.updateMatrix();
+    rocks.setMatrixAt(i, transform.matrix);
+    rocks.setColorAt(i, colors[i % colors.length]);
+  }
+  water.add(rocks);
+}
+
+function waterBackdrop(root, fromAbove) {
+  const water = group(root);
+  const tide = { value: 0 };
+  mesh(water, new T.SphereGeometry(27, 24, 12), new T.ShaderMaterial({
+    side: T.BackSide, depthWrite: false,
+    vertexShader: waterPlaneVertex,
+    fragmentShader: `
+      varying vec3 waterPoint;
+      void main() {
+        vec3 look = normalize(waterPoint - cameraPosition);
+        float up = smoothstep(-.41, .81, look.y);
+        float towardLight = max(0.0, dot(look, vec3(-.36, .77, -.53)));
+        float sunGlow = (pow(towardLight, 9.0) + .25 * pow(towardLight, 3.0)) * up;
+        vec3 color = mix(vec3(.069, .39, .45), vec3(.25, .67, .72), up);
+        color += vec3(.48, .32, .14) * sunGlow;
+        gl_FragColor = vec4(color, 1.0);
+        #include <colorspace_fragment>
+      }`
+  }));
+  const floor = mesh(water, new T.PlaneGeometry(52, 52), new T.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { tide, tint: { value: sandTint }, distantSand: { value: distantSand } },
+    vertexShader: waterPlaneVertex,
+    fragmentShader: `
+      ${waterLight}
+      uniform vec3 tint;
+      uniform vec3 distantSand;
+      void main() {
+        vec2 bed = waterPoint.xz;
+        float distanceToEye = distance(cameraPosition, waterPoint);
+        float clear = 1.0 - smoothstep(3.0, 15.0, distanceToEye);
+        float sandWave = dot(bed, vec2(19.0, 5.3)) + 2.5 * sin(dot(bed, vec2(.89, 1.25)));
+        float ripple = sin(sandWave) + .28 * sin(2.0 * sandWave + 1.2);
+        float rippleDetail = 1.0 - smoothstep(.45, 2.7, fwidth(sandWave));
+        float swell = .5 + .5 * sin(bed.x * .91 - bed.y * .55 + .85 * sin(bed.y));
+        float relief = .87 + (.096 * ripple * rippleDetail * (.55 + .45 * swell) + .09 * swell) * clear;
+        float primary = lightNetwork(bed * 5.4);
+        float secondary = lightNetwork(bed.yx * 7.4 + vec2(6.3, -3.1));
+        vec3 dapple = (vec3(.21, .29, .24) * primary + vec3(.07, .12, .10) * secondary)
+          * (.30 + .70 * swell) * clear;
+        vec3 sand = tint * relief + dapple;
+        vec3 color = mix(distantSand, sand, .20 + .80 * clear);
+        float fade = 1.0 - smoothstep(12.0, 24.0, distanceToEye);
+        gl_FragColor = vec4(color, fade);
+        #include <colorspace_fragment>
+      }`
+  }), 0, -1.89, -2);
+  floor.rotation.x = -Math.PI / 2;
+  floor.renderOrder = -1;
+  addReef(water);
+
+  const specks = new Float32Array(116 * 3);
+  for (let i = 0; i < specks.length; i += 3) {
+    const seed = i / 3 + 1;
+    specks[i] = Math.sin(seed * 3.63) * 5.1;
+    specks[i + 1] = -2.24 + (seed * 1.37 % 3.73);
+    specks[i + 2] = Math.cos(seed * 5.24) * 5.8 - 1.2;
+  }
+  const motes = new T.BufferGeometry().setAttribute('position', new T.BufferAttribute(specks, 3));
+  const particles = new T.Points(motes, new T.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { tide },
+    vertexShader: `
+      uniform float tide;
+      varying float glow;
+      void main() {
+        vec3 p = position + vec3(sin(tide + position.z) * .14, cos(tide * .54 + position.x) * .16, 0.0);
+        vec4 view = modelViewMatrix * vec4(p, 1.0);
+        glow = (1.0 - smoothstep(1.0, 10.0, -view.z)) * .49;
+        gl_PointSize = clamp(7.5 / max(1.0, -view.z), 1.4, 3.4);
+        gl_Position = projectionMatrix * view;
+      }`,
+    fragmentShader: `
+      varying float glow;
+      void main() {
+        float edge = 1.0 - smoothstep(.14, .50, distance(gl_PointCoord, vec2(.5)));
+        gl_FragColor = vec4(.71,.96,.94,glow * edge);
+      }`
+  }));
+  particles.renderOrder = 2;
+  water.add(particles);
+  const surface = mesh(water, new T.PlaneGeometry(40, 40), new T.ShaderMaterial({
+    side: T.DoubleSide, transparent: true, depthWrite: false,
+    uniforms: { tide, surfaceOpacity: { value: fromAbove ? .58 : 1 } },
+    vertexShader: waterPlaneVertex,
+    fragmentShader: `
+      ${waterLight}
+      uniform float surfaceOpacity;
+      void main() {
+        vec3 ray = waterPoint - cameraPosition;
+        float distanceToEye = length(ray);
+        float overhead = abs(ray.y) / max(distanceToEye, .05);
+        vec2 plane = waterPoint.xz;
+        float chop = .065 * sin(plane.x * 4.2 + plane.y * 2.0 + tide)
+          + .046 * sin(plane.y * 5.8 - plane.x * 2.9 - tide * 1.45);
+        float skyWindow = smoothstep(.55, .73, overhead + chop);
+        float ripple = lightNetwork(plane * 4.3 + vec2(1.2, -.6));
+        float fade = 1.0 - smoothstep(6.0, 17.0, distanceToEye);
+        vec3 lightDirection = vec3(-.36, .77, -.53);
+        float glint = pow(max(0.0, dot(ray / max(distanceToEye, .05), lightDirection)), 11.0);
+        bool below = ray.y > 0.0;
+        vec3 reflection = mix(vec3(.046, .33, .40), vec3(.39, .77, .81), below ? skyWindow : .58);
+        float fleck = smoothstep(.058, .106, chop) * (.34 + .66 * glint);
+        vec3 color = reflection + (vec3(.21, .26, .23) + vec3(.30, .18, .07) * glint) * ripple
+          + vec3(.28, .28, .22) * fleck;
+        float opacity = (below ? .22 + .17 * (1.0 - skyWindow) : .10) + .35 * ripple + .13 * fleck;
+        gl_FragColor = vec4(color, opacity * fade * surfaceOpacity);
+        #include <colorspace_fragment>
+      }`
+  }), 0, fromAbove ? 1.09 : 1.65, 0);
+  surface.rotation.x = -Math.PI / 2;
+  return time => { tide.value = time * .0007; };
+}
+
+function immersionRegulator(root, reachRoute) {
+  const regulator = octo(root, teal, 1.56, -.37, 1.70);
+  regulator.name = 'recovery-regulator';
+  const replaceTarget = group(regulator);
+  const clearTarget = group(regulator);
+  regulator.rotation.y = -.48;
+  const torso = group(root, 0, -.82, 2.0);
+  sphere(torso, .38, .39, .25, cloth);
+  const arm = group(root);
+  const palm = sphere(arm, .105, .061, .14, rubber);
+  const cuff = cyl(arm, .081, .5, cloth, 0, -.14, .18);
+  cuff.rotation.x = -.91;
+  const hoseOrigin = reachRoute ? v(.69, -.23, 2.18) : v(.39, -.73, 2.27);
+  const hoseEnd = v(0, 0, 0);
+  const route = (from, to) => reachRoute
+    ? [v(.91, -.18, 2.12), v(Math.max(.67, to.x * .83), to.y - .07, to.z + .27)]
+    : [v(.66, -.62, 2.11), v(to.x * .82 + .15, to.y - .15, to.z + .24)];
+  const updateHose = flexibleHose(root, .033, rubber, route);
+  const motionAnchor = group(root, 1.60, -.33, 1.63);
+  const restRegulator = regulator.position.clone();
+  const readyRegulator = v(.24, -.36, 1.07);
+  const graspOffset = v(.08, -.12, .16);
+  const sweepContact = restRegulator.clone().add(graspOffset);
+  const sweepReach = new T.CatmullRomCurve3([
+    v(.50, -.66, 1.82), v(.60, -1.10, 2.02), v(.89, -.89, 2.19), sweepContact
+  ]);
+  const sweepBring = new T.CatmullRomCurve3([
+    sweepContact, v(1.37, -.49, 1.40), v(.80, -.49, 1.17), readyRegulator.clone().add(graspOffset)
+  ]);
+  const sweepCatchAt = .60;
+  const target = v(0, 0, 0);
+  const restEnd = v(1.41, -.37, 1.70);
+  const reachPath = reachRoute ? new T.CatmullRomCurve3([hoseOrigin, ...route(hoseOrigin, restEnd), restEnd]) : null;
+  if (reachRoute) {
+    const shoulder = group(root, .55, -.45, 2.19);
+    sphere(shoulder, .33, .25, .27, cloth);
+    cyl(shoulder, .090, .16, aluminum, .065, .21, 0, 'x');
+    cyl(shoulder, .044, .087, metal, .13, .22, -.009, 'x');
+  }
+  const bubbleAnchor = group(root, -.24, -.19, 1.15);
+  const breathingAnchor = group(root, .16, -.30, 1.1);
+  sphere(root, .14, .16, .10, cloth, -.38, -.49, 1.48);
+  const bubbles = Array.from({ length: 11 }, () => sphere(root, .026, .028, .024, lens));
+  let sweeping = null;
+  let tracing = 0;
+  return {
+    docks: { mouth: [root, v(.02, -.27, 1.56)], chest: [root, v(-.38, -.40, 1.41)] },
+    grabbable: { replace: regulator },
+    anchors: {
+      bubbles: [bubbleAnchor, v(0, 0, 0)], sweep: [motionAnchor, v(0, 0, 0)],
+      ...(reachPath ? { reach: [root, hoseOrigin], 'trace-hose': [root, reachPath.getPoint(.37)] } : {}),
+      replace: [replaceTarget, v(0, .08, .015)], purge: [clearTarget, v(0, .04, .10)],
+      'reg-exhale': [clearTarget, v(-.21, -.09, .04)], 'reg-breathe': [breathingAnchor, v(0, 0, 0)]
+    },
+    sync() {
+      if (tracing && reachPath) {
+        reachPath.getPoint(tracing, arm.position);
+        arm.position.y -= .053;
+        arm.position.z += .062;
+      } else if (sweeping !== null && sweeping < sweepCatchAt) {
+        sweepReach.getPoint(sweeping / sweepCatchAt, arm.position);
+      } else {
+        arm.position.copy(regulator.position).add(graspOffset);
+      }
+      hoseEnd.copy(regulator.position);
+      hoseEnd.x -= .15;
+      updateHose(hoseOrigin, hoseEnd);
+    },
+    update(done, k, time, interaction) {
+      const recovered = done.has('sweep') || done.has('trace-hose');
+      const replaced = done.has('replace');
+      replaceTarget.visible = recovered && !replaced;
+      clearTarget.visible = replaced;
+      breathingAnchor.visible = replaced;
+      const progress = interaction.pressure.sweep || 0;
+      sweeping = !reachRoute && !recovered && !replaced && (progress > 0 || interaction.active === 'sweep') ? progress : null;
+      if (replaced) target.set(.02, -.27, 1.53);
+      else if (recovered) target.copy(readyRegulator);
+      else if (sweeping !== null && sweeping >= sweepCatchAt) {
+        sweepBring.getPoint((sweeping - sweepCatchAt) / (1 - sweepCatchAt), target).sub(graspOffset);
+      } else target.copy(restRegulator);
+      regulator.position.lerp(target, k);
+      tracing = done.has('reach') && !recovered ? .035 + .93 * (interaction.pressure['trace-hose'] || 0) : 0;
+      arm.visible = !replaced && (recovered || tracing > 0 || sweeping !== null);
+      palm.rotation.y = tracing ? -.46 : sweeping === null ? 0 : -.50 * Math.sin(sweeping * Math.PI);
+      const purging = interaction.active === 'purge';
+      const exhaling = interaction.active === 'reg-exhale';
+      regulator.userData.purge.position.z = purging ? .057 : .071;
+      for (let i = 0; i < bubbles.length; i += 1) {
+        const f = (i / bubbles.length + time * .0006) % 1;
+        bubbles[i].visible = purging || exhaling || (done.has('bubbles') && !replaced);
+        const x = exhaling ? -.18 - f * .28 : 0;
+        bubbles[i].position.set(x + Math.sin(i * 1.6 + f * 8) * .12, -.24 + f * .96, (purging || exhaling ? 1.48 : 1.27) - f * .29);
+      }
+    }
+  };
+}
+
+export function makeDiveModel(root, lesson, scenario) {
+  const updateWater = waterBackdrop(root, lesson.scene === 'fins');
+  let model;
+  if (lesson.scene === 'recovery') {
+    model = immersionRegulator(root, lesson.route?.startsWith('reach'));
+  } else if (lesson.scene === 'fins') {
+    const companion = group(root, -.67, .54, -.84);
+    companion.rotation.y = Math.PI + .15;
+    const otherFoot = fins(companion, true, [], -1);
+    otherFoot.update(new Set(['fin-strap', 'fin-foot', 'fin-lock', 'fin-check']), 1, 0, { pressure: {} });
+    otherFoot.sync();
+
+    const equipment = group(root, .18, .70, -.66);
+    equipment.rotation.y = Math.PI - .07;
+    const foot = fins(equipment, true, lesson.scenarios[scenario]);
+    model = {
+      ...foot,
+      update(done, k, time, interaction) {
+        companion.visible = interaction.detail !== 'fin-check';
+        foot.update(done, k, time, interaction);
+      }
+    };
+  } else if (lesson.scene === 'inflator') {
+    const equipment = group(root);
+    const line = group(root, -1.43, -.16, -.18);
+    cyl(line, .012, 2.78, aluminum, 0, 0, 0);
+    for (let i = -2; i <= 2; i += 1) box(line, i === 0 ? .25 : .12, .014, .034, i === 0 ? lime : white, .056, i * .46, 0);
+    const parts = inflator(equipment, true);
+    model = {
+      ...parts,
+      update(done, k, time, interaction) {
+        const air = inflatorAir(done.has('add-air'), done.has('vent'), interaction.pressure);
+        const height = .20 + 1.08 * (air - neutralAir);
+        equipment.position.y = T.MathUtils.lerp(equipment.position.y, height, k < 1 ? k * .47 : 1);
+        parts.update(done, k, time, interaction);
+      }
+    };
+  } else {
+    const bubbles = Array.from({ length: 15 }, () => sphere(root, .024, .026, .021, lens));
+    model = {
+      anchors: {},
+      fixedTargets: { 'mask-breathe': [.51, .74], 'mask-hold': [.63, .275], 'mask-exhale': [.50, .61] },
+      update(_done, _k, time, interaction) {
+        for (let i = 0; i < bubbles.length; i += 1) {
+          const f = (i / bubbles.length + time * .00059) % 1;
+          bubbles[i].visible = interaction.active === 'mask-exhale';
+          bubbles[i].position.set(Math.cos(f * 6 + i) * (.16 + .14 * f), -.25 + f * 1.26, .7 - f * 1.45);
+        }
+      }
+    };
+  }
+  return {
+    ...model,
+    inWater: true,
+    update(done, k, time, interaction) {
+      updateWater(time);
+      model.update(done, k, time, interaction);
+    }
+  };
+}

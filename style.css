@@ -83,7 +83,7 @@
 @media(max-width:700px){.island-flower{--flower-inset:13px;top:16px}.island-flower img{width:56px}.map-credit{left:12px;right:12px;bottom:8px;font-size:7px;max-width:none;line-height:1.6}.map-credit button{font-size:7px}.map-scale{bottom:49px}.dive-detail{bottom:67px}}
 @media(prefers-reduced-motion:reduce){.journal-bonus::before{opacity:.48}.pin.active:before,.log-card.selected:after{animation:none!important;filter:brightness(1.5) saturate(1.4) drop-shadow(0 0 8px #ff6338)}}
 
-.spot-toggle, .journal-toggle {
+.spot-toggle, .journal-toggle, .training-link {
   display: inline-flex;
   align-items: center;
   gap: 9px;
@@ -94,16 +94,25 @@
   font-size: 13px;
   font-weight: 800;
 }
-.spot-toggle {
+.spot-toggle:hover, .journal-toggle:hover, .training-link:hover {
+  background: #e8fbf7;
+  border-color: #82d8cb;
+}
+.map-actions {
   position: absolute;
+  z-index: 1;
   top: 22px;
   left: 50%;
   translate: -50% 0;
-  border-color: #d2eeeb;
-  background: #f7fffd;
-  box-shadow: 0 2px 8px #003b542b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.spot-toggle:hover, .journal-toggle:hover { background: #e4f7f3; }
+.map-actions > * { white-space: nowrap; box-shadow: 0 3px 12px #003b5430; }
+.spot-toggle { border-color: #d2eeeb; background: #f7fffd; }
+.training-link { gap: 6px; padding-inline: 11px 13px; background: #effffc; text-decoration: none; }
+.training-link svg { width: 18px; height: 18px; color: #078276; }
+.journal-toggle { box-shadow: 0 2px 0 #cae9e459; }
 .toggle-track {
   position: relative;
   width: 48px;
@@ -182,7 +191,7 @@
   filter: drop-shadow(0 1px 2px #04394594);
 }
 .paper-edge { stroke: #fffdf0; stroke-width: 1.6; stroke-linejoin: round; }
-.spot-toggle:focus-visible, .spot-pin:focus-visible { outline: 2px solid #ffe39b; outline-offset: 2px; }
+.spot-toggle:focus-visible, .spot-pin:focus-visible, .training-link:focus-visible { outline: 2px solid #ffe39b; outline-offset: 2px; }
 .spot-rating {
   display: flex;
   align-items: center;
@@ -204,7 +213,7 @@
 .spot-reference small { font-size: 10px; }
 .spot-reference a { color: #076b77; font-size: 11px; text-underline-offset: 3px; }
 @media (max-width: 700px) {
-  .spot-toggle { top: 23px; }
+  .map-actions { top: 23px; }
   .dive-detail:has(.spot-rating) { max-height: calc(100% - 170px); }
   .spot-highlight, .spot-conditions { font-size: 11px; }
 }
@@ -222,6 +231,10 @@
   body:has(#public-journal-toggle:not([hidden])) .topbar { padding-inline: 9px; }
   body:has(#public-journal-toggle:not([hidden])) .brand { font-size: 16px; }
   body:has(#public-journal-toggle:not([hidden])) .brand-icon { width: 29px; height: 29px; }
+}
+
+@media (max-width: 450px) {
+  .map-actions { flex-direction: column; gap: 5px; }
 }
 
 .map-stage:has(#map[data-world-view]) { background: #08779e; }
