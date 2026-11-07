@@ -144,7 +144,7 @@ export const izuDiveAreas = [
     source: 'https://hawasworks.com/point/', sourceName: '土肥ダイビング・ハワーズワークス',
   },
   {
-    id: 'koshimoda-tobishima', name: '小下田・とび島沖', area: '静岡・伊豆市 小下田沖', coordinates: [138.74951, 34.86565], difficulty: 4, icon: 'fish',
+    id: 'koshimoda-tobishima', name: '小下田・とび島沖', area: '静岡・伊豆市 小下田沖', coordinates: [138.7521241, 34.8634536], difficulty: 4, icon: 'fishSchool',
     highlight: '沖の根が切り立ち、岩の上を魚の群れが通ります。根を離れると駿河湾の青さが目に入ります。',
     conditions: '外海に面したボートルート。流れと深さの変化に対応できる経験が求められます。',
     source: 'https://hawasworks.com/point/', sourceName: '土肥ダイビング・ハワーズワークス',
@@ -228,7 +228,7 @@ export const izuDiveAreas = [
     source: "https://i-mc.co.jp/blog/detail/20240211-inatori/", sourceName: "稲取マリンスポーツセンター",
   },
   {
-    id: "toi-sakune", name: "小下田・サク根", area: "静岡・伊豆市 小下田 サク根沖", coordinates: [138.747883, 34.869525], difficulty: 4, icon: "fish",
+    id: "toi-sakune", name: "小下田・サク根", area: "静岡・伊豆市 小下田 サク根沖", coordinates: [138.7508249, 34.8689128], difficulty: 4, icon: "fishSchool",
     highlight: "沖に立つ根の上でイサキが群れ、岩の裂け目ではルリハタを見かけることがあります。",
     conditions: "小下田のボートコース。潮が当たり、深さや流れに対応する経験が求められます。",
     source: "https://toids.jp/archives/22343", sourceName: "土肥ダイビングサービス",
@@ -1020,7 +1020,7 @@ export const izuDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/1437", sourceName: "ダイブポイント 北川・大川 ビーチ",
   },
   {
-    id: "okawa-clownfish-castle", name: "クマノミ城", area: "静岡・東伊豆 大川南沖 根の点在する海底", coordinates: [139.078573, 34.838132], difficulty: 3, icon: "anemone",
+    id: "okawa-clownfish-castle", name: "クマノミ城", area: "静岡・東伊豆 大川南沖 根の点在する海底", coordinates: [139.078573, 34.838132], difficulty: 3, icon: "clownfish",
     highlight: "海底に散らばる根でクマノミを探せます。イシダイが現れたり、トビエイが根の上を通ったりすることもあります。",
     conditions: "北川・大川エリアのボート海域。現在の出船・案内状況は現地ショップに確認してください。",
     source: "https://divingpoint.net/divepoints/view/1438", sourceName: "ダイブポイント 北川・大川 クマノミ城",
@@ -1036,5 +1036,29 @@ export const izuDiveAreas = [
     highlight: "沖の漁礁をウミトサカやヤギが覆い、サンゴの枝の間をハナダイが泳ぎます。",
     conditions: "夏季限定のボート海域。深い側は水深30m前後。開放時期と参加条件は現地のショップで確認してください。",
     source: "https://www.izukko.com/new-blog/2026-6-12", sourceName: "伊豆っこダイビング 川奈の潜水記録",
+  },
+  {
+    id: "toi-okigyosho", name: "八木沢・沖漁礁", area: "静岡・西伊豆 土肥 八木沢沖の人工漁礁", coordinates: [138.7712679, 34.898845], difficulty: 2, icon: "structure",
+    highlight: "砂地に積まれたブロックをソフトコーラルが覆い、その周りをマアジやイサキの群れが通ります。",
+    conditions: "冬季限定のボート海域。2026年度の案内は12月12日から翌年2月28日までです。開放日やブイの位置は現地で確認します。",
+    source: "https://toids.jp/archives/22360", sourceName: "土肥ダイビングサービス 沖漁礁の開放案内",
+  },
+  {
+    id: "toi-tobishima-part2", name: "とび島沖 パートⅡ", area: "静岡・西伊豆 土肥 小下田 とび島沖西側の連なる根", coordinates: [138.750223, 34.8624943], difficulty: 5, icon: "fishSchool",
+    highlight: "深い砂地から立ち上がる隠れ根が連なり、キンギョハナダイやタカベの群れが岩の周りを巡ります。",
+    conditions: "夏から秋にかけて期間を区切って案内するボート海域。とび島沖本体の西側で、潮が強いことがあります。",
+    source: "https://toids.jp/archives/20184", sourceName: "土肥ダイビングサービス 小下田の開放案内",
+  },
+  {
+    id: "toi-takanosu", name: "鷹の巣", area: "静岡・西伊豆 土肥 小下田 南側の岩穴", coordinates: [138.7560062, 34.8624798], difficulty: 4, icon: "cave",
+    highlight: "浅めの岩礁に大小の穴が開き、暗い場所にハタンポやキンメモドキが集まります。岩の隙間から光が差し込みます。",
+    conditions: "季節限定のボート海域。岩の下に入るコースには、適切な訓練と現地ガイドの判断が必要です。",
+    source: "https://hawasworks.com/koshimoda-takanosu/", sourceName: "土肥ダイビング・ハワーズワークス 鷹の巣",
+  },
+  {
+    id: "toi-yakata-beach", name: "屋形ビーチ", area: "静岡・西伊豆 土肥港南側の限定水域", coordinates: [138.7879443, 34.9059855], difficulty: 1, icon: "sand",
+    highlight: "岸のすぐ前にある浅い限定水域で、岩礁の外海に出ずに浅場の潜水練習ができます。",
+    conditions: "現地サービスがロープで区切る季節限定の練習海域。満潮時の水深は約0〜4mです。案内時期は現地で確認します。",
+    source: "https://toids.jp/toi", sourceName: "土肥ダイビングサービス 屋形ビーチの区画図",
   },
 ];

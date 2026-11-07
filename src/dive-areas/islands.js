@@ -36,10 +36,10 @@ export const islandDiveAreas = [
     source: "https://mori-umi.net/tour/point/", sourceName: "屋久島ダイビングサービス もりとうみ",
   },
   {
-    id: 'kikaijima-west', name: '喜界島西岸のサンゴ礁', area: '鹿児島・喜界島 西岸', coordinates: [129.923, 28.321], difficulty: 2, icon: 'coral',
-    highlight: '陸から沖に向かってサンゴ礁の根が伸び、根の間に起伏のある水中景色が続きます。',
-    conditions: '体験にも使われる浅場をガイドが選ぶ場合の目安。島の周囲には別の深いポイントもあります。',
-    source: 'https://kikaijima.wixsite.com/kikaijima/diving', sourceName: '喜界島観光案内所',
+    id: "kikaijima-west", name: "スギラビーチ", area: "鹿児島・喜界島 空港西側 スギラビーチ沖の浅場", coordinates: [129.9196, 28.3208], difficulty: 2, icon: "coral",
+    highlight: "空港の西にある白い浜から浅い岩礁が続き、カラフルな小魚を探せます。体験ダイビングや講習にも使われる海域です。",
+    conditions: "ビーチから入る浅場の海域。サンゴに触れないようにし、入水場所は現地ガイドと選びます。",
+    source: "https://greenfield.style/article/76524/", sourceName: "Greenfield 喜界島のダイビングガイド",
   },
   {
     id: "tokunoshima-senma", name: "千間海岸", area: "鹿児島・徳之島 西岸 千間の岸寄り", coordinates: [128.890228, 27.782898], difficulty: 3, icon: "turtle",

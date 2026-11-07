@@ -587,4 +587,10 @@ export const kantoDiveAreas = [
     conditions: "岸から距離のある海域。現在の案内と岸からの移動は現地のダイビングサービスに確認してください。",
     source: "https://divingpoint.net/divepoints/view/1806", sourceName: "ダイブポイント 根府川 お花畑",
   },
+  {
+    id: "ibaraki-funagami-reef", name: "船神磯", area: "茨城・ひたちなか 阿字ヶ浦沖の岩礁", coordinates: [140.6226, 36.398], difficulty: 4, icon: "nudibranch",
+    highlight: "岩が重なった浅い根で、張り出しやトンネルの周りにウミウシが見つかります。岩穴ではイセエビやタコを見かけることもあります。",
+    conditions: "那珂湊港から船で向かいます。現地ガイドの参加条件は、AOW以上、潜水経験20本以上、過去6カ月以内に潜っていることです。",
+    source: "https://jah.co.jp/diveinibaraki/", sourceName: "ジャー ダイビング クラブ 茨城の海",
+  },
 ];

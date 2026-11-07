@@ -135,7 +135,7 @@ export const ogasawaraDiveAreas = [
     source: "https://www.diveresort-hahajima.com/scubadiving/pointmap", sourceName: "ダイブリゾート母島",
   },
   {
-    id: "hirajima-anadai", name: "アナダイ", area: "東京・小笠原 母島列島 平島 北側沖", coordinates: [142.156205, 26.588094], difficulty: 2, icon: "fish",
+    id: "hirajima-anadai", name: "アナダイ", area: "東京・小笠原 母島列島 平島 北側沖", coordinates: [142.156205, 26.588094], difficulty: 2, icon: "fishSchool",
     highlight: "地元でアナダイと呼ぶアジアコショウダイが、ヨスジフエダイと一緒に岩場に集まります。",
     conditions: "無人島の平島へ船で向かうコース。島に渡れる海況の日に案内されます。",
     source: "https://www.diveresort-hahajima.com/scubadiving/pointmap", sourceName: "ダイブリゾート母島",
@@ -214,7 +214,7 @@ export const ogasawaraDiveAreas = [
     source: "https://seasonal-ogasawara.com/2026/02/27/2%E6%9C%8821%E6%97%A5%E3%80%9C24%E6%97%A5%E3%81%AE%E3%83%AD%E3%82%B0/", sourceName: "Seasonal Dive Guiding",
   },
   {
-    id: "ogasawara-eagle-ray-rock", name: "イーグルレイロック", area: "東京・小笠原 兄島西沖", coordinates: [142.186303, 27.127018], difficulty: 3, icon: "fish",
+    id: "ogasawara-eagle-ray-rock", name: "イーグルレイロック", area: "東京・小笠原 兄島西沖", coordinates: [142.186303, 27.127018], difficulty: 3, icon: "fishSchool",
     highlight: "ノコギリダイやアカヒメジが群れ、岩の周りではハタタテハゼやクビアカハゼの記録もあります。",
     conditions: "父島列島を回るボート海域です。",
     source: "https://seasonal-ogasawara.com/2026/02/27/2%E6%9C%8821%E6%97%A5%E3%80%9C24%E6%97%A5%E3%81%AE%E3%83%AD%E3%82%B0/", sourceName: "Seasonal Dive Guiding",

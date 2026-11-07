@@ -16,7 +16,7 @@ export const okinawaDiveAreas = [
     source: guideRoot + 'sesoko/', sourceName,
   },
   {
-    id: 'iejima', name: '伊江島・クマノミ山', area: '沖縄・伊江島 南西沖 クマノミ山', coordinates: [127.774635, 26.703681], difficulty: 2, icon: 'fish',
+    id: 'iejima', name: '伊江島・クマノミ山', area: '沖縄・伊江島 南西沖 クマノミ山', coordinates: [127.774635, 26.703681], difficulty: 2, icon: 'clownfish',
     highlight: 'サンゴの根の周りにクマノミやハナダイが集まります。島の海は入り組んだ岩の地形でも知られます。',
     conditions: 'ボートで渡り、ガイドとサンゴの根を眺めるコースの目安です。',
     source: 'https://ie-resort.com/spot', sourceName: '伊江リゾート',
@@ -514,7 +514,7 @@ export const okinawaDiveAreas = [
     source: "https://liberte.jp/hokubu/course/fun/minanajimasesokoboatdive/sesokojimadivingpoint/rabirinsu", sourceName: "リベルテもとぶ店 ラビリンス",
   },
   {
-    id: "sesoko-kumanomiyama", name: "クマノミ山", area: "沖縄・本部 瀬底島 北岸 クマノミ山", coordinates: [127.864423, 26.657242], difficulty: 2, icon: "fish",
+    id: "sesoko-kumanomiyama", name: "クマノミ山", area: "沖縄・本部 瀬底島 北岸 クマノミ山", coordinates: [127.864423, 26.657242], difficulty: 2, icon: "clownfish",
     highlight: "浅い根にイソギンチャクがつき、クマノミの仲間と根の周りを泳ぐ小魚を観察できます。",
     conditions: "瀬底島の北側へ船で向かいます。浅い側を中心に巡るコースです。",
     source: "https://liberte.jp/hokubu/course/fun/minanajimasesokoboatdive/sesokojimadivingpoint/kumanomiyama", sourceName: "リベルテもとぶ店 クマノミ山",
@@ -1870,7 +1870,7 @@ export const okinawaDiveAreas = [
     source: "https://liberte.jp/naha/scubadiving/okinawadiving/chibishidiving/chibishidivingpoint/nagannujimarippyou", sourceName: "リベルテ那覇 ナガンヌ島立標",
   },
   {
-    id: "sesoko-torumai-toaka", name: "トールマイ・トウアカ", area: "沖縄・本部 瀬底水道 トウアカクマノミの根", coordinates: [127.8717613, 26.6386107], difficulty: 2, icon: "anemone",
+    id: "sesoko-torumai-toaka", name: "トールマイ・トウアカ", area: "沖縄・本部 瀬底水道 トウアカクマノミの根", coordinates: [127.8717613, 26.6386107], difficulty: 2, icon: "clownfish",
     highlight: "砂泥の海底に点在する根でトウアカクマノミを探せます。水深12m前後の砂地にはヤシャハゼやヒレナガネジリンボウもいます。",
     conditions: "瀬底島と本島の間のボート海域。砂を巻き上げないように進み、潮と視界に合わせてガイドがコースを選びます。",
     source: "https://liberte.jp/hokubu/course/fun/minanajimasesokoboatdive/sesokojimadivingpoint/torumaitoaka", sourceName: "リベルテもとぶ店 トールマイ・トウアカ",

@@ -1599,7 +1599,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://divingpoint.net/divepoints/view/323", sourceName: "ダイビングポイント情報サイト Vロード",
   },
   {
-    id: "yonaguni-sabachi", name: "サバチ（クマノミガーデン）", area: "沖縄・与那国島 南岸 サバチのイソギンチャク", coordinates: [122.96945571899414, 24.434647305605758], difficulty: 3, icon: "coral",
+    id: "yonaguni-sabachi", name: "サバチ（クマノミガーデン）", area: "沖縄・与那国島 南岸 サバチのイソギンチャク", coordinates: [122.96945571899414, 24.434647305605758], difficulty: 3, icon: "clownfish",
     highlight: "赤いイソギンチャクにハマクマノミが集まり、近くのドロップ沿いをノコギリダイやアカヒメジが泳ぎます。",
     conditions: "クマノミガーデンとも呼ばれる南岸のボート海域です。",
     source: "https://yonaguniyds.com/diving/point/", sourceName: "与那国ダイビングサービス",
@@ -1953,7 +1953,7 @@ export const okinawaIslandDiveAreas = [
     source: "https://www.unarizaki.com/iriomote/guide/ogandive/", sourceName: "ダイビングチームうなりざき西表",
   },
   {
-    id: "kume-clownfish-castle", name: "クマノミ城（久米島）", area: "沖縄・久米島 東寄り クマノミ城の根", coordinates: [126.819376, 26.329214], difficulty: 2, icon: "fish",
+    id: "kume-clownfish-castle", name: "クマノミ城（久米島）", area: "沖縄・久米島 東寄り クマノミ城の根", coordinates: [126.819376, 26.329214], difficulty: 2, icon: "clownfish",
     highlight: "小さな根のイソギンチャクにハマクマノミが集まり、同じ根にミツボシクロスズメダイも見られます。",
     conditions: "浅い根を巡るボート海域。根やイソギンチャクに触れない範囲で観察します。",
     source: "https://divingpoint.net/divepoints/view/1445", sourceName: "ダイビングポイント情報サイト",
@@ -2043,10 +2043,10 @@ export const okinawaIslandDiveAreas = [
     source: "https://keramajoyjoy.com/popup/d-point.html", sourceName: "JOYJOY 座間味",
   },
   {
-    id: "kerama-naze", name: "名瀬", area: "沖縄・慶良間 慶留間島北東沖", coordinates: [127.304749, 26.190868], difficulty: 4, icon: "cave",
-    highlight: "沖の岩礁の両側が切り立ち、岩穴にキンメモドキが集まることがあります。",
-    conditions: "同じ礁でも水深4〜35mと差があります。岩穴への進入は適切な訓練・装備が前提です。",
-    source: "https://keramajoyjoy.com/popup/d-point.html", sourceName: "JOYJOY 座間味",
+    id: "kerama-naze", name: "名瀬沖（ナジ）", area: "沖縄・慶良間 安室島南方 名瀬の岩礁沖", coordinates: [127.31472, 26.18451], difficulty: 4, icon: "seahorse",
+    highlight: "切り立つ岩礁に谷や洞窟が入り組みます。イソバナの周辺では、ピグミーシーホースの観察例があります。",
+    conditions: "安室島の南に離れた岩礁を巡るボート海域です。潮に合わせて深度とルートを選びます。",
+    source: "https://aqua-life.biz/diving_point_okinawa.html", sourceName: "アクアライフ 慶良間・名瀬沖",
   },
   {
     id: "kuba-kubaji", name: "クバジのサチ", area: "沖縄・慶良間 久場島 北端沖", coordinates: [127.236629, 26.183779], difficulty: 4, icon: "coral",
@@ -2958,5 +2958,35 @@ export const okinawaIslandDiveAreas = [
     highlight: "白い砂地に立つ大きな根を、スカシテンジクダイやキンメモドキが取り巻きます。根の穴ではハナヒゲウツボ、砂地ではチンアナゴを探せます。",
     conditions: "竹富島南沖のボート海域。見どころの根は約13mで、潜る深さはコースで変わります。",
     source: "https://ishigaki-jam.com/map/ritou1/", sourceName: "マリンハウスJAM 竹富島周辺のダイビングポイント",
+  },
+  {
+    id: "kerama-lst447", name: "慶良間・沈船 LST-447", area: "沖縄・慶良間 外地島南方の沈船", coordinates: [127.2930908, 26.1575951], difficulty: 5, icon: "wreck",
+    highlight: "砂地に船底を上にして横たわる揚陸艦です。船体は二つに分かれ、船尾側に大きなスクリューが残ります。",
+    conditions: "水深約43mで流れが強くなる外洋の海域。必要な訓練と装備を現地ガイドに確認し、戦没者を悼む場として扱います。",
+    source: "https://tech-diving.jp/field/field-wreck/lst447", sourceName: "DIVE Explorers LST-447 海域図",
+  },
+  {
+    id: "irabu-tj88", name: "白鳥崎沖の座礁船（TJ88）", area: "沖縄・宮古諸島 伊良部島 北方の浅瀬", coordinates: [125.1833333, 24.8633333], difficulty: 3, icon: "wreck",
+    highlight: "白鳥崎の沖に残る油タンカーTJ88の残骸。現地の潜水記録では、浅場の船体の周りに小魚の群れが集まっています。",
+    conditions: "浅い岩礁にあるボート海域です。残骸の状態と当日の案内は現地ガイドに確認します。",
+    source: "https://bigholiday-miyakojima.com/7518", sourceName: "BIGHOLIDAY 伊良部島の座礁船",
+  },
+  {
+    id: "irabu-umiushi-goten", name: "ウミウシ御殿", area: "沖縄・宮古諸島 伊良部島 南沖の浅い砂地", coordinates: [125.1994953, 24.8017988], difficulty: 2, icon: "nudibranch",
+    highlight: "砂地で小さなウミウシを探す海域。洞窟巡りが多い下地島方面のコースと組み合わせて案内されます。",
+    conditions: "秋冬の海域図に載るボートポイントです。砂を巻き上げないように生き物を観察します。",
+    source: "https://eminamarine-diving.net/archives/11698", sourceName: "エミナマリン ウミウシ御殿の案内",
+  },
+  {
+    id: "irabu-mud-city", name: "マッドシティー", area: "沖縄・宮古諸島 伊良部島 南東岸の湾内", coordinates: [125.2150141, 24.8048254], difficulty: 2, icon: "macro",
+    highlight: "波の入りにくい湾内で、小さな生き物をじっくり探す海域です。伊良部リーフの案内図では南東の入り江側に示されています。",
+    conditions: "湾内のボート海域。視界や海況に応じて現地ガイドが案内します。",
+    source: "https://reefmiyako.com/point-map/", sourceName: "伊良部リーフ マッドシティーの海域図",
+  },
+  {
+    id: "shimoji-hon-drop", name: "本ドロップ", area: "沖縄・宮古諸島 下地島 西岸 中の島湾の北側外礁", coordinates: [125.1383989, 24.8141246], difficulty: 4, icon: "fishSchool",
+    highlight: "浅いリーフが切り立つ岩壁へ変わり、離れ根の周囲をタカサゴの群れやロウニンアジが通ります。",
+    conditions: "中の島湾の外側を巡るボート海域です。潮に乗ってカスミのドロップ方面まで移動するコースもあります。",
+    source: "https://www.miyako-aquaticadventure.com/hondrop.html", sourceName: "アクアティックアドベンチャー 本ドロップ",
   },
 ];
