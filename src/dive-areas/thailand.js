@@ -595,4 +595,58 @@ export const thailandDiveAreas = [
     conditions: "ボート。根の上は約14 m、外縁は約32 mまで。海況がそろう日に遠征便で潜る、経験者向けのポイントです。",
     source: "https://www.pattaya-scuba-adventures.com/hin-chalarm-special-dive-trip/", sourceName: "Pattaya Scuba Adventures サメサン沖合",
   },
+  {
+    id: "pattaya-sak-submarine-reef", name: "サック島 サブマリン・リーフ", area: "タイ・パタヤ近海 サック島 サブマリン・リーフ", coordinates: [100.78948,12.94406], difficulty: 3, icon: "reef",
+    highlight: "サック島西の岬から沖に続くリーフ。湾内西側の浅場から離れ、リーフの外縁を流れに合わせて巡ります。",
+    conditions: "ボート。湾外のルートは流れの確認が必要です。浮上地点は船の往来を見てガイドが決めます。",
+    source: "https://www.padi.com/dive-site/thailand/submarine-reef-koh-sak/", sourceName: "PADI・Pattaya Dive Centre サブマリン・リーフ",
+  },
+  {
+    id: "pattaya-luam-south", name: "ルアム島 南の岬", area: "タイ・パタヤ沖合 ルアム島 南の岬", coordinates: [100.6479,12.9506], difficulty: 2, icon: "coral",
+    highlight: "南の岬を回ると、浅い棚状のサンゴから、カイメンがついた岩や細長いムチカラマツのある深場へ景色が変わります。",
+    conditions: "ボート。水深はおおむね10 m、深い所で約18 m。岬の流れを見てコースを選びます。",
+    source: "https://www.andamanadventures.com/scuba_diving_sites/pattaya/aa_destination.shtml", sourceName: "Andaman Adventures パタヤのダイブサイト図",
+  },
+  {
+    id: "pattaya-luam-noi", name: "ルアムノイ島の浅瀬", area: "タイ・パタヤ沖合 ルアムノイ島の浅瀬", coordinates: [100.6575,12.9551], difficulty: 2, icon: "ray",
+    highlight: "小島の北東から南にかけての浅いリーフ。砂地では青い斑点のあるエイ、サンゴの上ではタイマイを見かけることがあります。",
+    conditions: "ボート。深い所で約10 m。島の間の浅い海域は、波や潮が強いと濁りやすくなります。",
+    source: "https://pattayadivers.com/pattaya-far-islands/", sourceName: "Adventure Divers ルアムノイ島",
+  },
+  {
+    id: "pattaya-hu-chang-west", name: "フーチャン島 西の入り江", area: "タイ・パタヤ沖合 フーチャン島 西の入り江", coordinates: [100.6767,12.9104], difficulty: 2, icon: "coral",
+    highlight: "象の耳にたとえられる小島の西側。浅い岩場のサンゴと、その周りに集まる魚を見られます。",
+    conditions: "ボート。約10 mの浅場が中心。風や潮が穏やかなときは初級者にも向きます。",
+    source: "https://www.thailand-diving.org/english/diving/dive-site.php", sourceName: "Thailand Diving フーチャン島",
+  },
+  {
+    id: "pattaya-rin-west-reef", name: "リン島 西の浅場", area: "タイ・パタヤ沖合 リン島 西の浅場", coordinates: [100.6967,12.7985], difficulty: 2, icon: "coral",
+    highlight: "島の西岸に沿って浅いリーフを巡るコース。東の湾や沖の岩礁とは別に、島が波を遮る側で潜れます。",
+    conditions: "ボート。浅場は講習や初級者向け。西沖には深いくぼ地があるため、ここで案内する範囲は岸沿いの浅場です。",
+    source: "https://pattayadivers.com/pattaya-far-islands/", sourceName: "Adventure Divers リン島西側",
+  },
+  {
+    id: "samaesan-island-west-reef", name: "サメサン島 西のリーフ", area: "タイ・サメサン サメサン島 西のリーフ", coordinates: [100.9478,12.5626], difficulty: 2, icon: "coral",
+    highlight: "サメサン諸島の本島に沿うサンゴの斜面。テーブル状のサンゴと柔らかいサンゴを見比べながら潜れます。",
+    conditions: "ボート。島周辺のリーフはおおむね6〜18 m。海軍の管理水域で、当日の利用可否と潮を確認します。",
+    source: "https://divinginternships.com/about-diving-internships/gulf-of-thailand-dive-sites/", sourceName: "Dive Right Academy サメサン島",
+  },
+  {
+    id: "samaesan-chang-klua-reef", name: "チャンクルア島のリーフ", area: "タイ・サメサン チャンクルア島のリーフ", coordinates: [100.973,12.549], difficulty: 2, icon: "coral",
+    highlight: "サメサン本島の東にある小さな島。岩礁に沿ってテーブルサンゴやウミウチワを見られる、沈船の後にも組まれるリーフダイブです。",
+    conditions: "ボート。浅いルートを選べます。風や流れによって、船が寄れる側が変わります。",
+    source: "https://divinginternships.com/about-diving-internships/gulf-of-thailand-dive-sites/", sourceName: "Dive Right Academy チャンクルア島",
+  },
+  {
+    id: "samaesan-hin-lak-bat", name: "シャークフィン・ロック（ヒン・ラックバート）", area: "タイ・サメサン シャークフィン・ロック（ヒン・ラックバート）", coordinates: [100.9448,12.531], difficulty: 3, icon: "ray",
+    highlight: "サメの背びれに似た小さな岩の下にサンゴ礁が広がります。南東の岩壁と、エイが姿を見せる東側の砂斜面が見どころです。",
+    conditions: "ボート。水深はおおむね15 m、深い所で約28 m。外側は潮が強くなるため、ドリフトの可否はガイドと判断します。",
+    source: "https://www.divecentrepattaya.com/go-diving-pattaya-thailand/dive-sites/samae-san-islands-dive-sites/", sourceName: "Pattaya Dive Centre シャークフィン・ロック",
+  },
+  {
+    id: "samaesan-t94-t95-wrecks", name: "沈船 T.94・T.95", area: "タイ・サメサン 沈船 T.94・T.95", coordinates: [100.959667,12.526], difficulty: 3, icon: "wreck",
+    highlight: "タイ海軍の元沿岸警備艇2隻。2024年にチュアン島とチャン島の間に沈められ、人工礁になりました。",
+    conditions: "ボート。砂底は約20 m。ピンは2隻が沈む海域の目安です。潮流と認定深度に合わせて外観を巡ります。",
+    source: "https://www.dmcr.go.th/detailAll/73031/nws/257", sourceName: "タイ海洋沿岸資源局 T.94・T.95",
+  },
 ];
