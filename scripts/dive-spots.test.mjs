@@ -55,12 +55,23 @@ test('Miyagawa Bay renders a single marker for Tobine', () => {
   assert.equal(sites[0].source, 'https://miura-diving.com/diving-point/miyagawa-bay/');
 });
 
-const keramaCoastalSites = [
+test('Hedo Dome and Ginama Cave share one pin', () => {
+  const sites = diveSpots.filter(spot =>
+    spot.id === 'hedo-dome' || spot.id === 'kunigami-ginama-cave' ||
+    spot.name.includes('辺戸岬ドーム') || spot.name.includes('宜名真海底鍾乳洞')
+  );
+  assert.deepEqual(sites.map(spot => spot.id), ['hedo-dome']);
+  assert.match(sites[0].name, /辺戸岬ドーム.*宜名真海底鍾乳洞/);
+});
+
+const mappedCoastalSites = [
+  // Small bounds within the diving area published by Odawara City.
+  { id: 'hayakawa-beach', west: 139.1442, east: 139.1446, south: 35.2301, north: 35.2305 },
   { id: 'aka-agonomagari', west: 127.265, east: 127.268, south: 26.194, north: 26.197 },
   { id: 'tokashiku-beach', west: 127.344, east: 127.346, south: 26.185, north: 26.188 },
 ];
 
-for (const { id, west, east, south, north } of keramaCoastalSites) {
+for (const { id, west, east, south, north } of mappedCoastalSites) {
   test(`${id} stays in the mapped coastal dive area`, () => {
     const spot = diveSpots.find(spot => spot.id === id);
     assert.ok(spot);

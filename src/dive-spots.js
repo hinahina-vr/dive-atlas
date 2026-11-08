@@ -1,6 +1,7 @@
 import { izuDiveAreas } from './dive-areas/izu.js';
 import { islandDiveAreas } from './dive-areas/islands.js';
 import { islandCoastDiveAreas } from './dive-areas/island-coasts.js';
+import { lakeDiveAreas } from './dive-areas/lakes.js';
 import { kantoDiveAreas } from './dive-areas/kanto.js';
 import { kiiDiveAreas } from './dive-areas/kii.js';
 import { westernJapanDiveAreas } from './dive-areas/western-japan.js';
@@ -15,7 +16,9 @@ import { guamDiveAreas } from './dive-areas/guam.js';
 import { palauDiveAreas } from './dive-areas/palau.js';
 import { thailandDiveAreas } from './dive-areas/thailand.js';
 import { indonesiaDiveAreas } from './dive-areas/indonesia.js';
+import { baliDiveAreas } from './dive-areas/bali.js';
 import { philippinesDiveAreas } from './dive-areas/philippines.js';
+import { fijiDiveAreas } from './dive-areas/fiji.js';
 
 // Pins indicate the area around each spot. Difficulty is an editorial 1–5 estimate for the route described.
 const okinawaBeginners = 'https://blog.padi.com/jp/dive-spots-in-okinawa-for-beginner/';
@@ -76,7 +79,7 @@ export const diveSpots = [
     source: "https://divingpoint.net/divepoints/view/337", sourceName: "ダイビングポイント情報サイト 美国宝島　西",
   },
   {
-    id: 'shizugawa', name: '志津川湾', area: '宮城・南三陸 志津川湾', coordinates: [141.493, 38.668], difficulty: 3, icon: 'macro',
+    id: 'shizugawa', name: '志津川湾', area: '宮城・南三陸 志津川湾', coordinates: [141.493, 38.668], difficulty: 3, icon: 'lumpfish',
     highlight: '小さなダンゴウオをじっくり探す海。岩や海藻の間をのぞくと、冷たい海の生きものが見えてきます。',
     conditions: '冷水と視界の変化に合わせた装備・経験があると楽しみやすい海域です。',
     source: 'https://www.gruntsculpin.com/tour-gallery-06.html', sourceName: 'グラントスカルピン',
@@ -97,7 +100,7 @@ export const diveSpots = [
   {
     id: 'oshima', name: '秋の浜', area: '東京・伊豆大島 秋の浜', coordinates: [139.40346, 34.79083], difficulty: 2, icon: 'fish',
     highlight: '岩や砂地が切り替わる岸沿いで、小さな魚や南の海から来る魚を探せます。',
-    conditions: 'ガイドと巡る浅場を想定。沖は深くなります。',
+    conditions: '岸から入る場合は現地の遊泳区域に従います。沖へボートで向かう場合は、地元漁協が手配する船を利用します。',
     source: 'https://uminowa.net/fundiving/page-2742/page-2425/', sourceName: '伊豆大島ダイビングうみのわ',
   },
   {
@@ -159,9 +162,12 @@ export const diveSpots = [
   ...palauDiveAreas,
   ...thailandDiveAreas,
   ...indonesiaDiveAreas,
+  ...baliDiveAreas,
   ...philippinesDiveAreas,
+  ...fijiDiveAreas,
   ...islandDiveAreas,
   ...islandCoastDiveAreas,
+  ...lakeDiveAreas,
   ...ogasawaraDiveAreas,
   ...kyushuIslandDiveAreas,
   ...kiiDiveAreas,

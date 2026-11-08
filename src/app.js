@@ -96,7 +96,7 @@ function renderSpotDetail(el, { spot, marker }) {
  const empty = '☆'.repeat(5 - spot.difficulty);
  el.hidden = false;
  el.innerHTML = `
-  <div class="detail-top"><span>ダイビング海域の代表ポイント</span>
+  <div class="detail-top"><span>ダイビングエリアの代表ポイント</span>
    <button class="icon-button" id="spot-close" aria-label="スポット詳細を閉じる">${icon('close')}</button>
   </div>
   <h2>${escape(spot.name)}</h2>
@@ -109,8 +109,8 @@ function renderSpotDetail(el, { spot, marker }) {
   <p class="spot-highlight"><strong>見どころ</strong>${escape(spot.highlight)}</p>
   <p class="spot-conditions">${escape(spot.conditions)}</p>
   <div class="spot-reference">
-   <small>当日の海況や必要な資格は現地ガイドに確認</small>
-   <a href="${escape(spot.source)}" target="_blank" rel="noopener noreferrer">${escape(spot.sourceName)}の案内 ↗</a>
+   <small>当日の潜水条件と必要な資格は現地ガイドに確認</small>
+   <a href="${escape(spot.source)}" target="_blank" rel="noopener noreferrer">${escape(spot.sourceName)} ↗</a>
   </div>`;
  $('#spot-close').onclick = () => {
   clearSpotSelection();

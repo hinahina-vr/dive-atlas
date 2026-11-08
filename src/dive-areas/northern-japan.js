@@ -1,5 +1,12 @@
 export const northernJapanDiveAreas = [
   {
+    id: "tobishima-oshakujima", name: "御積島沖（飛島）", area: "山形・酒田 飛島西方の御積島周辺",
+    coordinates: [139.52026, 39.1855], difficulty: 5, icon: "shark",
+    highlight: "岩礁にサンゴや海藻が育ち、初夏には島の近くでドチザメが観察されています。",
+    conditions: "沖の岩礁を示す目安です。漁場のため、地元のダイビングショップや漁協に確認し、船を手配した上でガイドと潜ります。",
+    source: "https://www.city.sakata.lg.jp/sangyo/kotsu/teikisen/tobishimasyokai/map.files/2026naka.pdf", sourceName: "酒田市 飛島ガイドマップ",
+  },
+  {
     id: 'onagawa-takenoura', name: '竹浦', area: '宮城・女川 竹浦沖', coordinates: [141.48779, 38.43756], difficulty: 3, icon: 'nudibranch',
     highlight: '岩や海藻に目を近づけると、北の海の小さな魚やウミウシを探せます。',
     conditions: '現地ガイドと港の沖へ船で行くコース。冷たい水に合った装備と視界に応じた移動が必要です。',
@@ -106,5 +113,65 @@ export const northernJapanDiveAreas = [
     highlight: "海底に沈む鋼船の周りに、アイナメやエゾメバルが集まります。",
     conditions: "水深46mに達する沈船海域。現地事業者が専門ツアーを案内しています。",
     source: "https://divingpoint.net/divepoints/view/354", sourceName: "ダイビングポイント情報サイト レック眞岡丸",
+  },
+  {
+    id: 'yura-hakusan-north', name: '白山島ビーチ', area: '山形・鶴岡 由良 白山島北側', coordinates: [139.68299, 38.72647], difficulty: 2, icon: 'seahorse',
+    highlight: '白山島の北側では、浅い岩礁の海藻にタツノオトシゴが隠れます。沖へ向かうと小石の多い海底から砂地へと変わります。',
+    conditions: '由良のビーチ海域。現地ガイドの案内では最大水深は約11mです。',
+    source: 'https://ariel-diving.com/yamagata-diving-spot/', sourceName: 'ダイビングステージ アリエル・山形の海',
+  },
+  {
+    id: 'katanorizawa-yotsushima', name: '四ツ島', area: '山形・鶴岡 堅苔沢 四ツ島の岩礁', coordinates: [139.61735, 38.68759], difficulty: 3, icon: 'arch',
+    highlight: '灯台のある島の周りに岩の割れ目やトンネルがあり、根の周りでは大きなコブダイやアジの群れも見どころです。',
+    conditions: '渡船で島へ渡ってから入る期間限定の海域。開放期間と流れを現地の案内で確認してください。',
+    source: 'https://ariel-diving.com/yamagata-diving-spot/', sourceName: 'ダイビングステージ アリエル・山形の海',
+  },
+  {
+    id: 'kamo-aquarium-beach', name: '加茂ビーチ', area: '山形・鶴岡 加茂水族館南側の入り江', coordinates: [139.72356, 38.76098], difficulty: 2, icon: 'squid',
+    highlight: '岩場と砂地が一つの入り江にあり、砂にいる小さなイカや、岩を歩くウミウシを探せます。',
+    conditions: '水族館の隣から入るビーチ海域。コースや利用状況は現地ガイドの案内を確認してください。',
+    source: 'https://www.dolphin-scuba.com/diving-tour/', sourceName: 'スキューバカンパニードルフィン・加茂ビーチ',
+  },
+  {
+    id: 'tobishima-komatsuhama', name: '小松浜', area: '山形・酒田 飛島 勝浦の小松浜', coordinates: [139.54602, 39.18231], difficulty: 2, icon: 'fishSchool',
+    highlight: '岩に囲まれた小さな入り江で、浅い水中を泳ぐ魚を近くから見られます。',
+    conditions: '飛島のビーチ海域。海水浴場の利用条件と、現地の潜水案内を事前に確認してください。',
+    source: 'https://sakata-kankou.com/spot/30151', sourceName: '酒田さんぽ・飛島海水浴場',
+  },
+  {
+    id: 'tobishima-eboshi-islets', name: '烏帽子群島', area: '山形・酒田 飛島西方 烏帽子群島周辺', coordinates: [139.52637, 39.18024], difficulty: 4, icon: 'reef',
+    highlight: '飛島の西にある岩礁群。島の周りには、溶岩が冷えて柱の形になった岩が連なります。',
+    conditions: '沖に浮かぶ島々の周辺を示すピンです。島の浜とは別海域で、渡船やガイドの対応を事前に確認してください。',
+    source: 'https://chokaitobishima.com/wp-content/uploads/2025/06/2025tobishima01.pdf', sourceName: '鳥海山・飛島ジオパークの飛島案内',
+  },
+  {
+    id: 'oga-toga-diving-beach', name: '戸賀ビーチ', area: '秋田・男鹿 戸賀浜塩谷 ダイビングセンター前', coordinates: [139.71977, 39.95702], difficulty: 2, icon: 'fish',
+    highlight: '戸賀湾の浜から入って、岸に近い水中で魚を観察できる海域です。',
+    conditions: '男鹿市ダイビングセンター前のビーチ。体験やガイドの開催日はセンターに確認してください。',
+    source: 'https://akita-fun.jp/spots/467', sourceName: '秋田県公式観光サイト・男鹿市ダイビングセンター',
+  },
+  {
+    id: 'onagawa-sashigahama', name: '指ヶ浜', area: '宮城・女川 指ヶ浜・御前湾の岩礁', coordinates: [141.49043, 38.46807], difficulty: 3, icon: 'kelp',
+    highlight: '御前湾の岩礁に海藻が茂り、岩の隙間にはメバルやソイが集まります。岩に付くマボヤも見どころです。',
+    conditions: '御前湾のボート海域。岩礁を巡るコースが複数あり、当日の行き先は現地ガイドが決めます。',
+    source: 'https://ariel-diving.com/miyagi-diving-spot/', sourceName: 'ダイビングステージ アリエル・宮城の海',
+  },
+  {
+    id: 'ishinomaki-yagawa', name: '谷川浜（祝浜）', area: '宮城・石巻 谷川浜東側の祝浜', coordinates: [141.49575, 38.37043], difficulty: 3, icon: 'sand',
+    highlight: '砂地と岩場が隣り合う浅めの海域で、地形によって変わる生き物の顔ぶれを見比べられます。',
+    conditions: '谷川浜から船で向かうコース。潜降ロープを使わない場所があり、参加条件を現地ガイドに確認してください。',
+    source: 'https://high-bridge1.com/diving-spot/', sourceName: '女川ダイビングサービス High bridge',
+  },
+  {
+    id: 'rausu-rousoku', name: 'ローソク岩（羅臼）', area: '北海道・羅臼 海岸町 ローソク岩の沖', coordinates: [145.22617, 44.04099], difficulty: 4, icon: 'reef',
+    highlight: '岩礁の縁から砂地へ出ると、岩の隙間や海底で北の根魚や甲殻類を探せます。',
+    conditions: '知床半島の東側にある冷水域。季節に合わせた装備とコースは現地ガイドに確認してください。',
+    source: 'https://rausu-shiretoko.com/experience/shiretoko-diving/', sourceName: '知床羅臼町観光協会・知床ダイビング企画',
+  },
+  {
+    id: 'usujiri-maehama', name: '前浜（臼尻）', area: '北海道・函館 臼尻沿岸の前浜', coordinates: [140.95, 41.93357], difficulty: 3, icon: 'lumpfish',
+    highlight: '海藻の間で、丸い体のホテイウオ（ごっこ）の幼魚が見つかることがあります。春は卵塊も見どころです。',
+    conditions: '岸から入る浅めの海域。水温や波に合わせた装備と当日のエントリー場所はガイドに確認してください。',
+    source: 'https://blog.padi.com/jp/diving-in-hokkaido-and-tohoku-region/', sourceName: 'PADI・北海道と東北のダイビング案内',
   },
 ];

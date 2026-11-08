@@ -10,6 +10,96 @@
     "island-gazetteer": {
       "type": "geojson",
       "data": "./assets/okinawa-island-names.geojson"
+    },
+    "local-water": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "properties": {
+              "name": "下六嘉湧水群",
+              "description": "Approximate spring basin outline drawn from GSI Maps aerial imagery."
+            },
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    130.771154,
+                    32.753544
+                  ],
+                  [
+                    130.771283,
+                    32.75358
+                  ],
+                  [
+                    130.771487,
+                    32.753625
+                  ],
+                  [
+                    130.771669,
+                    32.75367
+                  ],
+                  [
+                    130.771776,
+                    32.753657
+                  ],
+                  [
+                    130.771884,
+                    32.75363
+                  ],
+                  [
+                    130.771921,
+                    32.75358
+                  ],
+                  [
+                    130.771798,
+                    32.753526
+                  ],
+                  [
+                    130.771819,
+                    32.753436
+                  ],
+                  [
+                    130.771766,
+                    32.75335
+                  ],
+                  [
+                    130.771653,
+                    32.753314
+                  ],
+                  [
+                    130.771487,
+                    32.753287
+                  ],
+                  [
+                    130.771326,
+                    32.753336
+                  ],
+                  [
+                    130.771165,
+                    32.753305
+                  ],
+                  [
+                    130.771095,
+                    32.753381
+                  ],
+                  [
+                    130.77109,
+                    32.753463
+                  ],
+                  [
+                    130.771154,
+                    32.753544
+                  ]
+                ]
+              ]
+            }
+          }
+        ]
+      }
     }
   },
   "layers": [
@@ -45,6 +135,15 @@
       "type": "fill",
       "source": "openmaptiles",
       "source-layer": "water",
+      "paint": {
+        "fill-color": "#08779e"
+      }
+    },
+    {
+      "id": "water-local",
+      "type": "fill",
+      "source": "local-water",
+      "minzoom": 14,
       "paint": {
         "fill-color": "#08779e"
       }
